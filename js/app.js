@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js';
-import { SITE, SITE_LIST } from './sites.js';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js';
-import { searchPlaces } from './search.js';
-import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609292007';
+import { SITE, SITE_LIST } from './sites.js?v=202609292007';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609292007';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609292007';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609292007';
+import { searchPlaces } from './search.js?v=202609292007';
+import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609292007';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -861,7 +861,13 @@ applyQuality(state.quality);
 const clock = new THREE.Clock(); let fpsAcc = 0, fpsN = 0, adAcc = 0, adN = 0, started = false, gGround = null, gTarget = null;
 // ?debugloop keeps rendering in a hidden tab (for automated checks); normal use follows the display refresh
 const nextFrame = location.search.includes("debugloop") ? cb => setTimeout(cb, 16) : cb => requestAnimationFrame(cb);
+// one failing frame must never freeze the app: report it once and keep drawing
+let frameError = null;
 function frame() {
+  try { drawFrame(); } catch (e) { if (String(e) !== frameError) { frameError = String(e); console.error(e); } }
+  nextFrame(frame);
+}
+function drawFrame() {
   const dt = clock.getDelta(), t = clock.elapsedTime;
   U.time.value = t;
   if (fly) {
@@ -904,7 +910,8 @@ function frame() {
   if (frameN % 600 === 0 && state.hourOffset === 0) updateSky();
   if (frameN % 45 === 0) updatePrecipForView();
   renderer.render(scene, camera);
-  if (!started && engine.roots.filter(r => r.state === 'ready').length >= engine.roots.length * 0.6) {
+  // start when the IGN relief is there, or when the Google view was chosen during loading (IGN then paused)
+  if (!started && (engine.roots.filter(r => r.state === 'ready').length >= engine.roots.length * 0.6 || (google.on && t > 3))) {
     started = true; $('loader').classList.add('done'); home();
     if (savedView === 'google' && googleKey.get()) setView('google'); // each opening of the Google view = one Google session
   }
@@ -918,7 +925,6 @@ function frame() {
     $('status').hidden = busy === 0; $('statusN').textContent = busy;
     fpsAcc = 0; fpsN = 0;
   }
-  nextFrame(frame);
 }
 window.midi3d = { engine, google, camera, controls, adapt, applyScale }; // handy for debugging from the console
 updateSky(); frame(); refreshLive();

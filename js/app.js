@@ -870,7 +870,7 @@ function frame() {
   }
   nextFrame(frame);
 }
-window.midi3d = { engine, camera, controls, adapt, applyScale }; // handy for debugging from the console
+window.midi3d = { engine, google, camera, controls, adapt, applyScale }; // handy for debugging from the console
 updateSky(); frame(); refreshLive();
 setInterval(() => { if (document.visibilityState === 'visible') refreshLive(); }, 15 * 60e3);
 setTimeout(() => $('loader').classList.add('done'), 15000);

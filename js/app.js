@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609292017';
-import { SITE, SITE_LIST } from './sites.js?v=202609292017';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609292017';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609292017';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609292017';
-import { searchPlaces } from './search.js?v=202609292017';
-import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609292017';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609292028';
+import { SITE, SITE_LIST } from './sites.js?v=202609292028';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609292028';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609292028';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609292028';
+import { searchPlaces } from './search.js?v=202609292028';
+import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609292028';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -393,7 +393,13 @@ renderer.domElement.addEventListener('pointerup', e => {
     if (!pickAt(hit)) pointReport(hit);
   }
 });
-controls.addEventListener('start', () => { fly = null; controls.autoRotate = false; $('c-spin').checked = false; });
+// Pivot as in Google Earth: when a gesture begins, the orbit centre moves to the ground under the middle of the
+// screen. That point lies on the line of sight, so the view does not move; nothing is adjusted during the gesture.
+controls.addEventListener('start', () => {
+  fly = null; controls.autoRotate = false; $('c-spin').checked = false;
+  const hit = pick(0, 0);
+  if (hit) controls.target.set(hit.x, hit.h * state.exag, hit.z);
+});
 
 // ---------- sun, sky, weather-driven look ----------
 let overcast = 0;
@@ -864,7 +870,7 @@ function resize() {
 }
 addEventListener('resize', resize);
 applyQuality(state.quality);
-const clock = new THREE.Clock(); let fpsAcc = 0, fpsN = 0, adAcc = 0, adN = 0, started = false, gGround = null, gTarget = null;
+const clock = new THREE.Clock(); let fpsAcc = 0, fpsN = 0, adAcc = 0, adN = 0, started = false, gGround = null;
 // ?debugloop keeps rendering in a hidden tab (for automated checks); normal use follows the display refresh
 const nextFrame = location.search.includes("debugloop") ? cb => setTimeout(cb, 16) : cb => requestAnimationFrame(cb);
 // one failing frame must never freeze the app: report it once and keep drawing
@@ -889,13 +895,7 @@ function drawFrame() {
   const T = controls.target;
   if (google.on && frameN % 6 === 0) {
     const down = (x, z) => { rayG.set(new THREE.Vector3(x, 9000, z), new THREE.Vector3(0, -1, 0)); rayG.far = 20000; const y = google.raycast(rayG)?.y ?? null; rayG.far = Infinity; return y; };
-    gGround = down(c.x, c.z); gTarget = down(T.x, T.z);
-  }
-  // after a drag the pivot slides along the ground: ease it to the surface under it, moving the camera by the
-  // same amount so the view does not jump
-  if (!fly && frameN % 2 === 0) {
-    const gt = google.on ? gTarget : groundAt(T.x, T.z);
-    if (gt != null) { const dy = (gt * state.exag - T.y) * 0.15; if (Math.abs(dy) > 0.02) { T.y += dy; c.y += dy; } }
+    gGround = down(c.x, c.z);
   }
   if (frameN % 60 === 0) {
     engine.ensureRoots(T.x, T.z, 45000);

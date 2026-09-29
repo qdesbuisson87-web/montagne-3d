@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609292009';
-import { SITE, SITE_LIST } from './sites.js?v=202609292009';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609292009';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609292009';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609292009';
-import { searchPlaces } from './search.js?v=202609292009';
-import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609292009';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609292017';
+import { SITE, SITE_LIST } from './sites.js?v=202609292017';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609292017';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609292017';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609292017';
+import { searchPlaces } from './search.js?v=202609292017';
+import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609292017';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -624,6 +624,12 @@ $('gKeyClear').addEventListener('click', () => { googleKey.set(''); setView('ign
 let savedView = 'ign'; try { savedView = localStorage.getItem('midi3d-view') || 'ign'; } catch { }
 $('c-spin').addEventListener('change', e => { controls.autoRotate = e.target.checked; });
 $('home').addEventListener('click', home);
+// "3D" button: tilt to a view facing the mountains, or back to a view from above (same pivot and distance)
+$('tilt').addEventListener('click', () => {
+  const off = camera.position.clone().sub(controls.target), s = new THREE.Spherical().setFromVector3(off);
+  s.phi = s.phi < 0.9 ? 1.3 : 0.3; // ~75° from the vertical: nearly level; ~17°: almost straight down
+  startFly(controls.target.clone(), controls.target.clone().add(new THREE.Vector3().setFromSpherical(s)), 900);
+});
 $('refresh').addEventListener('click', refreshLive);
 // Automatic adjustment: the chosen quality sets the ceiling; when the measured frame rate stays under the
 // quality's target, the resolution goes down first (down to half), then the terrain detail (down to 60 %).

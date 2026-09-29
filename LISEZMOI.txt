@@ -1,0 +1,53 @@
+AIGUILLE DU MIDI 3D
+===================
+
+Le massif du Mont-Blanc en 3D, chargé en direct :
+- relief IGN LiDAR HD (précision ~1 m) et RGE ALTI, relief mondial pour l'horizon
+- photos aériennes IGN jusqu'à 20 cm par pixel (Sentinel-2 cloudless côté Italie/Suisse)
+- météo Météo-France (AROME/ARPEGE via Open-Meteo), actualisée toutes les 15 minutes
+- neige vue par le satellite Sentinel-2 lors du dernier passage sans nuages (date affichée)
+- mer de nuages estimée d'après la couverture nuageuse réelle, soleil à sa vraie position
+
+LANCER SUR LE PC
+----------------
+Double-cliquer sur « lancer.bat ». Le navigateur s'ouvre sur http://localhost:8765/.
+Laisser la fenêtre noire ouverte pendant l'utilisation (la fermer arrête l'appli).
+Il faut Python (python.org, cocher « Add python.exe to PATH ») et une connexion Internet.
+
+REPRENDRE AVEC CLAUDE : ouvrir ce dossier dans Claude Code, le fichier CLAUDE.md lui donne tout le contexte.
+
+ESSAYER SUR LE TÉLÉPHONE (même Wi-Fi que le PC)
+-----------------------------------------------
+1. Lancer « lancer.bat » sur le PC.
+2. Trouver l'adresse IP du PC : dans un terminal, taper « ipconfig » (ligne « Adresse IPv4 »).
+3. Sur le téléphone, ouvrir http://ADRESSE-IP:8765/ (Windows peut demander d'autoriser Python
+   dans le pare-feu : accepter pour les réseaux privés).
+Dans ce mode, l'appli marche mais ne peut pas être « installée » (il faut une adresse https).
+
+INSTALLER SUR LE TÉLÉPHONE COMME UNE VRAIE APPLI
+------------------------------------------------
+Mettre ce dossier en ligne sur un hébergement https gratuit (GitHub Pages, Netlify, Cloudflare Pages…),
+ouvrir l'adresse sur le téléphone, puis :
+- iPhone (Safari) : bouton Partager > « Sur l'écran d'accueil »
+- Android (Chrome) : menu ⋮ > « Installer l'application » / « Ajouter à l'écran d'accueil »
+L'appli s'ouvre alors en plein écran avec son icône.
+
+UTILISATION
+-----------
+- Un doigt : tourner autour · deux doigts : zoomer et se déplacer · toucher le relief : altitude
+- Souris : clic gauche tourner, molette zoom vers le curseur, clic droit déplacer
+- « Lieux » : voler vers un sommet · « Conditions » : météo, neige, liens utiles · « Affichage » : réglages
+- Qualité « Extrême » : pour les appareils puissants (activée d'office quand l'appareil le permet)
+
+LIMITES À CONNAÎTRE
+-------------------
+- Les satellites ne voient le massif que tous les 2 à 5 jours, et pas à travers les nuages :
+  la neige affichée est celle du dernier passage sans nuages, dont la date est indiquée.
+- Les photos aériennes sont prises à la verticale : les parois très raides sont moins nettes.
+- Cette appli ne remplace ni le bulletin d'avalanche (BERA), ni l'Office de Haute Montagne, ni un guide.
+
+SOURCES
+-------
+Relief et photos © IGN (Géoplateforme, licence ouverte Etalab) · Sentinel-2 cloudless © EOX (CC BY-NC-SA 4.0,
+usage non commercial) · Copernicus Sentinel-2 via Microsoft Planetary Computer · Météo-France via Open-Meteo ·
+Relief mondial : AWS Terrain Tiles (Mapzen).

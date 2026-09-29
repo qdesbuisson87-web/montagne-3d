@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Montagne 3D</title>
+<meta name="description" content="Le massif du Mont-Blanc en 3D : relief LiDAR IGN, photos aériennes 20 cm, météo Météo-France et neige vue par Sentinel-2, en direct.">
+<meta name="theme-color" content="#0b1018">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Midi 3D">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/app.css">
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div id="stage"></div>
+<div id="labels"></div>
+
+<div class="tl">
+<header class="brand glass">
+  <div class="eyebrow" id="siteRegion">Massif du Mont-Blanc</div>
+  <h1><span id="siteName">Aiguille du Midi</span> <span class="alt" id="siteAlt"></span></h1>
+  <div id="status" class="status" hidden><i></i>Chargement · <span id="statusN">0</span></div>
+</header>
+<aside id="slopeLegend" class="legend glass" hidden aria-label="Légende des pentes">
+  <div class="lt">Pentes</div>
+  <ul id="slopeRows"></ul>
+  <p>Terrain nu (LiDAR IGN), sans la neige. Ne remplace pas le bulletin d'avalanche.</p>
+</aside>
+</div>
+
+<nav class="tabs glass" aria-label="Menus">
+  <button id="tab-places" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20 10 6l4 7 2-3 5 10z"/></svg>Lieux</button>
+  <button id="tab-cond" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1.5A3.5 3.5 0 1 1 17 18z"/></svg>Conditions</button>
+  <button id="tab-layers" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg>Affichage</button>
+  <button id="home" type="button" class="ico" aria-label="Revenir à l'Aiguille du Midi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4m0 10v4M3 12h4m10 0h4"/><circle cx="12" cy="12" r="4"/></svg></button>
+</nav>
+
+<section id="sheet-places" class="sheet glass" hidden aria-label="Lieux">
+  <div class="sh"><h2>Lieux</h2><button class="close" type="button" aria-label="Fermer">×</button></div>
+  <h3>Massif</h3>
+  <div id="sites" class="sites"></div>
+  <h3>Sommets et repères</h3>
+  <div id="placeList" class="places"></div>
+</section>
+
+<section id="sheet-cond" class="sheet glass" hidden aria-label="Conditions">
+  <div class="sh"><h2>Conditions en direct</h2><button class="close" type="button" aria-label="Fermer">×</button></div>
+  <div id="wx"></div>
+  <div id="altBlock">
+    <h3>À ton altitude</h3>
+    <div class="row"><label class="sr" for="altIn">Altitude en mètres</label><input id="altIn" type="number" inputmode="numeric" min="500" max="4810" step="10" value="2500"><span class="unit">m</span><button id="altGo" type="button" class="mini go">Voir</button></div>
+    <button id="altPick" type="button" class="mini wide">Choisir sur le relief</button>
+    <div id="altOut"></div>
+  </div>
+  <h3>Neige vue par satellite (Sentinel-2)</h3>
+  <div id="sat"></div>
+  <p class="cline small" id="cloudNote"></p>
+  <button id="refresh" type="button" class="btn">Actualiser</button>
+  <h3>À vérifier avant de partir</h3>
+  <ul class="links" id="links"></ul>
+  <p class="cnote">Les satellites ne voient le massif que tous les 2 à 5 jours, et pas à travers les nuages : l'app affiche toujours la date de chaque information. Elle ne remplace ni le bulletin d'avalanche ni l'avis d'un guide.</p>
+</section>
+
+<section id="sheet-layers" class="sheet glass" hidden aria-label="Affichage">
+  <div class="sh"><h2>Affichage</h2><button class="close" type="button" aria-label="Fermer">×</button></div>
+  <div class="field"><label>Lumière</label>
+    <div class="seg"><button type="button" data-light="photo" aria-pressed="true">Photo</button><button type="button" data-light="sun" aria-pressed="false">Soleil réel</button></div></div>
+  <div class="field dim" id="f-time"><label for="time">Heure du soleil <output id="timeOut">—</output></label>
+    <div class="row"><input id="time" type="range" min="-12" max="12" step="0.25" value="0"><button id="now" type="button" class="mini">Maintenant</button></div></div>
+  <div class="field"><label>Pluie et neige qui tombent</label>
+    <div class="seg"><button type="button" data-precip="auto" aria-pressed="true">Météo réelle</button><button type="button" data-precip="snow" aria-pressed="false">Neige</button><button type="button" data-precip="rain" aria-pressed="false">Pluie</button><button type="button" data-precip="off" aria-pressed="false">Aucune</button></div>
+    <p class="cline small" id="precipNow"></p></div>
+  <div class="checks">
+    <label for="c-slopes"><input id="c-slopes" type="checkbox"> Pentes (27° et plus)</label>
+    <label for="c-snowtoday"><input id="c-snowtoday" type="checkbox" checked> Neige du jour (satellite)</label>
+    <label for="c-clouds"><input id="c-clouds" type="checkbox" checked> Nuages réels</label>
+    <label for="c-labels"><input id="c-labels" type="checkbox" checked> Noms des sommets</label>
+    <label for="c-cable"><input id="c-cable" type="checkbox" checked> Téléphérique</label>
+    <label for="c-spin"><input id="c-spin" type="checkbox"> Rotation auto</label>
+  </div>
+  <div class="field"><label for="vivid">Couleurs <output id="vividOut">+20 %</output></label><input id="vivid" type="range" min="0" max="1" step="0.01" value="0.2"></div>
+  <div class="field"><label for="exag">Relief <output id="exagOut">×1.0</output></label><input id="exag" type="range" min="1" max="1.8" step="0.05" value="1"></div>
+  <div class="field"><label>Qualité</label>
+    <div class="seg"><button type="button" data-quality="standard" aria-pressed="false">Standard</button><button type="button" data-quality="haute" aria-pressed="false">Haute</button><button type="button" data-quality="extreme" aria-pressed="false">Extrême</button></div></div>
+  <h3>Hors ligne</h3>
+  <p class="cline small">Télécharge le massif sur l'appareil pour l'avoir sans réseau en montagne. Tout ce que tu as déjà regardé est aussi gardé.</p>
+  <div class="seg"><button type="button" data-pack="essentiel" aria-pressed="false">Essentiel</button><button type="button" data-pack="detaille" aria-pressed="true">Détaillé</button><button type="button" data-pack="maximum" aria-pressed="false">Maximum</button></div>
+  <p class="cline small" id="packInfo"></p>
+  <div class="pbar"><i id="packBar"></i></div>
+  <div class="row"><button id="packGo" type="button" class="btn">Télécharger</button><button id="packStop" type="button" class="mini" hidden>Arrêter</button></div>
+  <p class="cline small" id="storageInfo"></p>
+  <button id="cacheClear" type="button" class="mini">Vider le stockage</button>
+  <p class="cnote">Sources : relief © IGN (LiDAR HD, RGE ALTI), photos © IGN (BD ORTHO), hors France Sentinel-2 cloudless © EOX (CC BY-NC-SA 4.0) et relief Mapzen/AWS Terrain Tiles · Satellite du jour : Copernicus Sentinel-2 via Microsoft Planetary Computer · Météo : Météo-France via Open-Meteo.</p>
+</section>
+
+<section id="sheet-point" class="sheet glass" hidden aria-label="Point choisi">
+  <div class="sh"><h2 id="ptTitle">Point</h2><button class="close" type="button" aria-label="Fermer">×</button></div>
+  <div id="ptOut"></div>
+</section>
+<div id="pin" class="pin" hidden><i></i></div>
+
+<div class="readout glass" aria-live="polite">
+  <div class="a" id="rAlt">—</div>
+  <div id="rLL">Touchez un point du relief pour ses conditions</div>
+  <div class="k" id="rFps">—</div>
+</div>
+
+<div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

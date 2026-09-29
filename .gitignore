@@ -1,0 +1,9 @@
+# réglages locaux de Claude Code (chemins propres à ce PC)
+.claude/
+# données lourdes générées localement (nuages de points LiDAR, etc.), jamais publiées dans le dépôt
+data-local/
+# outil de publication, propre à ce PC
+publier.bat
+publier.ps1
+Thumbs.db
+desktop.ini

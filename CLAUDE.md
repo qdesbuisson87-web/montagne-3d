@@ -54,6 +54,13 @@ Tester chaque étape dans le navigateur (`?debugloop` si l'onglet est caché) et
    - `sw.js` v6 : l'ancien effaçait le cache des tuiles (packs hors ligne) à chaque mise à jour de l'appli ; il garde maintenant les polices en cache et répond hors ligne avec `?site=…`. Penser à augmenter `CACHE` dans sw.js et à y ajouter tout nouveau fichier js.
    - Testé en https (navigateur intégré) : appli chargée sans erreur, service worker actif, manifest servi, cache des tuiles rempli (574 tuiles). Pas encore testé : installation sur un vrai téléphone, ouverture en mode avion.
 
+### Fluidité et roche (29/09/2026, retour du propriétaire : « 3 i/s » sur son téléphone, roche peu réaliste)
+- Qualité : Haute par défaut sur écran tactile (avant : Extrême dès 6 Go/8 cœurs, donc ratio ×3 sur téléphone), choix mémorisé (`midi3d-quality`). MSAA seulement si devicePixelRatio < 2.
+- Réglage automatique (`adapt`, app.js) : sous l'objectif de la qualité (fps 50/55/30), baisse la résolution (jusqu'à 50 %) puis le détail des tuiles (splitK jusqu'à 60 %) ; remonte après ~6 s confortables. « auto xx % » dans le compteur.
+- Nuages : bruit précalculé dans une texture 512² répétable (`cloudNoiseTexture`), 2 lectures au lieu de 48 bruits par pixel ; couches non dessinées si ciel dégagé, 2/3/4 couches selon la qualité. Particules pluie/neige 30/60/100 %.
+- Roche : sur les pentes raides, la photo est floutée selon l'étirement 1/cos(pente) (plus de traînées verticales), grain triplanaire (bruit sous rotations, facettes ~11 m et ~2,7 m) en luminosité et en relief simulé (bump par dérivées écran) ; éclairage directionnel type vol IGN en mode Photo sur les faces raides. Essais écartés : fissures sur la ligne médiane du bruit (quadrillage visible), grain fin fort (aspect papier alu).
+- Pas mesuré sur un vrai téléphone (le navigateur de test rend en logiciel, ~12 i/s à 100 %). À faire confirmer par le propriétaire.
+
 ### Phase 2 : préparer une sortie
 2. **Carte des pentes** : FAIT (29/09/2026). Case « Pentes (27° et plus) » dans Affichage (mémorisée), légende sous le titre, classes dans `SLOPE_CLASSES` (app.js) partagées par le shader et la légende. Pente par pixel depuis la texture de gradient de la tuile, bords de classes lissés sur ~1 pixel (fwidth). Pente et orientation affichées au survol et dans la fiche d'un point, avec le pas de mesure et la vraie source du relief. Testé dans le navigateur intégré (vue large, vue proche sans raccord, format téléphone 375×812, fiche d'un point). Pas testé : vrai GPU de téléphone (coût du shader : 1 lecture de texture de plus, seulement quand la carte est affichée).
    - Au passage : sur téléphone, le bloc altitude/coordonnées passe en bas au-dessus des onglets (il recouvrait le titre).

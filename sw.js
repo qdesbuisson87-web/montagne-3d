@@ -1,6 +1,6 @@
 // App shell offline cache. Map tiles are cached by the app itself (Cache Storage 'midi3d-tiles-*', see js/net.js);
 // weather and satellite data always come from the network.
-const CACHE = 'midi3d-v6';
+const CACHE = 'midi3d-v7';
 const SHELL = ['./', 'index.html', 'css/app.css', 'js/app.js', 'js/terrain.js', 'js/net.js', 'js/live.js', 'js/geo.js', 'js/sites.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png',
   'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js', 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js'];
 const FONTS = new Set(['fonts.googleapis.com', 'fonts.gstatic.com']);

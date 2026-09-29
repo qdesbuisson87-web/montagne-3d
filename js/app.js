@@ -15,7 +15,9 @@ const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a)
 
 // ---------- renderer / scene ----------
 const stage = $('stage');
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+// MSAA only on low-density screens: at 2× and more the pixels are too small for stair steps to show,
+// and multisampling a phone-sized framebuffer costs a large share of the GPU budget
+const renderer = new THREE.WebGLRenderer({ antialias: (window.devicePixelRatio || 1) < 2, powerPreference: 'high-performance' });
 renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 stage.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
@@ -27,17 +29,22 @@ controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
 // ---------- quality ----------
 const touch = matchMedia('(pointer: coarse)').matches;
 const beefy = (navigator.deviceMemory || 8) >= 6 && (navigator.hardwareConcurrency || 8) >= 8;
+// k: tile split distance (detail), pr: highest pixel ratio, fps: frame rate the automatic adjustment defends,
+// fx: share of the snow/rain particles, clouds: layers of the sea of clouds
 const QUAL = {
-  standard: { k: 1.6, pr: 1.25, tiles: 450, loads: 6 },
-  haute: { k: 2.4, pr: 2, tiles: 800, loads: 8 },
-  extreme: { k: 3.4, pr: 3, tiles: 1300, loads: 12 }
+  standard: { k: 1.6, pr: 1.25, tiles: 450, loads: 6, fps: 50, fx: 0.3, clouds: 2 },
+  haute: { k: 2.2, pr: 2, tiles: 800, loads: 8, fps: 55, fx: 0.6, clouds: 3 },
+  extreme: { k: 3.2, pr: 3, tiles: 1300, loads: 12, fps: 30, fx: 1, clouds: 4 }
 };
-const state = { quality: beefy ? 'extreme' : 'haute', exag: 1, render: 'photo', light: 'photo', hourOffset: 0, snowToday: true, clouds: true, precip: 'auto', labels: true, cable: true, slopes: false, weather: null, s2: null };
+// phones start in "Haute" (the promise: 60 i/s on a high-end phone); "Extrême" is a deliberate choice there
+let savedQuality = null; try { savedQuality = localStorage.getItem('midi3d-quality'); } catch { }
+const state = { quality: QUAL[savedQuality] ? savedQuality : (beefy && !touch ? 'extreme' : 'haute'), exag: 1, render: 'photo', light: 'photo', hourOffset: 0, snowToday: true, clouds: true, precip: 'auto', labels: true, cable: true, slopes: false, weather: null, s2: null };
 try { state.slopes = localStorage.getItem('midi3d-slopes') === '1'; } catch { }
 
 // ---------- shared uniforms & terrain shaders ----------
 const U = {
   exag: { value: 1 }, sunDir: { value: new THREE.Vector3(0, 1, 0) }, sunCol: { value: new THREE.Vector3(1, 1, 1) }, skyCol: { value: new THREE.Vector3() }, horizonCol: { value: new THREE.Vector3() }, glowCol: { value: new THREE.Vector3() },
+  noiseTex: { value: cloudNoiseTexture() }, // tileable fractal noise: cloud shapes and rock grain
   light: { value: 0 }, vivid: { value: 0.2 }, snowToday: { value: 1 }, visToday: { value: 0 }, slopes: { value: state.slopes ? 1 : 0 }, fogDensity: { value: 0.000016 }, haze: { value: 0 }, time: { value: 0 }
 };
 // slope classes (degrees, lower bound) and their colours; the shader and the on-screen legend both read this
@@ -53,8 +60,8 @@ void main(){
   gl_Position = projectionMatrix * viewMatrix * w;
 }`;
 const terrainFS = `
-uniform sampler2D map, slopeMap, ndsiMap, cloudMap, visMap; uniform vec4 ovRect;
-uniform float hasNdsi, hasCloud, hasVis, tileSize, snowToday, visToday, slopes, light, vivid, fogDensity, haze, time;
+uniform sampler2D map, slopeMap, ndsiMap, cloudMap, visMap, noiseTex; uniform vec4 ovRect;
+uniform float exag, hasNdsi, hasCloud, hasVis, tileSize, snowToday, visToday, slopes, light, vivid, fogDensity, haze, time;
 uniform vec3 sunDir, sunCol, skyCol, horizonCol, glowCol;
 varying vec2 vUv; varying vec3 vN, vW; varying float vAlt;
 const vec3 LUM = vec3(0.2126, 0.7152, 0.0722);
@@ -72,7 +79,10 @@ vec4 cubic(sampler2D t, vec2 uv){
   return mix(mix(texture2D(t, h0), texture2D(t, vec2(h1.x, h0.y)), g.x), mix(texture2D(t, vec2(h0.x, h1.y)), texture2D(t, h1), g.x), g.y);
 }
 void main(){
-  vec3 photo = pow(texture2D(map, vUv).rgb, vec3(2.2));
+  // on steep faces the vertical photo is stretched by 1/cos(slope): blur it by the same factor, which keeps its
+  // colour but removes the vertical streaks; the rock grain below brings the detail back
+  float stretch = 1.0 / max(normalize(vN).y, 0.12);
+  vec3 photo = pow(texture2D(map, vUv, log2(stretch) * 0.6).rgb, vec3(2.2));
   // the photo blurred to the satellite's 10 m, to compare like with like
   vec3 low = pow(textureLod(map, vUv, max(0.0, log2(2560.0 / tileSize))).rgb, vec3(2.2));
   float plum = dot(photo, LUM), llum = dot(low, LUM);
@@ -87,6 +97,25 @@ void main(){
     alb = mix(photo, photo * ratio, smoothstep(0.6, 0.95, v.a) * (1.0 - cloud));
   }
   vec3 n = normalize(vN); float slope = 1.0 - n.y;
+  // steep faces: the vertical photo is stretched there (×2 at 60°, ×4 at 75°), so a fine rock grain is added,
+  // projected on the three axes so that it never stretches; it changes the photo's brightness, not its colour.
+  // Always computed (no branch) so the texture reads keep valid mipmap derivatives.
+  float steep = smoothstep(0.3, 0.7, slope);
+  vec3 tw = pow(abs(n), vec3(4.0)); tw /= tw.x + tw.y + tw.z;
+  vec3 q = vW / vec3(1.0, exag, 1.0); // metres on the ground, relief not exaggerated
+  // the noise is built on a square lattice: sample it through rotations so that no grid lines up with the relief
+  const mat2 R1 = mat2(0.83, 0.56, -0.56, 0.83), R2 = mat2(0.48, -0.88, 0.88, 0.48);
+  // one texture period holds 16 noise cells: features of ~11 m (g1) and ~2.7 m (g2), each with finer octaves
+  float g1 = texture2D(noiseTex, R1*q.zy/176.0).r*tw.x + texture2D(noiseTex, R1*q.xz/176.0).r*tw.y + texture2D(noiseTex, R1*q.xy/176.0).r*tw.z;
+  float g2 = texture2D(noiseTex, R2*q.zy/43.0 + 0.37).r*tw.x + texture2D(noiseTex, R2*q.xz/43.0 + 0.37).r*tw.y + texture2D(noiseTex, R2*q.xy/43.0 + 0.37).r*tw.z;
+  alb *= 1.0 + ((g1 - 0.49)*1.2 + (g2 - 0.49)*0.5) * 0.45 * steep;
+  // the same grain as a small relief (up to ~1.5 m) that the light catches: surface-gradient bump mapping
+  // from screen-space derivatives, no extra geometry
+  float bump = ((g1 - 0.49)*3.0 + (g2 - 0.49)*0.9) * steep; // metres: large facets, a little finer roughness
+  vec3 dpx = dFdx(vW), dpy = dFdy(vW), r1 = cross(dpy, n), r2 = cross(n, dpx);
+  float det = dot(dpx, r1);
+  vec3 nb = abs(det)*n - sign(det)*(dFdx(bump)*r1 + dFdy(bump)*r2);
+  vec3 nl = dot(nb, nb) > 1e-20 ? normalize(nb) : n; // lit normal
   // today's snow: continuous snow index, refined at metre scale with the LiDAR slope and the photo
   if (snowToday > 0.5 && hasNdsi > 0.5) {
     vec4 nd = cubic(ndsiMap, ou);
@@ -102,13 +131,18 @@ void main(){
   float lum = dot(alb, LUM);
   alb = max(mix(vec3(lum), alb, 1.0 + vivid), 0.0) * (1.0 + vivid*0.15);
   vec3 col;
-  if (light < 0.5) col = alb * (0.88 + 0.14*n.y);
+  if (light < 0.5) {
+    // photo mode: the photo carries its own shading, except on steep faces where it is smeared; there the relief
+    // is lit from where the sun stood during the IGN flights (south-south-east, late morning)
+    const vec3 PL = vec3(0.196, 0.819, 0.539);
+    col = alb * mix(0.88 + 0.14*n.y, 0.45 + 0.75*max(dot(nl, PL), 0.0), steep);
+  }
   else {
-    float ndl = max(dot(n, sunDir), 0.0);
+    float ndl = max(dot(nl, sunDir), 0.0);
     vec3 a = alb / (0.55 + 0.9*lum) * 0.95;
     col = a * (sunCol*ndl + skyCol*0.5*(0.6 + 0.4*n.y));
     vec3 V = normalize(cameraPosition - vW), H = normalize(sunDir + V);
-    col += sunCol * pow(max(dot(n, H), 0.0), 60.0) * smoothstep(0.5, 0.8, lum) * 0.35;
+    col += sunCol * pow(max(dot(nl, H), 0.0), 60.0) * smoothstep(0.5, 0.8, lum) * 0.35;
   }
   // slope map: the ground gradient is interpolated per pixel from the tile's grid (true metres, not exaggerated),
   // and each class boundary is blended over about one pixel so it never shows stair steps
@@ -148,6 +182,25 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(200000, 48, 24), new THREE.S
 sky.renderOrder = -1; sky.frustumCulled = false; scene.add(sky);
 
 // ---------- sea of clouds (driven by the forecast) ----------
+// The cloud noise is baked once into a tileable texture (same fractal as before, 6 octaves of value noise):
+// two texture reads per pixel instead of 48 noise evaluations, which phones could not afford over the whole screen.
+function cloudNoiseTexture(S = 512, period = 16) {
+  const hash = (x, y) => { let h = (x * 374761393 + y * 668265263) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+  const vn = (x, y, p) => { // value noise, lattice wrapped every p cells
+    const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
+    const a = hash(xi % p, yi % p), b = hash((xi + 1) % p, yi % p), c = hash(xi % p, (yi + 1) % p), d = hash((xi + 1) % p, (yi + 1) % p);
+    return (a + (b - a) * ux) * (1 - uy) + (c + (d - c) * ux) * uy;
+  };
+  const data = new Uint8Array(S * S);
+  for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) {
+    let s = 0, a = 0.5, f = period / S;
+    for (let o = 0; o < 6; o++) { s += a * vn(i * f, j * f, period << o); f *= 2; a *= 0.5; }
+    data[j * S + i] = Math.round(s * 255);
+  }
+  const t = new THREE.DataTexture(data, S, S, THREE.RedFormat, THREE.UnsignedByteType);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = true; t.needsUpdate = true;
+  return t;
+}
 const cloudU = { ...U, cloudAlt: { value: 2100 }, cover: { value: 0 }, wind: { value: new THREE.Vector2(3, 1) } };
 const clouds = new THREE.Group(); scene.add(clouds);
 for (let i = 0; i < 4; i++) {
@@ -155,13 +208,11 @@ for (let i = 0; i < 4; i++) {
     uniforms: { ...cloudU, layer: { value: i / 3 } }, transparent: true, depthWrite: false, side: THREE.DoubleSide,
     vertexShader: `uniform float cloudAlt, layer, exag; varying vec3 vW;
       void main(){ vec3 p = vec3(position.x, 0.0, -position.y); p.y = (cloudAlt - 160.0 + layer*220.0) * exag; vec4 w = modelMatrix*vec4(p,1.0); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }`,
-    fragmentShader: `uniform float cover, layer, time; uniform vec2 wind; uniform vec3 sunDir, sunCol, skyCol, horizonCol; varying vec3 vW;
-      float hash(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
-      float vn(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f*f*(3.0-2.0*f); return mix(mix(hash(i), hash(i+vec2(1,0)), u.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), u.x), u.y); }
-      float fbm(vec2 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 6; i++){ s += a*vn(p); p = p*2.03 + 17.1; a *= 0.5; } return s; }
+    fragmentShader: `uniform float cover, layer, time; uniform vec2 wind; uniform vec3 sunDir, sunCol, skyCol, horizonCol; uniform sampler2D noiseTex; varying vec3 vW;
+      float fbm(vec2 p){ return texture2D(noiseTex, p / 16.0).r; } // one texture period = 16 noise units
       void main(){
         vec2 p = (vW.xz + wind*time) / 2600.0;
-        float n = fbm(p + layer*3.1) * 0.75 + fbm(p*3.7 - layer) * 0.25;
+        float n = fbm(p + layer*3.1) * 0.75 + fbm(p*3.7 - layer*5.3) * 0.25;
         float th = mix(0.78, 0.28, cover) + (layer - 0.5)*0.12;
         float a = smoothstep(th, th + 0.18, n) * (0.55 - abs(layer - 0.5)*0.4) * cover;
         float dist = length(vW.xz - cameraPosition.xz);
@@ -354,7 +405,7 @@ function renderWeather() {
   let alt = 1900, cover = lowC / 100, inside = false;
   if (planC > 70) { alt = 2800; cover = Math.max(cover, planC / 100); }
   if (midiC > 80) inside = true;
-  cloudU.cloudAlt.value = alt; cloudU.cover.value = state.clouds ? Math.min(0.95, cover) : 0;
+  cloudU.cloudAlt.value = alt; cloudU.cover.value = state.clouds ? Math.min(0.95, cover) : 0; showCloudLayers();
   const wdir = midi.wind_direction_10m * Math.PI / 180, wsp = midi.wind_speed_10m / 3.6 * 3;
   cloudU.wind.value.set(-Math.sin(wdir) * wsp, Math.cos(wdir) * wsp);
   overcast = state.clouds ? Math.max(0, Math.min(1, (Math.max(midiC, cham.cloud_cover) - 40) / 60)) * 0.8 : 0;
@@ -383,8 +434,9 @@ function applyPrecip() {
   else if (state.precip !== 'off') { kind = state.precip; mm = 1.5; }
   const amount = Math.min(1, 0.25 + mm * 0.25);
   const showSnow = kind === 'snow' || kind === 'mix', showRain = kind === 'rain' || kind === 'mix';
-  snow.visible = showSnow; snowGeo.setDrawRange(0, showSnow ? Math.floor(NP * amount * (kind === 'mix' ? 0.5 : 1)) : 0);
-  rain.visible = showRain; rainGeo.setDrawRange(0, showRain ? Math.floor(NR * amount * (kind === 'mix' ? 0.5 : 1)) * 2 : 0);
+  const fx = QUAL[state.quality].fx * (kind === 'mix' ? 0.5 : 1); // fewer, not smaller, particles on lighter settings
+  snow.visible = showSnow; snowGeo.setDrawRange(0, showSnow ? Math.floor(NP * amount * fx) : 0);
+  rain.visible = showRain; rainGeo.setDrawRange(0, showRain ? Math.floor(NR * amount * fx) * 2 : 0);
   const label = { none: 'Pas de précipitations', snow: 'Il neige', rain: 'Il pleut', mix: 'Pluie et neige mêlées' }[kind];
   $('precipNow').textContent = state.precip !== 'auto' ? `Affichage forcé : ${label.toLowerCase()}`
     : precipNow.alt != null ? `${label} à ${fmt(precipNow.alt)} m en ce moment${precipNow.t != null ? ` (${t1(precipNow.t)} °C` + (precipNow.mm > 0.05 ? `, ${t1(precipNow.mm)} mm/h)` : ')') : ''}` : '';
@@ -461,7 +513,9 @@ $('exag').addEventListener('input', e => {
 });
 $('vivid').addEventListener('input', e => { U.vivid.value = +e.target.value; $('vividOut').textContent = +e.target.value < 0.02 ? 'naturelles' : '+' + Math.round(+e.target.value * 100) + ' %'; });
 $('c-snowtoday').addEventListener('change', e => { state.snowToday = e.target.checked; U.snowToday.value = e.target.checked ? 1 : 0; engine.setOverlay('snow', e.target.checked); });
-$('c-clouds').addEventListener('change', e => { state.clouds = e.target.checked; renderWeather(); if (!state.weather) cloudU.cover.value = 0; });
+$('c-clouds').addEventListener('change', e => { state.clouds = e.target.checked; renderWeather(); if (!state.weather) cloudU.cover.value = 0; showCloudLayers(); });
+// cloud layers cover the whole screen: none drawn in clear weather, fewer on lighter settings
+function showCloudLayers() { const n = QUAL[state.quality].clouds; clouds.children.forEach((m, i) => { m.visible = cloudU.cover.value > 0.01 && i < n; }); }
 $('c-labels').addEventListener('change', e => { state.labels = e.target.checked; labelsEl.hidden = !e.target.checked; });
 $('c-cable').addEventListener('change', e => { cable.visible = cabins.visible = e.target.checked; });
 // slope map: toggle, legend built from the same classes as the shader, choice remembered on the device
@@ -478,9 +532,36 @@ applySlopes(state.slopes);
 $('c-spin').addEventListener('change', e => { controls.autoRotate = e.target.checked; });
 $('home').addEventListener('click', home);
 $('refresh').addEventListener('click', refreshLive);
+// Automatic adjustment: the chosen quality sets the ceiling; when the measured frame rate stays under the
+// quality's target, the resolution goes down first (down to half), then the terrain detail (down to 60 %).
+// Both come back, detail first, after several seconds of comfortable frame rate.
+const adapt = { res: 1, detail: 1, good: 0, since: 0 };
+function applyScale() {
+  const Q = QUAL[state.quality]; engine.splitK = Q.k * adapt.detail;
+  const pr = Math.max(0.6, Math.min(window.devicePixelRatio || 1, Q.pr) * adapt.res);
+  if (Math.abs(pr - renderer.getPixelRatio()) > 0.01) { renderer.setPixelRatio(pr); resize(); }
+}
+function adaptTo(fps) {
+  const Q = QUAL[state.quality], now = performance.now();
+  if (!started || document.hidden || now - adapt.since < 3000) return; // let a change settle before judging it
+  if (fps < Q.fps * 0.9) {
+    adapt.good = 0;
+    if (adapt.res > 0.55) adapt.res = Math.max(0.5, adapt.res * 0.85);
+    else if (adapt.detail > 0.65) adapt.detail = Math.max(0.6, adapt.detail - 0.1);
+    else return;
+  } else if (fps >= Math.min(Q.fps + 12, 57) && (adapt.res < 1 || adapt.detail < 1)) {
+    if (++adapt.good < 4) return;
+    adapt.good = 0;
+    if (adapt.detail < 1) adapt.detail = Math.min(1, adapt.detail + 0.1); else adapt.res = Math.min(1, adapt.res / 0.85);
+  } else { adapt.good = 0; return; }
+  adapt.since = now; applyScale();
+}
 function applyQuality(q) {
-  const Q = QUAL[q]; engine.splitK = Q.k; engine.maxTiles = Q.tiles; engine.maxLoads = Q.loads;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.pr)); resize();
+  const Q = QUAL[q]; engine.maxTiles = Q.tiles; engine.maxLoads = Q.loads;
+  Object.assign(adapt, { res: 1, detail: 1, good: 0, since: performance.now() });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.pr)); resize(); applyScale();
+  showCloudLayers(); applyPrecip();
+  try { localStorage.setItem('midi3d-quality', q); } catch { }
 }
 markSeg('quality', state.quality);
 
@@ -683,7 +764,7 @@ function resize() {
 }
 addEventListener('resize', resize);
 applyQuality(state.quality);
-const clock = new THREE.Clock(); let fpsAcc = 0, fpsN = 0, started = false;
+const clock = new THREE.Clock(); let fpsAcc = 0, fpsN = 0, adAcc = 0, adN = 0, started = false;
 // ?debugloop keeps rendering in a hidden tab (for automated checks); normal use follows the display refresh
 const nextFrame = location.search.includes("debugloop") ? cb => setTimeout(cb, 16) : cb => requestAnimationFrame(cb);
 function frame() {
@@ -710,15 +791,17 @@ function frame() {
   if (frameN % 45 === 0) updatePrecipForView();
   renderer.render(scene, camera);
   if (!started && engine.roots.filter(r => r.state === 'ready').length >= engine.roots.length * 0.6) { started = true; $('loader').classList.add('done'); home(); }
-  fpsAcc += dt; fpsN++;
+  fpsAcc += dt; fpsN++; adAcc += dt; adN++;
+  if (adAcc > 1.5) { adaptTo(adN / adAcc); adAcc = 0; adN = 0; }
   if (fpsAcc > 0.5) {
-    $('rFps').textContent = `${Math.round(fpsN / fpsAcc)} i/s · ${engine.tileCount ?? 0} tuiles`;
+    const auto = adapt.res < 1 || adapt.detail < 1 ? ` · auto ${Math.round(adapt.res * adapt.detail * 100)} %` : '';
+    $('rFps').textContent = `${Math.round(fpsN / fpsAcc)} i/s · ${engine.tileCount ?? 0} tuiles${auto}`;
     $('status').hidden = engine.busy === 0; $('statusN').textContent = engine.busy;
     fpsAcc = 0; fpsN = 0;
   }
   nextFrame(frame);
 }
-window.midi3d = { engine, camera, controls }; // handy for debugging from the console
+window.midi3d = { engine, camera, controls, adapt, applyScale }; // handy for debugging from the console
 updateSky(); frame(); refreshLive();
 setInterval(() => { if (document.visibilityState === 'visible') refreshLive(); }, 15 * 60e3);
 setTimeout(() => $('loader').classList.add('done'), 15000);

@@ -16,6 +16,25 @@ export const googleKey = {
   set(k) { try { if (k) localStorage.setItem(KEY_STORE, k); else localStorage.removeItem(KEY_STORE); } catch { } }
 };
 
+// Why Google refused the key, in plain French. Called only after a refusal: a refused request is not billed,
+// whereas checking before every start would cost one session each time.
+const REASONS = {
+  SERVICE_DISABLED: "la Map Tiles API n'est pas activée dans ton projet Google. Active-la sur console.cloud.google.com/apis/library/tile.googleapis.com, attends 2 à 5 minutes, puis réessaie.",
+  API_KEY_INVALID: "cette clé n'existe pas (mal copiée ou supprimée).",
+  API_KEY_HTTP_REFERRER_BLOCKED: "la clé n'autorise pas ce site. Dans ses restrictions « Sites Web », ajoute https://qdesbuisson87-web.github.io/*.",
+  API_KEY_SERVICE_BLOCKED: "la clé est limitée à d'autres API. Dans ses restrictions d'API, coche Map Tiles API.",
+  BILLING_DISABLED: "la facturation n'est pas activée sur ton projet Google.",
+  RATE_LIMIT_EXCEEDED: "le quota du jour est atteint. Ça revient demain."
+};
+export async function whyRefused(key) {
+  try {
+    const r = await fetch(`${ROOT}?key=${encodeURIComponent(key)}`);
+    if (r.ok) return null;
+    const j = await r.json().catch(() => null), reason = j?.error?.details?.find(d => d.reason)?.reason ?? j?.error?.status;
+    return REASONS[reason] ?? `Google répond « ${j?.error?.message ?? r.status} ».`;
+  } catch { return null; }
+}
+
 export class GoogleTiles {
   // origin: {lat, lon} of the scene origin; geoidN: geoid height there, so that y = altitude above sea level
   constructor({ scene, camera, renderer, origin, geoidN }) {

@@ -4,7 +4,7 @@ import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js';
 import { SITE, SITE_LIST } from './sites.js';
 import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js';
 import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js';
-import { GoogleTiles, googleKey } from './google3d.js';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js';
 import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js';
 THREE.ColorManagement.enabled = false;
 
@@ -557,7 +557,13 @@ function setView(v) {
     // Google's surface cannot be exaggerated: back to true relief
     if (state.exag !== 1) { $('exag').value = 1; $('exag').dispatchEvent(new Event('input')); }
     applyScale();
-    google.start(googleKey.get(), err => { setView('ign'); $('gNote').textContent = GERR[err]; if (err === 'key') $('gKeyBlock').hidden = false; });
+    google.start(googleKey.get(), async err => {
+      setView('ign'); $('gNote').textContent = GERR[err];
+      if (err !== 'key') return;
+      $('gKeyBlock').hidden = false;
+      const why = await whyRefused(googleKey.get()); // Google's own reason, when it gives one
+      if (why) $('gNote').textContent = 'Google refuse : ' + why;
+    });
     scene.fog = gFog;
   } else { google.stop(); scene.fog = null; }
   // layers computed on the IGN terrain are not drawn over Google's tiles

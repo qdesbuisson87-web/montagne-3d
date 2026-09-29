@@ -2,8 +2,8 @@
 // elevation grid and photo. Close to the camera the tree goes down to zoom 19 (IGN photos 20 cm,
 // LiDAR HD elevation); far away it stays coarse. Nothing is pre-packaged: every tile is fetched live.
 import * as THREE from 'three';
-import { tileMerc, mercToWorld, mercToLonLat, worldToLonLat, lonLatToL93, lonLatToTile, K } from './geo.js?v=202609292036';
-import { cachedFetch, TransientError } from './net.js?v=202609292036';
+import { tileMerc, mercToWorld, mercToLonLat, worldToLonLat, lonLatToL93, lonLatToTile, K } from './geo.js?v=202609292041';
+import { cachedFetch, TransientError } from './net.js?v=202609292041';
 
 // NE: the grid plus a one-sample ring taken beyond the tile edge, so that normals and slopes at the edge
 // use the same central differences as the neighbour tile does (no seam in lighting or slope colours)
@@ -216,10 +216,13 @@ class Tile {
     const mat = this.engine.makeMaterial(tex, this.size, slopeTex);
     this.mesh = new THREE.Mesh(g, mat); this.mesh.position.set(cx, 0, cz); this.mesh.matrixAutoUpdate = false; this.mesh.updateMatrix();
     this.mesh.frustumCulled = false; this.mesh.visible = false;
+    this.mesh.userData.tile = this;
     this.engine.group.add(this.mesh);
     this.engine.attachOverlays(this);
+    this.engine.onTileBuilt?.(this); // layers standing on the ground (forests…) hook here
   }
   dispose() {
+    this.engine.onTileDisposed?.(this);
     if (this.mesh) {
       this.engine.group.remove(this.mesh);
       // detach the shared index/uv first so dispose() only frees this tile's own buffers

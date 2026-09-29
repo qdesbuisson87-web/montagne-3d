@@ -1,14 +1,15 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609292036';
-import { SITE, SITE_LIST } from './sites.js?v=202609292036';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609292036';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609292036';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609292036';
-import { searchPlaces } from './search.js?v=202609292036';
-import { TerrainShadows } from './shadows.js?v=202609292036';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609292036';
-import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609292036';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609292041';
+import { SITE, SITE_LIST } from './sites.js?v=202609292041';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609292041';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609292041';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609292041';
+import { searchPlaces } from './search.js?v=202609292041';
+import { TerrainShadows } from './shadows.js?v=202609292041';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609292041';
+import { Forest } from './forest.js?v=202609292041';
+import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609292041';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -39,9 +40,9 @@ const beefy = (navigator.deviceMemory || 8) >= 6 && (navigator.hardwareConcurren
 // k: tile split distance (detail), pr: highest pixel ratio, fps: frame rate the automatic adjustment defends,
 // fx: share of the snow/rain particles, clouds: layers of the sea of clouds
 const QUAL = {
-  standard: { k: 1.6, pr: 1.25, tiles: 450, loads: 6, fps: 50, fx: 0.3, clouds: 2, gErr: 24, shRes: 512, shSteps: 80 },
-  haute: { k: 2.2, pr: 2, tiles: 800, loads: 8, fps: 55, fx: 0.6, clouds: 3, gErr: 12, shRes: 1024, shSteps: 112 },
-  extreme: { k: 3.2, pr: 3, tiles: 1300, loads: 12, fps: 30, fx: 1, clouds: 4, gErr: 6, shRes: 2048, shSteps: 160 } // gErr: Google 3D screen error (px); sh*: shadow maps
+  standard: { k: 1.6, pr: 1.25, tiles: 450, loads: 6, fps: 50, fx: 0.3, clouds: 2, gErr: 24, shRes: 512, shSteps: 80, trees: 12000 },
+  haute: { k: 2.2, pr: 2, tiles: 800, loads: 8, fps: 55, fx: 0.6, clouds: 3, gErr: 12, shRes: 1024, shSteps: 112, trees: 40000 },
+  extreme: { k: 3.2, pr: 3, tiles: 1300, loads: 12, fps: 30, fx: 1, clouds: 4, gErr: 6, shRes: 2048, shSteps: 160, trees: 120000 } // gErr: Google 3D screen error (px); sh*: shadow maps
 };
 // phones start in "Haute" (the promise: 60 i/s on a high-end phone); "Extrême" is a deliberate choice there
 let savedQuality = null; try { savedQuality = localStorage.getItem('midi3d-quality'); } catch { }
@@ -68,9 +69,11 @@ void main(){
   vN = normalize(vec3(normal.x * exag, normal.y, normal.z * exag));
   gl_Position = projectionMatrix * viewMatrix * w;
 }`;
-const terrainFS = `
-uniform sampler2D map, slopeMap, ndsiMap, cloudMap, visMap, noiseTex; uniform vec4 ovRect;
-uniform float exag, hasNdsi, hasCloud, hasVis, tileSize, snowToday, visToday, slopes, light, vivid, fogDensity, haze, time, shOn;
+// Light and air shared by everything standing on the ground (terrain, trees, buildings…), so they all get the
+// same cast shadows and the same aerial perspective. Colours in U are display values; lighting is linear.
+const SCENE_GLSL = `
+uniform float exag, light, fogDensity, haze, shOn;
+uniform vec3 sunDir, sunCol, skyCol, horizonCol, glowCol;
 uniform sampler2D shF, shC; uniform vec4 srF, srC;
 // share of the sun reaching a point: fine map near the view centre, fading into the coarse one at its edges
 float sunShadow(vec3 w){
@@ -79,7 +82,21 @@ float sunShadow(vec3 w){
   float edge = min(min(uf.x, uf.y), min(1.0 - uf.x, 1.0 - uf.y));
   return mix(c, texture2D(shF, clamp(uf, 0.0, 1.0)).r, smoothstep(0.0, 0.06, edge));
 }
-uniform vec3 sunDir, sunCol, skyCol, horizonCol, glowCol;
+// aerial perspective: the air thins with altitude (haze scale height 2.5 km), so valleys are hazier than
+// summits; blue light is scattered more, so distant relief turns blue-grey (horizon and glow colours come
+// from the same scattering model as the sky). col is linear; returns linear.
+vec3 aerial(vec3 col, vec3 w){
+  float d = length(cameraPosition - w);
+  float hc = cameraPosition.y / exag, hf = w.y / exag, dh = (hf - hc) / 2500.0;
+  float dens = abs(dh) > 1e-3 ? (exp(-hc / 2500.0) - exp(-hf / 2500.0)) / dh : exp(-hc / 2500.0);
+  vec3 T = exp(-d * dens * (fogDensity * 2.7 + haze * 0.00005) * vec3(0.62, 0.8, 1.0));
+  vec3 fogC = mix(horizonCol, glowCol, pow(max(dot(normalize(w - cameraPosition), sunDir), 0.0), 6.0) * 0.7);
+  return mix(pow(fogC, vec3(2.2)), col, max(T, vec3(0.07)));
+}`;
+const terrainFS = `
+uniform sampler2D map, slopeMap, ndsiMap, cloudMap, visMap, noiseTex; uniform vec4 ovRect;
+uniform float hasNdsi, hasCloud, hasVis, tileSize, snowToday, visToday, slopes, vivid, time;
+${SCENE_GLSL}
 varying vec2 vUv; varying vec3 vN, vW; varying float vAlt;
 const vec3 LUM = vec3(0.2126, 0.7152, 0.0722);
 float hash(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
@@ -174,22 +191,14 @@ void main(){
     // tinted by the lit ground so the relief stays readable under the colour
     col = mix(col, sc * (0.6 + 0.5*sqrt(dot(col, LUM))), cover * 0.8);
   }
-  // aerial perspective: the air thins with altitude (haze scale height 2.5 km), so valleys are hazier than
-  // summits; blue light is scattered more, so distant relief turns blue-grey (horizon and glow colours come
-  // from the same scattering model as the sky)
-  float d = length(cameraPosition - vW);
-  float hc = cameraPosition.y / exag, hf = vW.y / exag, dh = (hf - hc) / 2500.0;
-  float dens = abs(dh) > 1e-3 ? (exp(-hc / 2500.0) - exp(-hf / 2500.0)) / dh : exp(-hc / 2500.0);
-  vec3 T = exp(-d * dens * (fogDensity * 2.7 + haze * 0.00005) * vec3(0.62, 0.8, 1.0));
-  vec3 V = normalize(vW - cameraPosition);
-  vec3 fogC = mix(horizonCol, glowCol, pow(max(dot(V, sunDir), 0.0), 6.0) * 0.7);
-  col = mix(pow(fogC, vec3(2.2)), col, max(T, vec3(0.07)));
+  col = aerial(col, vW);
   gl_FragColor = vec4(pow(max(col, 0.0), vec3(1.0/2.2)), 1.0);
 }`;
 
 const BOUNDS = SITE.bounds; // lon/lat of the streamed area
 const engine = new TerrainEngine({ renderer, scene, uniforms: U, vertexShader: terrainVS, fragmentShader: terrainFS, bounds: BOUNDS });
 const shadows = new TerrainShadows(renderer, engine, U);
+const forest = new Forest({ scene, engine, uniforms: U, sceneGLSL: SCENE_GLSL });
 
 // ---------- sky: physical scattering baked into a panorama (atmosphere.js), grey veil when overcast ----------
 const skyBaker = new SkyBaker(THREE, renderer);
@@ -607,6 +616,7 @@ $('c-clouds').addEventListener('change', e => { state.clouds = e.target.checked;
 function showCloudLayers() { const n = QUAL[state.quality].clouds; clouds.children.forEach((m, i) => { m.visible = cloudU.cover.value > 0.01 && i < n && !state.far; }); }
 $('c-labels').addEventListener('change', e => { state.labels = e.target.checked; labelsEl.hidden = !e.target.checked; });
 $('c-cable').addEventListener('change', e => { cable.visible = cabins.visible = e.target.checked; });
+state.trees = true; $('c-trees').addEventListener('change', e => { state.trees = e.target.checked; });
 // slope map: toggle, legend built from the same classes as the shader, choice remembered on the device
 $('slopeRows').innerHTML = SLOPE_CLASSES.map(([a, c], i) => {
   const next = SLOPE_CLASSES[i + 1]?.[0];
@@ -701,7 +711,7 @@ function applyQuality(q) {
   const Q = QUAL[q]; engine.maxTiles = Q.tiles; engine.maxLoads = Q.loads;
   Object.assign(adapt, { res: 1, detail: 1, good: 0, since: performance.now() });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.pr)); resize(); applyScale();
-  showCloudLayers(); applyPrecip(); shadows.setQuality(Q.shRes, Q.shSteps);
+  showCloudLayers(); applyPrecip(); shadows.setQuality(Q.shRes, Q.shSteps); forest.maxTrees = Q.trees;
   try { localStorage.setItem('midi3d-quality', q); } catch { }
 }
 markSeg('quality', state.quality);
@@ -949,6 +959,7 @@ function drawFrame() {
   SU.boxSize.value = Math.min(Math.max(td * 0.9, 40), 9000);
   if (cabins.visible) { const a = cabinGeo.attributes.position.array, ph = (t * 0.02) % 2, f = ph < 1 ? ph : 2 - ph; a.set(cablePoint(0, f), 0); a.set(cablePoint(1, 1 - f), 3); cabinGeo.attributes.position.needsUpdate = true; }
   if (google.on) google.update(); else engine.update(camera);
+  forest.update(camera, google.on || !state.trees);
   if (hoverNDC && frameN % (google.on ? 10 : 3) === 0) showPoint(pick(...hoverNDC));
   updateLabels(); frameN++;
   if (frameN % 600 === 0 && state.hourOffset === 0) updateSky();

@@ -1,7 +1,7 @@
 // Coordinates: web-mercator for tiles, a local metric frame for the 3D scene
 // (origin at the selected summit, x = east, z = south, y = altitude in metres), Lambert-93 for IGN elevation.
 export const RE = 20037508.342789244;
-import { SITE } from './sites.js?v=202609292036';
+import { SITE } from './sites.js?v=202609292041';
 export const ORIGIN = SITE.origin;
 
 const d2r = Math.PI / 180;
@@ -31,4 +31,12 @@ export function lonLatToL93(lon, lat) {
   const L = 0.5 * Math.log((1 + s) / (1 - s)) - e / 2 * Math.log((1 + e * s) / (1 - e * s));
   const r = C * Math.exp(-n * L), g = n * (lon - 3) * d2r;
   return [700000 + r * Math.sin(g), 12655612.050 - r * Math.cos(g)];
+}
+// inverse: Lambert-93 metres -> lon/lat degrees (isometric latitude solved by a few fixed-point steps)
+export function l93ToLonLat(X, Y) {
+  const n = 0.7256077650, C = 11754255.426, e = 0.08181919112, dx = X - 700000, dy = Y - 12655612.050;
+  const R = Math.hypot(dx, dy), gamma = Math.atan2(dx, -dy), L = -Math.log(R / C) / n;
+  let phi = 2 * Math.atan(Math.exp(L)) - Math.PI / 2;
+  for (let i = 0; i < 6; i++) { const s = e * Math.sin(phi); phi = 2 * Math.atan(Math.pow((1 + s) / (1 - s), e / 2) * Math.exp(L)) - Math.PI / 2; }
+  return [3 + gamma / n / d2r, phi / d2r];
 }

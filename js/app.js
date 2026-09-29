@@ -1,16 +1,17 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609292047';
-import { SITE, SITE_LIST } from './sites.js?v=202609292047';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609292047';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609292047';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609292047';
-import { searchPlaces } from './search.js?v=202609292047';
-import { TerrainShadows } from './shadows.js?v=202609292047';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609292047';
-import { Forest } from './forest.js?v=202609292047';
-import { Lakes } from './water.js?v=202609292047';
-import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609292047';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609292050';
+import { SITE, SITE_LIST } from './sites.js?v=202609292050';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609292050';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609292050';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609292050';
+import { searchPlaces } from './search.js?v=202609292050';
+import { TerrainShadows } from './shadows.js?v=202609292050';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609292050';
+import { Forest } from './forest.js?v=202609292050';
+import { Lakes } from './water.js?v=202609292050';
+import { Buildings } from './buildings.js?v=202609292050';
+import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609292050';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -219,6 +220,7 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(200000, 48, 24), new THREE.S
 }));
 sky.renderOrder = -1; sky.frustumCulled = false; scene.add(sky);
 const lakes = new Lakes({ scene, engine, uniforms: U, sceneGLSL: SCENE_GLSL, skyGLSL: SKY_LOOKUP_GLSL, skyTex: skyBaker.texture });
+const buildings = new Buildings({ scene, uniforms: U, sceneGLSL: SCENE_GLSL });
 
 // ---------- sea of clouds (driven by the forecast) ----------
 // The cloud noise is baked once into a tileable texture (same fractal as before, 6 octaves of value noise):
@@ -619,6 +621,7 @@ function showCloudLayers() { const n = QUAL[state.quality].clouds; clouds.childr
 $('c-labels').addEventListener('change', e => { state.labels = e.target.checked; labelsEl.hidden = !e.target.checked; });
 $('c-cable').addEventListener('change', e => { cable.visible = cabins.visible = e.target.checked; });
 state.trees = true; $('c-trees').addEventListener('change', e => { state.trees = e.target.checked; });
+$('c-buildings').addEventListener('change', e => { buildings.on = e.target.checked; });
 // slope map: toggle, legend built from the same classes as the shader, choice remembered on the device
 $('slopeRows').innerHTML = SLOPE_CLASSES.map(([a, c], i) => {
   const next = SLOPE_CLASSES[i + 1]?.[0];
@@ -963,6 +966,7 @@ function drawFrame() {
   if (google.on) google.update(); else engine.update(camera);
   forest.update(camera, google.on || !state.trees);
   lakes.update(camera, frameN, state.exag, google.on, controls.target);
+  buildings.update(camera, controls.target, frameN, google.on);
   if (hoverNDC && frameN % (google.on ? 10 : 3) === 0) showPoint(pick(...hoverNDC));
   updateLabels(); frameN++;
   if (frameN % 600 === 0 && state.hourOffset === 0) updateSky();

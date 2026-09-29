@@ -51,6 +51,13 @@
 
 <section id="sheet-places" class="sheet glass" hidden aria-label="Lieux">
   <div class="sh"><h2>Lieux</h2><button class="close" type="button" aria-label="Fermer">×</button></div>
+  <form id="searchForm" class="row search" role="search">
+    <label class="sr" for="q">Chercher un lieu</label>
+    <input id="q" type="search" placeholder="Sommet, refuge, lac, village…" enterkeyhint="search" autocomplete="off">
+    <button type="submit" class="mini go">Chercher</button>
+  </form>
+  <div id="results" class="places results"></div>
+  <p class="cline small" id="searchNote"></p>
   <h3>Massif</h3>
   <div id="sites" class="sites"></div>
   <h3>Sommets et repères</h3>
@@ -122,7 +129,7 @@
 </section>
 <div id="pin" class="pin" hidden><i></i></div>
 
-<div id="gAttrib" class="gattrib" hidden><img id="gLogo" src="icons/google-maps-logo.png" alt="Google Maps"><span id="gAttribTxt"></span></div>
+<div id="gAttrib" class="gattrib" hidden><img id="gLogo" src="icons/google-maps-logo.svg" alt="Google Maps"><span id="gAttribTxt"></span></div>
 
 <div class="readout glass" aria-live="polite">
   <div class="a" id="rAlt">—</div>

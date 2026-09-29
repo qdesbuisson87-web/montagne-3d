@@ -34,9 +34,12 @@ L'appli s'ouvre alors en plein écran avec son icône.
 
 UTILISATION
 -----------
-- Un doigt : tourner autour · deux doigts : zoomer et se déplacer · toucher le relief : altitude
-- Souris : clic gauche tourner, molette zoom vers le curseur, clic droit déplacer
-- « Lieux » : voler vers un sommet · « Conditions » : météo, neige, liens utiles · « Affichage » : réglages
+- Un doigt : faire glisser la carte · deux doigts : pincer pour zoomer, tourner ou incliner la vue
+- Toucher le relief : altitude, pente et conditions du point
+- Souris : clic gauche glisser la carte, clic droit tourner, molette zoom vers le curseur
+- La carte se charge partout où l'on va (photos IGN en France, satellite 10 m ailleurs)
+- « Lieux » : chercher un lieu (sommet, refuge, lac, village) ou voler vers un sommet du massif
+- « Conditions » : météo, neige, liens utiles · « Affichage » : réglages, vue Google 3D (clé Google)
 - Qualité « Extrême » : pour les appareils puissants (activée d'office quand l'appareil le permet)
 
 LIMITES À CONNAÎTRE

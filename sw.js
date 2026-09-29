@@ -1,8 +1,8 @@
 // App shell offline cache. Map tiles are cached by the app itself (Cache Storage 'midi3d-tiles-*', see js/net.js);
 // weather and satellite data always come from the network.
-const CACHE = 'midi3d-v9';
+const CACHE = 'midi3d-v10';
 // the Google 3D module (3d-tiles-renderer) is cached on first use by the network-first rule below
-const SHELL = ['./', 'index.html', 'css/app.css', 'js/app.js', 'js/terrain.js', 'js/net.js', 'js/live.js', 'js/geo.js', 'js/sites.js', 'js/google3d.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png',
+const SHELL = ['./', 'index.html', 'css/app.css', 'js/app.js', 'js/terrain.js', 'js/net.js', 'js/live.js', 'js/geo.js', 'js/sites.js', 'js/google3d.js', 'js/search.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/google-maps-logo.svg',
   'https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js', 'https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.core.js', 'https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/controls/OrbitControls.js'];
 const FONTS = new Set(['fonts.googleapis.com', 'fonts.gstatic.com']);
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });

@@ -267,11 +267,28 @@ export class TerrainEngine {
     this.frame = 0; this.loading = 0; this.maxLoads = 8; this.splitK = 2; this.maxTiles = 700; this.exag = 1;
     this.frustum = new THREE.Frustum(); this.pv = new THREE.Matrix4();
     this.overlay = { item: null, snow: false, vis: false, cache: new Map() };
-    // roots: zoom-11 tiles over the Mont-Blanc massif and its surroundings
+    // roots: zoom-11 tiles, first over the massif and its surroundings, then wherever the camera goes (ensureRoots)
     const [ax, ay] = lonLatToTile(bounds[0], bounds[3], 11), [bx, by] = lonLatToTile(bounds[2], bounds[1], 11);
-    this.roots = [];
-    for (let y = Math.floor(ay); y <= Math.floor(by); y++) for (let x = Math.floor(ax); x <= Math.floor(bx); x++) this.roots.push(new Tile(this, 11, x, y, null));
+    this.roots = []; this.rootKeys = new Map();
+    for (let y = Math.floor(ay); y <= Math.floor(by); y++) for (let x = Math.floor(ax); x <= Math.floor(bx); x++) this.addRoot(x, y);
     this.drawn = [];
+  }
+  addRoot(x, y) { const t = new Tile(this, 11, x, y, null); this.roots.push(t); this.rootKeys.set(`${x}/${y}`, t); }
+  // Free navigation: keep zoom-11 tiles loaded within `radius` metres of a point (the view's centre), drop those
+  // far behind (1.6 × radius) so memory stays bounded however far one travels.
+  ensureRoots(x, z, radius) {
+    const [lon, lat] = worldToLonLat(x, z), [tx, ty] = lonLatToTile(lon, lat, 11);
+    const span = Math.ceil(radius / this.roots[0].size) + 1;
+    for (let y = Math.floor(ty) - span; y <= Math.floor(ty) + span; y++) for (let xx = Math.floor(tx) - span; xx <= Math.floor(tx) + span; xx++) {
+      if (this.rootKeys.has(`${xx}/${y}`)) continue;
+      const m = tileMerc(11, xx, y), [cx, cz] = mercToWorld((m.minx + m.maxx) / 2, (m.miny + m.maxy) / 2);
+      if (Math.hypot(cx - x, cz - z) < radius) this.addRoot(xx, y);
+    }
+    const kill = n => { n.children?.forEach(kill); n.children = null; n.dispose(); };
+    this.roots = this.roots.filter(r => {
+      if (Math.hypot((r.x0 + r.x1) / 2 - x, (r.z0 + r.z1) / 2 - z) < radius * 1.6) return true;
+      kill(r); this.rootKeys.delete(`${r.x}/${r.y}`); return false;
+    });
   }
   makeTexture(bitmap) {
     const t = new THREE.Texture(bitmap); t.flipY = false; t.colorSpace = THREE.NoColorSpace; t.anisotropy = this.aniso;

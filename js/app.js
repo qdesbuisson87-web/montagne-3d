@@ -5,6 +5,7 @@ import { SITE, SITE_LIST } from './sites.js';
 import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js';
 import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js';
 import { GoogleTiles, googleKey, whyRefused } from './google3d.js';
+import { searchPlaces } from './search.js';
 import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js';
 THREE.ColorManagement.enabled = false;
 
@@ -25,7 +26,10 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(50, 1, 1, 250000);
 const controls = new OrbitControls(camera, renderer.domElement);
 Object.assign(controls, { enableDamping: true, dampingFactor: 0.08, zoomToCursor: true, screenSpacePanning: false, minDistance: 15, maxDistance: 60000, maxPolarAngle: Math.PI * 0.495, rotateSpeed: 0.55, zoomSpeed: 1.2, autoRotateSpeed: 0.3 });
-controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+// map gestures, as in Google Earth: one finger / left button drags the map, two fingers pinch to zoom and
+// turn or tilt the view, right button rotates; the pivot follows the ground (see frame())
+controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
+controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
 
 // ---------- quality ----------
 const touch = matchMedia('(pointer: coarse)').matches;
@@ -318,6 +322,34 @@ function flyToPlace(p) {
 function home() { const t = new THREE.Vector3(0, (SITE.alt - SITE.home.dy) * state.exag, 0), [cx, cy, cz] = SITE.home.cam; startFly(t, new THREE.Vector3(cx, t.y + cy, cz), 3200); }
 controls.target.set(0, SITE.alt - SITE.home.dy, 0); camera.position.set(-9000, 9000, -12000);
 
+// ---------- place search: fly anywhere, a pin marks the place ----------
+function flyToLonLat(lon, lat) {
+  const [x, z] = lonLatToWorld(lon, lat);
+  engine.ensureRoots(x, z, 45000); // start loading the ground there right away
+  const h = groundAt(x, z) ?? controls.target.y / state.exag, t = new THREE.Vector3(x, h * state.exag, z);
+  let dir = camera.position.clone().sub(controls.target).normalize();
+  if (dir.y < 0.25 || dir.y > 0.8) { dir.y = 0.45; dir.normalize(); }
+  startFly(t, t.clone().addScaledVector(dir, 3000), 2600);
+  pin = { x, z, h, search: true };
+}
+$('searchForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const q = $('q').value.trim(); if (q.length < 2) return;
+  $('q').blur(); $('results').innerHTML = ''; $('searchNote').textContent = 'Recherche…';
+  try {
+    const [lon, lat] = worldToLonLat(controls.target.x, controls.target.z);
+    const list = await searchPlaces(q, { lat, lon });
+    $('searchNote').textContent = list.length ? 'Sources : IGN Géoplateforme, © contributeurs OpenStreetMap (Nominatim).' : `Aucun lieu trouvé pour « ${q} ».`;
+    list.forEach(p => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'place';
+      const dist = p.km < 10 ? `${t1(p.km)} km` : `${fmt(p.km)} km`;
+      b.innerHTML = `<span>${esc(p.name)}</span><span class="pa">${esc(p.detail || p.src)} · à ${dist}</span>`;
+      b.addEventListener('click', () => { flyToLonLat(p.lon, p.lat); if (touch) closeSheets(); });
+      $('results').appendChild(b);
+    });
+  } catch (err) { $('searchNote').textContent = `Recherche impossible : ${err.message}.`; }
+});
+
 // ---------- terrain queries ----------
 const groundAt = (x, z) => engine.heightAt(x, z);
 const google = new GoogleTiles({ scene, camera, renderer, origin: ORIGIN, geoidN: SITE.geoidN ?? 50 });
@@ -454,6 +486,11 @@ function applyPrecip() {
 let precipCheck = 0;
 function updatePrecipForView() {
   if (!state.weather) return;
+  if (state.far) { // outside the massif the stations say nothing reliable: show nothing rather than guess
+    if (precipNow.kind !== 'none' || precipNow.alt != null) { precipNow = { kind: 'none', mm: 0, t: null, alt: null }; applyPrecip(); }
+    $('precipNow').textContent = state.precip === 'auto' ? 'Hors du massif : pas de météo en direct ici (les stations mesurées sont celles du massif).' : $('precipNow').textContent;
+    return;
+  }
   const g = groundAt(controls.target.x, controls.target.z); if (g == null) return;
   const p = precipAt(g); if (!p) return;
   const changed = p.kind !== precipNow.kind || Math.abs(p.mm - precipNow.mm) > 0.2 || Math.abs((p.alt ?? 0) - (precipNow.alt ?? 0)) > 150;
@@ -525,7 +562,7 @@ $('vivid').addEventListener('input', e => { U.vivid.value = +e.target.value; $('
 $('c-snowtoday').addEventListener('change', e => { state.snowToday = e.target.checked; U.snowToday.value = e.target.checked ? 1 : 0; engine.setOverlay('snow', e.target.checked); });
 $('c-clouds').addEventListener('change', e => { state.clouds = e.target.checked; renderWeather(); if (!state.weather) cloudU.cover.value = 0; showCloudLayers(); });
 // cloud layers cover the whole screen: none drawn in clear weather, fewer on lighter settings
-function showCloudLayers() { const n = QUAL[state.quality].clouds; clouds.children.forEach((m, i) => { m.visible = cloudU.cover.value > 0.01 && i < n; }); }
+function showCloudLayers() { const n = QUAL[state.quality].clouds; clouds.children.forEach((m, i) => { m.visible = cloudU.cover.value > 0.01 && i < n && !state.far; }); }
 $('c-labels').addEventListener('change', e => { state.labels = e.target.checked; labelsEl.hidden = !e.target.checked; });
 $('c-cable').addEventListener('change', e => { cable.visible = cabins.visible = e.target.checked; });
 // slope map: toggle, legend built from the same classes as the shader, choice remembered on the device
@@ -573,7 +610,7 @@ function setView(v) {
   try { localStorage.setItem('midi3d-view', v); } catch { }
 }
 document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
-// without the logo file, at least name Google (the official logo lives in icons/google-maps-logo.png)
+// if the official logo (icons/google-maps-logo.svg, from Google's attribution assets) fails to load, at least name Google
 const noLogo = () => $('gLogo')?.replaceWith(Object.assign(document.createElement('b'), { textContent: 'Google', className: 'glogo' }));
 if ($('gLogo').complete && !$('gLogo').naturalWidth) noLogo(); else $('gLogo').addEventListener('error', noLogo);
 $('gKeySave').addEventListener('click', () => {
@@ -821,7 +858,7 @@ function resize() {
 }
 addEventListener('resize', resize);
 applyQuality(state.quality);
-const clock = new THREE.Clock(); let fpsAcc = 0, fpsN = 0, adAcc = 0, adN = 0, started = false, gGround = null;
+const clock = new THREE.Clock(); let fpsAcc = 0, fpsN = 0, adAcc = 0, adN = 0, started = false, gGround = null, gTarget = null;
 // ?debugloop keeps rendering in a hidden tab (for automated checks); normal use follows the display refresh
 const nextFrame = location.search.includes("debugloop") ? cb => setTimeout(cb, 16) : cb => requestAnimationFrame(cb);
 function frame() {
@@ -837,10 +874,23 @@ function frame() {
   const c = camera.position;
   // ground under the camera (keeps it above the surface, sets the near plane): Google's own surface in that view,
   // probed a few times per second since a ray through the tiles costs more than a grid lookup
+  const T = controls.target;
   if (google.on && frameN % 6 === 0) {
-    rayG.set(new THREE.Vector3(c.x, 9000, c.z), new THREE.Vector3(0, -1, 0)); rayG.far = 20000;
-    gGround = google.raycast(rayG)?.y ?? null; rayG.far = Infinity;
+    const down = (x, z) => { rayG.set(new THREE.Vector3(x, 9000, z), new THREE.Vector3(0, -1, 0)); rayG.far = 20000; const y = google.raycast(rayG)?.y ?? null; rayG.far = Infinity; return y; };
+    gGround = down(c.x, c.z); gTarget = down(T.x, T.z);
   }
+  // after a drag the pivot slides along the ground: ease it to the surface under it, moving the camera by the
+  // same amount so the view does not jump
+  if (!fly && frameN % 2 === 0) {
+    const gt = google.on ? gTarget : groundAt(T.x, T.z);
+    if (gt != null) { const dy = (gt * state.exag - T.y) * 0.15; if (Math.abs(dy) > 0.02) { T.y += dy; c.y += dy; } }
+  }
+  if (frameN % 60 === 0) {
+    engine.ensureRoots(T.x, T.z, 45000);
+    const far = Math.hypot(T.x, T.z) > 30000; // the weather stations only describe the massif
+    if (far !== state.far) { state.far = far; showCloudLayers(); updatePrecipForView(); }
+  }
+  if (pin?.search) pin.h = (google.on ? null : groundAt(pin.x, pin.z)) ?? pin.h;
   const g = google.on ? (gGround ?? groundAt(c.x, c.z)) : groundAt(c.x, c.z);
   if (g != null && c.y < g * state.exag + 4) c.y = g * state.exag + 4;
   const above = g != null ? c.y - g * state.exag : 1000, td = c.distanceTo(controls.target);

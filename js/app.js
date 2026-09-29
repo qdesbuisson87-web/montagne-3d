@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609292028';
-import { SITE, SITE_LIST } from './sites.js?v=202609292028';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609292028';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609292028';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609292028';
-import { searchPlaces } from './search.js?v=202609292028';
-import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609292028';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609292032';
+import { SITE, SITE_LIST } from './sites.js?v=202609292032';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609292032';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609292032';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609292032';
+import { searchPlaces } from './search.js?v=202609292032';
+import { TerrainShadows } from './shadows.js?v=202609292032';
+import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609292032';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -37,9 +38,9 @@ const beefy = (navigator.deviceMemory || 8) >= 6 && (navigator.hardwareConcurren
 // k: tile split distance (detail), pr: highest pixel ratio, fps: frame rate the automatic adjustment defends,
 // fx: share of the snow/rain particles, clouds: layers of the sea of clouds
 const QUAL = {
-  standard: { k: 1.6, pr: 1.25, tiles: 450, loads: 6, fps: 50, fx: 0.3, clouds: 2, gErr: 24 },
-  haute: { k: 2.2, pr: 2, tiles: 800, loads: 8, fps: 55, fx: 0.6, clouds: 3, gErr: 12 },
-  extreme: { k: 3.2, pr: 3, tiles: 1300, loads: 12, fps: 30, fx: 1, clouds: 4, gErr: 6 } // gErr: Google 3D screen error (px)
+  standard: { k: 1.6, pr: 1.25, tiles: 450, loads: 6, fps: 50, fx: 0.3, clouds: 2, gErr: 24, shRes: 512, shSteps: 80 },
+  haute: { k: 2.2, pr: 2, tiles: 800, loads: 8, fps: 55, fx: 0.6, clouds: 3, gErr: 12, shRes: 1024, shSteps: 112 },
+  extreme: { k: 3.2, pr: 3, tiles: 1300, loads: 12, fps: 30, fx: 1, clouds: 4, gErr: 6, shRes: 2048, shSteps: 160 } // gErr: Google 3D screen error (px); sh*: shadow maps
 };
 // phones start in "Haute" (the promise: 60 i/s on a high-end phone); "Extrême" is a deliberate choice there
 let savedQuality = null; try { savedQuality = localStorage.getItem('midi3d-quality'); } catch { }
@@ -50,6 +51,8 @@ try { state.slopes = localStorage.getItem('midi3d-slopes') === '1'; } catch { }
 const U = {
   exag: { value: 1 }, sunDir: { value: new THREE.Vector3(0, 1, 0) }, sunCol: { value: new THREE.Vector3(1, 1, 1) }, skyCol: { value: new THREE.Vector3() }, horizonCol: { value: new THREE.Vector3() }, glowCol: { value: new THREE.Vector3() },
   noiseTex: { value: cloudNoiseTexture() }, // tileable fractal noise: cloud shapes and rock grain
+  // cast shadows (shadows.js): fine and coarse shadow maps and their squares on the ground
+  shF: { value: null }, shC: { value: null }, srF: { value: new THREE.Vector4() }, srC: { value: new THREE.Vector4() }, shOn: { value: 0 },
   light: { value: 0 }, vivid: { value: 0.2 }, snowToday: { value: 1 }, visToday: { value: 0 }, slopes: { value: state.slopes ? 1 : 0 }, fogDensity: { value: 0.000016 }, haze: { value: 0 }, time: { value: 0 }
 };
 // slope classes (degrees, lower bound) and their colours; the shader and the on-screen legend both read this
@@ -66,7 +69,15 @@ void main(){
 }`;
 const terrainFS = `
 uniform sampler2D map, slopeMap, ndsiMap, cloudMap, visMap, noiseTex; uniform vec4 ovRect;
-uniform float exag, hasNdsi, hasCloud, hasVis, tileSize, snowToday, visToday, slopes, light, vivid, fogDensity, haze, time;
+uniform float exag, hasNdsi, hasCloud, hasVis, tileSize, snowToday, visToday, slopes, light, vivid, fogDensity, haze, time, shOn;
+uniform sampler2D shF, shC; uniform vec4 srF, srC;
+// share of the sun reaching a point: fine map near the view centre, fading into the coarse one at its edges
+float sunShadow(vec3 w){
+  vec2 uf = vec2((w.x - srF.x) / srF.z, (srF.y - w.z) / srF.z), uc = vec2((w.x - srC.x) / srC.z, (srC.y - w.z) / srC.z);
+  float c = (uc.x > 0.0 && uc.y > 0.0 && uc.x < 1.0 && uc.y < 1.0) ? texture2D(shC, uc).r : 1.0;
+  float edge = min(min(uf.x, uf.y), min(1.0 - uf.x, 1.0 - uf.y));
+  return mix(c, texture2D(shF, clamp(uf, 0.0, 1.0)).r, smoothstep(0.0, 0.06, edge));
+}
 uniform vec3 sunDir, sunCol, skyCol, horizonCol, glowCol;
 varying vec2 vUv; varying vec3 vN, vW; varying float vAlt;
 const vec3 LUM = vec3(0.2126, 0.7152, 0.0722);
@@ -143,11 +154,12 @@ void main(){
     col = alb * mix(0.88 + 0.14*n.y, 0.45 + 0.75*max(dot(nl, PL), 0.0), steep);
   }
   else {
-    float ndl = max(dot(nl, sunDir), 0.0);
+    float sh = shOn > 0.5 ? sunShadow(vW) : 1.0; // cast by the surrounding relief
+    float ndl = max(dot(nl, sunDir), 0.0) * sh;
     vec3 a = alb / (0.55 + 0.9*lum) * 0.95;
     col = a * (sunCol*ndl + skyCol*0.5*(0.6 + 0.4*n.y));
     vec3 V = normalize(cameraPosition - vW), H = normalize(sunDir + V);
-    col += sunCol * pow(max(dot(nl, H), 0.0), 60.0) * smoothstep(0.5, 0.8, lum) * 0.35;
+    col += sunCol * pow(max(dot(nl, H), 0.0), 60.0) * smoothstep(0.5, 0.8, lum) * 0.35 * sh;
   }
   // slope map: the ground gradient is interpolated per pixel from the tile's grid (true metres, not exaggerated),
   // and each class boundary is blended over about one pixel so it never shows stair steps
@@ -171,6 +183,7 @@ void main(){
 
 const BOUNDS = SITE.bounds; // lon/lat of the streamed area
 const engine = new TerrainEngine({ renderer, scene, uniforms: U, vertexShader: terrainVS, fragmentShader: terrainFS, bounds: BOUNDS });
+const shadows = new TerrainShadows(renderer, engine, U);
 
 // ---------- sky ----------
 const sky = new THREE.Mesh(new THREE.SphereGeometry(200000, 48, 24), new THREE.ShaderMaterial({
@@ -403,7 +416,9 @@ controls.addEventListener('start', () => {
 
 // ---------- sun, sky, weather-driven look ----------
 let overcast = 0;
-function lightingNow() { return new Date(Date.now() + state.hourOffset * 3600e3); }
+// lighting time = now, moved by the hour slider and by the chosen day (whole days, so the hour stays the same)
+state.dayOffset = 0;
+function lightingNow() { return new Date(Date.now() + state.hourOffset * 3600e3 + state.dayOffset * 864e5); }
 function updateSky() {
   const date = lightingNow(), { az, el } = sunPosition(date, ORIGIN.lat, ORIGIN.lon);
   const s = Math.sin(el);
@@ -418,8 +433,16 @@ function updateSky() {
   U.skyCol.value.set(...skyC); U.horizonCol.value.set(...hor); U.glowCol.value.set(...glow); U.sunCol.value.set(...sun);
   gFog.color.setRGB(...hor); gFog.density = 2.3e-5 * (1 + overcast * 1.1);
   const hh = date.getHours(), mm = date.getMinutes();
-  $('timeOut').textContent = (state.hourOffset === 0 ? 'maintenant, ' : '') + `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+  const live = state.hourOffset === 0 && state.dayOffset === 0;
+  $('timeOut').textContent = (live ? 'maintenant, ' : state.dayOffset ? date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ', ' : '') + `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
 }
+const isoDay = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+$('sunDate').value = isoDay(new Date());
+$('sunDate').addEventListener('change', e => {
+  const [y, m, d] = e.target.value.split('-').map(Number); if (!y) return;
+  const today = new Date(); today.setHours(12, 0, 0, 0);
+  state.dayOffset = Math.round((new Date(y, m - 1, d, 12) - today) / 864e5); updateSky();
+});
 
 // ---------- live conditions ----------
 const WMO = { 0: 'Ciel clair', 1: 'Peu nuageux', 2: 'Partiellement nuageux', 3: 'Couvert', 45: 'Brouillard', 48: 'Brouillard givrant', 51: 'Bruine faible', 53: 'Bruine', 55: 'Bruine forte', 56: 'Bruine verglaçante', 57: 'Bruine verglaçante', 61: 'Pluie faible', 63: 'Pluie', 65: 'Pluie forte', 66: 'Pluie verglaçante', 67: 'Pluie verglaçante', 71: 'Neige faible', 73: 'Neige', 75: 'Neige forte', 77: 'Grains de neige', 80: 'Averses', 81: 'Averses', 82: 'Averses fortes', 85: 'Averses de neige', 86: 'Fortes averses de neige', 95: 'Orage', 96: 'Orage, grêle', 99: 'Orage, grêle' };
@@ -559,7 +582,7 @@ seg('light', 'light', v => { U.light.value = v === 'sun' ? 1 : 0; $('f-time').cl
 seg('quality', 'quality', applyQuality);
 seg('precip', 'precip', applyPrecip);
 $('time').addEventListener('input', e => { state.hourOffset = +e.target.value; updateSky(); });
-$('now').addEventListener('click', () => { $('time').value = 0; state.hourOffset = 0; updateSky(); });
+$('now').addEventListener('click', () => { $('time').value = 0; state.hourOffset = 0; state.dayOffset = 0; $('sunDate').value = isoDay(new Date()); updateSky(); });
 $('exag').addEventListener('input', e => {
   const v = +e.target.value, r = v / state.exag; state.exag = v; U.exag.value = v; engine.setExaggeration(v);
   controls.target.y *= r; camera.position.y *= r; placeCable(); $('exagOut').textContent = '×' + v.toFixed(2).replace(/0$/, '');
@@ -665,7 +688,7 @@ function applyQuality(q) {
   const Q = QUAL[q]; engine.maxTiles = Q.tiles; engine.maxLoads = Q.loads;
   Object.assign(adapt, { res: 1, detail: 1, good: 0, since: performance.now() });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.pr)); resize(); applyScale();
-  showCloudLayers(); applyPrecip();
+  showCloudLayers(); applyPrecip(); shadows.setQuality(Q.shRes, Q.shSteps);
   try { localStorage.setItem('midi3d-quality', q); } catch { }
 }
 markSeg('quality', state.quality);
@@ -915,6 +938,9 @@ function drawFrame() {
   updateLabels(); frameN++;
   if (frameN % 600 === 0 && state.hourOffset === 0) updateSky();
   if (frameN % 45 === 0) updatePrecipForView();
+  // cast shadows only with the real sun on the IGN terrain (photos and Google tiles carry their own)
+  if (state.light === 'sun' && !google.on && started) shadows.update(controls.target, U.sunDir.value, state.exag, performance.now());
+  else shadows.off();
   renderer.render(scene, camera);
   // start when the IGN relief is there, or when the Google view was chosen during loading (IGN then paused)
   if (!started && (engine.roots.filter(r => r.state === 'ready').length >= engine.roots.length * 0.6 || (google.on && t > 3))) {

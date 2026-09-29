@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202609292028">
+<link rel="stylesheet" href="css/app.css?v=202609292032">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -97,7 +97,9 @@
   <div class="field"><label>Lumière</label>
     <div class="seg"><button type="button" data-light="photo" aria-pressed="true">Photo</button><button type="button" data-light="sun" aria-pressed="false">Soleil réel</button></div></div>
   <div class="field dim" id="f-time"><label for="time">Heure du soleil <output id="timeOut">—</output></label>
-    <div class="row"><input id="time" type="range" min="-12" max="12" step="0.25" value="0"><button id="now" type="button" class="mini">Maintenant</button></div></div>
+    <div class="row"><input id="time" type="range" min="-12" max="12" step="0.25" value="0"><button id="now" type="button" class="mini">Maintenant</button></div>
+    <div class="row sundate"><label for="sunDate">Jour</label><input id="sunDate" type="date"></div>
+    <p class="cline small">Ombres portées par le relief calculées pour ce jour et cette heure (vue IGN).</p></div>
   <div class="field"><label>Pluie et neige qui tombent</label>
     <div class="seg"><button type="button" data-precip="auto" aria-pressed="true">Météo réelle</button><button type="button" data-precip="snow" aria-pressed="false">Neige</button><button type="button" data-precip="rain" aria-pressed="false">Pluie</button><button type="button" data-precip="off" aria-pressed="false">Aucune</button></div>
     <p class="cline small" id="precipNow"></p></div>
@@ -140,6 +142,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202609292028"></script>
+<script type="module" src="js/app.js?v=202609292032"></script>
 </body>
 </html>

@@ -70,6 +70,9 @@ h1 .alt { font-weight: 600; font-size: 17px; color: var(--ice); margin-left: 4px
 .field.dim { opacity: .45; }
 input[type=range] { width: 100%; margin: 0; accent-color: var(--ice); height: 28px; }
 #time { accent-color: var(--amber); }
+.sundate { margin-top: 6px; }
+.sundate label { margin: 0; font-size: 13.5px; }
+#sunDate { flex: 1; min-height: 44px; appearance: none; background: rgba(255,255,255,.06); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font: 400 14px/1 "IBM Plex Mono", ui-monospace, monospace; color: var(--ink); color-scheme: dark; }
 .row { display: flex; gap: 8px; align-items: center; }
 .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; }
 .seg button, .mini, .btn { appearance: none; border: 1px solid var(--line); background: rgba(255,255,255,.04); border-radius: 6px; padding: 9px 6px; font: 600 13px/1.1 "Barlow Condensed", "Arial Narrow", sans-serif; letter-spacing: .05em; text-transform: uppercase; cursor: pointer; }

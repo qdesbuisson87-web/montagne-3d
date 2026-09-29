@@ -1,15 +1,16 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609292041';
-import { SITE, SITE_LIST } from './sites.js?v=202609292041';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609292041';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609292041';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609292041';
-import { searchPlaces } from './search.js?v=202609292041';
-import { TerrainShadows } from './shadows.js?v=202609292041';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609292041';
-import { Forest } from './forest.js?v=202609292041';
-import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609292041';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609292047';
+import { SITE, SITE_LIST } from './sites.js?v=202609292047';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609292047';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609292047';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609292047';
+import { searchPlaces } from './search.js?v=202609292047';
+import { TerrainShadows } from './shadows.js?v=202609292047';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609292047';
+import { Forest } from './forest.js?v=202609292047';
+import { Lakes } from './water.js?v=202609292047';
+import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609292047';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -217,6 +218,7 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(200000, 48, 24), new THREE.S
       gl_FragColor = vec4(min(c, 1.0), 1.0); }`
 }));
 sky.renderOrder = -1; sky.frustumCulled = false; scene.add(sky);
+const lakes = new Lakes({ scene, engine, uniforms: U, sceneGLSL: SCENE_GLSL, skyGLSL: SKY_LOOKUP_GLSL, skyTex: skyBaker.texture });
 
 // ---------- sea of clouds (driven by the forecast) ----------
 // The cloud noise is baked once into a tileable texture (same fractal as before, 6 octaves of value noise):
@@ -711,7 +713,7 @@ function applyQuality(q) {
   const Q = QUAL[q]; engine.maxTiles = Q.tiles; engine.maxLoads = Q.loads;
   Object.assign(adapt, { res: 1, detail: 1, good: 0, since: performance.now() });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.pr)); resize(); applyScale();
-  showCloudLayers(); applyPrecip(); shadows.setQuality(Q.shRes, Q.shSteps); forest.maxTrees = Q.trees;
+  showCloudLayers(); applyPrecip(); shadows.setQuality(Q.shRes, Q.shSteps); forest.maxTrees = Q.trees; lakes.mirrorOn = q !== 'standard'; lakes.mirrorEvery = q === 'extreme' ? 2 : 3;
   try { localStorage.setItem('midi3d-quality', q); } catch { }
 }
 markSeg('quality', state.quality);
@@ -960,6 +962,7 @@ function drawFrame() {
   if (cabins.visible) { const a = cabinGeo.attributes.position.array, ph = (t * 0.02) % 2, f = ph < 1 ? ph : 2 - ph; a.set(cablePoint(0, f), 0); a.set(cablePoint(1, 1 - f), 3); cabinGeo.attributes.position.needsUpdate = true; }
   if (google.on) google.update(); else engine.update(camera);
   forest.update(camera, google.on || !state.trees);
+  lakes.update(camera, frameN, state.exag, google.on, controls.target);
   if (hoverNDC && frameN % (google.on ? 10 : 3) === 0) showPoint(pick(...hoverNDC));
   updateLabels(); frameN++;
   if (frameN % 600 === 0 && state.hourOffset === 0) updateSky();
@@ -984,7 +987,7 @@ function drawFrame() {
     fpsAcc = 0; fpsN = 0;
   }
 }
-window.midi3d = { engine, google, camera, controls, adapt, applyScale }; // handy for debugging from the console
+window.midi3d = { engine, google, camera, controls, adapt, applyScale, forest, lakes, shadows }; // handy for debugging from the console
 updateSky(); frame(); refreshLive();
 setInterval(() => { if (document.visibilityState === 'visible') refreshLive(); }, 15 * 60e3);
 setTimeout(() => $('loader').classList.add('done'), 15000);

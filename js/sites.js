@@ -43,6 +43,44 @@ const SITES = {
       ['https://www.chamonix.com/webcams', 'Webcams de la vallée — Chamonix']
     ]
   },
+  // Coordinates: IGN gazetteer (Géoplateforme). Altitudes: official map heights where known (Mont Buet 3096,
+  // Cheval Blanc 2831, Aiguille du Belvédère 2965), otherwise the highest IGN RGE ALTI point within 60 m.
+  buet: {
+    id: 'buet', name: 'Mont Buet', alt: 3096, region: 'Aiguilles Rouges · Vallorcine · Sixt',
+    origin: { lat: 46.0248, lon: 6.85256 },
+    geoidN: 52.8, // EGM2008 at the summit
+    bounds: [6.40, 45.78, 7.30, 46.27],
+    core: [6.78, 45.97, 6.95, 46.08],
+    detail: [6.838, 46.014, 6.866, 46.035],
+    spots: {
+      top: { name: 'Mont Buet', lat: 46.0248, lon: 6.85256, alt: 3096 },
+      peak2: { name: 'Cheval Blanc', lat: 46.05196, lon: 6.87267, alt: 2831 },
+      mid: { name: 'Refuge de la Pierre à Bérard', lat: 46.00298, lon: 6.86872, alt: 1925 },
+      valley: { name: 'Vallorcine', lat: 46.03277, lon: 6.92932, alt: 1290 }
+    },
+    home: { dy: 70, cam: [620, 230, 700] },
+    cable: null,
+    places: [
+      { id: 'top', name: 'Mont Buet', alt: 3096, ll: [46.0248, 6.85256], star: true, dist: 1100 },
+      { name: 'Le Cheval Blanc', alt: 2831, ll: [46.05196, 6.87267] },
+      { name: 'Pointe du Genévrier', alt: 2850, ll: [46.03745, 6.85519] },
+      { name: 'Tête du Grenairon', alt: 2713, ll: [46.06534, 6.87900] },
+      { name: 'Aiguille de Salenton', alt: 2647, ll: [46.00914, 6.85399] },
+      { name: 'Aiguille du Belvédère', alt: 2965, ll: [45.98781, 6.87345] },
+      { name: 'Col de Salenton', alt: 2516, ll: [46.00711, 6.85515], small: true },
+      { name: 'Col de Bérard', alt: 2452, ll: [45.99129, 6.85746], small: true },
+      { name: 'Refuge de la Pierre à Bérard', alt: 1925, ll: [46.00298, 6.86872], small: true },
+      { name: 'Refuge du Grenairon', alt: 1949, ll: [46.03223, 6.79835], small: true },
+      { name: 'Le Buet', alt: 1337, ll: [46.01914, 6.91954], small: true },
+      { name: 'Vallorcine', alt: 1290, ll: [46.03277, 6.92932] },
+      { name: 'Mont Blanc', alt: 4806, ll: [45.8326, 6.8652] },
+      { name: 'Aiguille Verte', alt: 4122, ll: [45.9344, 6.9706] }
+    ],
+    links: [
+      ['https://meteofrance.com/meteo-montagne/mont-blanc', "Bulletin d'avalanche et météo montagne Mont-Blanc — Météo-France"],
+      ['https://www.chamoniarde.com/', 'Office de Haute Montagne (La Chamoniarde) — conditions des itinéraires']
+    ]
+  },
   sassiere: {
     id: 'sassiere', name: 'Grande Sassière', alt: 3747, region: 'Haute-Tarentaise · Tignes',
     origin: { lat: 45.5050, lon: 6.99972 },

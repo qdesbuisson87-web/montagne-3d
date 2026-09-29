@@ -4,6 +4,7 @@ import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js';
 import { SITE, SITE_LIST } from './sites.js';
 import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js';
 import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js';
+import { GoogleTiles, googleKey } from './google3d.js';
 import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js';
 THREE.ColorManagement.enabled = false;
 
@@ -32,9 +33,9 @@ const beefy = (navigator.deviceMemory || 8) >= 6 && (navigator.hardwareConcurren
 // k: tile split distance (detail), pr: highest pixel ratio, fps: frame rate the automatic adjustment defends,
 // fx: share of the snow/rain particles, clouds: layers of the sea of clouds
 const QUAL = {
-  standard: { k: 1.6, pr: 1.25, tiles: 450, loads: 6, fps: 50, fx: 0.3, clouds: 2 },
-  haute: { k: 2.2, pr: 2, tiles: 800, loads: 8, fps: 55, fx: 0.6, clouds: 3 },
-  extreme: { k: 3.2, pr: 3, tiles: 1300, loads: 12, fps: 30, fx: 1, clouds: 4 }
+  standard: { k: 1.6, pr: 1.25, tiles: 450, loads: 6, fps: 50, fx: 0.3, clouds: 2, gErr: 24 },
+  haute: { k: 2.2, pr: 2, tiles: 800, loads: 8, fps: 55, fx: 0.6, clouds: 3, gErr: 12 },
+  extreme: { k: 3.2, pr: 3, tiles: 1300, loads: 12, fps: 30, fx: 1, clouds: 4, gErr: 6 } // gErr: Google 3D screen error (px)
 };
 // phones start in "Haute" (the promise: 60 i/s on a high-end phone); "Extrême" is a deliberate choice there
 let savedQuality = null; try { savedQuality = localStorage.getItem('midi3d-quality'); } catch { }
@@ -319,7 +320,15 @@ controls.target.set(0, SITE.alt - SITE.home.dy, 0); camera.position.set(-9000, 9
 
 // ---------- terrain queries ----------
 const groundAt = (x, z) => engine.heightAt(x, z);
+const google = new GoogleTiles({ scene, camera, renderer, origin: ORIGIN, geoidN: SITE.geoidN ?? 50 });
+const rayG = new THREE.Raycaster();
+// aerial perspective for the Google tiles (their materials take three.js fog), same horizon colour as the sky
+const gFog = new THREE.FogExp2(0xc8d2dc, 2.3e-5);
 function pick(ndcX, ndcY) {
+  if (google.on) { // Google view: the surface actually on screen (buildings, trees and snow included)
+    rayG.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
+    const p = google.raycast(rayG); return p ? { x: p.x, z: p.z, h: p.y, surface: 'google' } : null;
+  }
   const r = new THREE.Raycaster(); r.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
   const o = r.ray.origin, d = r.ray.direction; let t = 0;
   for (let i = 0; i < 1500 && t < 80000; i++) {
@@ -369,6 +378,7 @@ function updateSky() {
   let sun = mixv([1.0, 0.5, 0.25], [1.0, 0.96, 0.9], sstep(0.0, 0.4, s)).map(v => v * 2.4 * sstep(-0.04, 0.08, s));
   if (ov > 0) { const g = 0.35 + 0.45 * day; skyC = mixv(skyC, [g * 0.9, g * 0.93, g], ov); hor = mixv(hor, [g, g, g * 1.02], ov); glow = mixv(glow, [g, g, g], ov); sun = sun.map(v => v * (1 - 0.7 * ov)); }
   U.skyCol.value.set(...skyC); U.horizonCol.value.set(...hor); U.glowCol.value.set(...glow); U.sunCol.value.set(...sun);
+  gFog.color.setRGB(...hor); gFog.density = 2.3e-5 * (1 + overcast * 1.1);
   const hh = date.getHours(), mm = date.getMinutes();
   $('timeOut').textContent = (state.hourOffset === 0 ? 'maintenant, ' : '') + `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
 }
@@ -529,6 +539,46 @@ function applySlopes(on) {
 }
 $('c-slopes').addEventListener('change', e => applySlopes(e.target.checked));
 applySlopes(state.slopes);
+
+// ---------- view: IGN terrain or Google Photorealistic 3D Tiles, never both at once (see google3d.js) ----------
+state.view = 'ign';
+const GERR = {
+  key: "Google refuse la clé. Vérifie qu'elle est copiée en entier, que la Map Tiles API est activée, que la facturation est configurée et que la clé autorise le site qdesbuisson87-web.github.io.",
+  network: 'Google 3D ne répond pas (connexion ou quota du jour atteint). Retour à la vue IGN.'
+};
+function setView(v) {
+  if (v === 'google' && !googleKey.get()) { $('gKeyBlock').hidden = false; $('gKey').focus(); $('gNote').textContent = ''; return; }
+  if (v === 'google' && !navigator.onLine) { $('gNote').textContent = "La vue Google 3D demande une connexion : Google interdit de la garder hors ligne. La vue IGN marche hors ligne."; return; }
+  const g = v === 'google';
+  state.view = v; markSeg('view', v);
+  document.body.classList.toggle('google', g);
+  engine.group.visible = !g; $('gAttrib').hidden = !g; $('gKeyBlock').hidden = !g;
+  if (g) {
+    // Google's surface cannot be exaggerated: back to true relief
+    if (state.exag !== 1) { $('exag').value = 1; $('exag').dispatchEvent(new Event('input')); }
+    applyScale();
+    google.start(googleKey.get(), err => { setView('ign'); $('gNote').textContent = GERR[err]; if (err === 'key') $('gKeyBlock').hidden = false; });
+    scene.fog = gFog;
+  } else { google.stop(); scene.fog = null; }
+  // layers computed on the IGN terrain are not drawn over Google's tiles
+  for (const id of ['c-slopes', 'c-snowtoday', 'exag']) $(id).disabled = g;
+  $('slopeLegend').hidden = g || !state.slopes;
+  $('gNote').textContent = g ? 'Vue Google 3D (photos et relief Google, en ligne seulement). La carte des pentes, la neige du jour et le relief exagéré restent dans la vue IGN.' : '';
+  try { localStorage.setItem('midi3d-view', v); } catch { }
+}
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+// without the logo file, at least name Google (the official logo lives in icons/google-maps-logo.png)
+const noLogo = () => $('gLogo')?.replaceWith(Object.assign(document.createElement('b'), { textContent: 'Google', className: 'glogo' }));
+if ($('gLogo').complete && !$('gLogo').naturalWidth) noLogo(); else $('gLogo').addEventListener('error', noLogo);
+$('gKeySave').addEventListener('click', () => {
+  const k = $('gKey').value.trim();
+  // Google API keys: 39 characters starting with "AIza"
+  if (!/^AIza[\w-]{30,40}$/.test(k)) { $('gNote').textContent = 'Ça ne ressemble pas à une clé API Google (39 caractères, commence par « AIza »).'; return; }
+  googleKey.set(k); $('gKey').value = ''; setView('google');
+});
+$('gKey').addEventListener('keydown', e => { if (e.key === 'Enter') $('gKeySave').click(); });
+$('gKeyClear').addEventListener('click', () => { googleKey.set(''); setView('ign'); $('gNote').textContent = 'Clé effacée de cet appareil.'; });
+let savedView = 'ign'; try { savedView = localStorage.getItem('midi3d-view') || 'ign'; } catch { }
 $('c-spin').addEventListener('change', e => { controls.autoRotate = e.target.checked; });
 $('home').addEventListener('click', home);
 $('refresh').addEventListener('click', refreshLive);
@@ -537,7 +587,7 @@ $('refresh').addEventListener('click', refreshLive);
 // Both come back, detail first, after several seconds of comfortable frame rate.
 const adapt = { res: 1, detail: 1, good: 0, since: 0 };
 function applyScale() {
-  const Q = QUAL[state.quality]; engine.splitK = Q.k * adapt.detail;
+  const Q = QUAL[state.quality]; engine.splitK = Q.k * adapt.detail; google.setErrorTarget(Q.gErr / adapt.detail);
   const pr = Math.max(0.6, Math.min(window.devicePixelRatio || 1, Q.pr) * adapt.res);
   if (Math.abs(pr - renderer.getPixelRatio()) > 0.01) { renderer.setPixelRatio(pr); resize(); }
 }
@@ -635,7 +685,8 @@ async function pointReport(hit) {
   sheets.forEach(s => { $('sheet-' + s).hidden = true; $('tab-' + s).setAttribute('aria-pressed', 'false'); });
   $('sheet-point').hidden = false;
   const [lon, lat] = worldToLonLat(hit.x, hit.z), s = engine.slopeAt(hit.x, hit.z);
-  const meta = `<p class="cmeta">${lat.toFixed(5)}° N · ${lon.toFixed(5)}° E · relief ${SRC[s?.src] ?? 'IGN'}</p>`
+  const where = hit.surface === 'google' ? 'altitude de la surface Google 3D (arbres, bâtiments et neige compris, ±quelques m)' : `relief ${SRC[s?.src] ?? 'IGN'}`;
+  const meta = `<p class="cmeta">${lat.toFixed(5)}° N · ${lon.toFixed(5)}° E · ${where}</p>`
     + (s ? `<p class="cline"><b>${s.deg < 3 ? 'Terrain plat' : `Pente ${Math.round(s.deg)}°`}</b>${s.deg >= 3 ? ` orientée ${compass16(s.aspect)}` : ''} <span class="small">· mesurée sur ${s.step < 10 ? t1(s.step) : fmt(s.step)} m, terrain nu</span></p>` : '');
   $('ptTitle').textContent = `${fmt(hit.h)} m`;
   $('ptOut').innerHTML = meta + '<p class="cmeta">Récupération des conditions…</p>';
@@ -764,7 +815,7 @@ function resize() {
 }
 addEventListener('resize', resize);
 applyQuality(state.quality);
-const clock = new THREE.Clock(); let fpsAcc = 0, fpsN = 0, adAcc = 0, adN = 0, started = false;
+const clock = new THREE.Clock(); let fpsAcc = 0, fpsN = 0, adAcc = 0, adN = 0, started = false, gGround = null;
 // ?debugloop keeps rendering in a hidden tab (for automated checks); normal use follows the display refresh
 const nextFrame = location.search.includes("debugloop") ? cb => setTimeout(cb, 16) : cb => requestAnimationFrame(cb);
 function frame() {
@@ -777,26 +828,38 @@ function frame() {
     if (f >= 1) fly = null;
   }
   controls.update();
-  const c = camera.position, g = groundAt(c.x, c.z);
+  const c = camera.position;
+  // ground under the camera (keeps it above the surface, sets the near plane): Google's own surface in that view,
+  // probed a few times per second since a ray through the tiles costs more than a grid lookup
+  if (google.on && frameN % 6 === 0) {
+    rayG.set(new THREE.Vector3(c.x, 9000, c.z), new THREE.Vector3(0, -1, 0)); rayG.far = 20000;
+    gGround = google.raycast(rayG)?.y ?? null; rayG.far = Infinity;
+  }
+  const g = google.on ? (gGround ?? groundAt(c.x, c.z)) : groundAt(c.x, c.z);
   if (g != null && c.y < g * state.exag + 4) c.y = g * state.exag + 4;
   const above = g != null ? c.y - g * state.exag : 1000, td = c.distanceTo(controls.target);
   camera.near = Math.min(Math.max(Math.min(above, td) * 0.15, 0.3), 200); camera.updateProjectionMatrix(); camera.updateMatrixWorld();
   sky.position.copy(c); clouds.position.set(c.x, 0, c.z); SU.camPos.value.copy(c);
   SU.boxSize.value = Math.min(Math.max(td * 0.9, 40), 9000);
   if (cabins.visible) { const a = cabinGeo.attributes.position.array, ph = (t * 0.02) % 2, f = ph < 1 ? ph : 2 - ph; a.set(cablePoint(0, f), 0); a.set(cablePoint(1, 1 - f), 3); cabinGeo.attributes.position.needsUpdate = true; }
-  engine.update(camera);
-  if (hoverNDC && frameN % 3 === 0) showPoint(pick(...hoverNDC));
+  if (google.on) google.update(); else engine.update(camera);
+  if (hoverNDC && frameN % (google.on ? 10 : 3) === 0) showPoint(pick(...hoverNDC));
   updateLabels(); frameN++;
   if (frameN % 600 === 0 && state.hourOffset === 0) updateSky();
   if (frameN % 45 === 0) updatePrecipForView();
   renderer.render(scene, camera);
-  if (!started && engine.roots.filter(r => r.state === 'ready').length >= engine.roots.length * 0.6) { started = true; $('loader').classList.add('done'); home(); }
+  if (!started && engine.roots.filter(r => r.state === 'ready').length >= engine.roots.length * 0.6) {
+    started = true; $('loader').classList.add('done'); home();
+    if (savedView === 'google' && googleKey.get()) setView('google'); // each opening of the Google view = one Google session
+  }
+  if (google.on && frameN % 30 === 0) { const a = google.attributions(); $('gAttribTxt').textContent = a.length ? a.join(' ; ') : 'Google'; }
   fpsAcc += dt; fpsN++; adAcc += dt; adN++;
   if (adAcc > 1.5) { adaptTo(adN / adAcc); adAcc = 0; adN = 0; }
   if (fpsAcc > 0.5) {
     const auto = adapt.res < 1 || adapt.detail < 1 ? ` · auto ${Math.round(adapt.res * adapt.detail * 100)} %` : '';
-    $('rFps').textContent = `${Math.round(fpsN / fpsAcc)} i/s · ${engine.tileCount ?? 0} tuiles${auto}`;
-    $('status').hidden = engine.busy === 0; $('statusN').textContent = engine.busy;
+    $('rFps').textContent = `${Math.round(fpsN / fpsAcc)} i/s · ${google.on ? 'Google 3D' : `${engine.tileCount ?? 0} tuiles`}${auto}`;
+    const busy = google.on ? google.loading : engine.busy;
+    $('status').hidden = busy === 0; $('statusN').textContent = busy;
     fpsAcc = 0; fpsN = 0;
   }
   nextFrame(frame);

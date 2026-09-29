@@ -1,0 +1,80 @@
+// Google Photorealistic 3D Tiles, as a separate view mode. Google's terms forbid blending its tiles with other
+// map data such as the IGN terrain, so the IGN terrain is hidden while this mode is on; our own overlays
+// (labels, weather, precipitation, point sheet) stay on top, and the Google logo and the tiles' attributions
+// are shown as the terms require. The key belongs to the owner: typed in the app, kept on the device only.
+import * as THREE from 'three';
+import { TilesRenderer } from '3d-tiles-renderer/index.three.js';
+import { GoogleCloudAuthPlugin } from '3d-tiles-renderer/index.core-plugins.js';
+import { GLTFExtensionsPlugin, TileCompressionPlugin, TilesFadePlugin, ReorientationPlugin } from '3d-tiles-renderer/index.three-plugins.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+const ROOT = 'https://tile.googleapis.com/v1/3dtiles/root.json';
+const DRACO = 'https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/libs/draco/gltf/';
+const KEY_STORE = 'midi3d-google-key';
+export const googleKey = {
+  get() { try { return localStorage.getItem(KEY_STORE) || ''; } catch { return ''; } },
+  set(k) { try { if (k) localStorage.setItem(KEY_STORE, k); else localStorage.removeItem(KEY_STORE); } catch { } }
+};
+
+export class GoogleTiles {
+  // origin: {lat, lon} of the scene origin; geoidN: geoid height there, so that y = altitude above sea level
+  constructor({ scene, camera, renderer, origin, geoidN }) {
+    this.scene = scene; this.camera = camera; this.renderer = renderer; this.origin = origin; this.geoidN = geoidN;
+    this.tiles = null; this.error = null; this.errorTarget = 12;
+    // the plugin puts the origin at (0,0,0) with x west and z north; our scene has x east and z south
+    this.holder = new THREE.Group(); this.holder.rotation.y = Math.PI;
+    this.draco = new DRACOLoader().setDecoderPath(DRACO);
+  }
+  get on() { return !!this.tiles; }
+
+  start(key, onError) {
+    this.stop(); this.error = null;
+    const t = this.tiles = new TilesRenderer(ROOT);
+    t.registerPlugin(new GoogleCloudAuthPlugin({ apiToken: key, autoRefreshToken: true }));
+    t.registerPlugin(new GLTFExtensionsPlugin({ dracoLoader: this.draco }));
+    t.registerPlugin(new TileCompressionPlugin()); // smaller GPU buffers: matters on phones
+    t.registerPlugin(new TilesFadePlugin());       // tiles blend in instead of popping
+    t.registerPlugin(new ReorientationPlugin({ lat: this.origin.lat * Math.PI / 180, lon: this.origin.lon * Math.PI / 180, height: this.geoidN, recenter: true }));
+    t.errorTarget = this.errorTarget;
+    t.setCamera(this.camera); t.setResolutionFromRenderer(this.camera, this.renderer);
+    // the scene works in display (sRGB) values end to end, without colour management: show the photos as stored
+    t.addEventListener('load-model', ({ scene }) => scene.traverse(o => {
+      const m = o.material; if (m?.map) { m.map.colorSpace = THREE.NoColorSpace; m.map.needsUpdate = true; }
+    }));
+    t.addEventListener('load-error', e => {
+      // only the root request matters (tile: null): it fails with 400/403 for a wrong key, a key restricted to
+      // other sites, the Map Tiles API not enabled or billing not set up; a single tile failing is not fatal
+      if (e.tile) return;
+      const m = String(e.error?.message ?? e.error ?? '');
+      this.error = /40[013]/.test(m) ? 'key' : 'network';
+      onError?.(this.error, m);
+    });
+    this.holder.add(t.group); this.scene.add(this.holder);
+  }
+  stop() {
+    if (!this.tiles) return;
+    this.holder.remove(this.tiles.group); this.scene.remove(this.holder);
+    this.tiles.dispose(); this.tiles = null;
+  }
+  setErrorTarget(e) { this.errorTarget = e; if (this.tiles) this.tiles.errorTarget = e; }
+  update() {
+    const t = this.tiles; if (!t) return;
+    this.camera.updateMatrixWorld();
+    t.setResolutionFromRenderer(this.camera, this.renderer);
+    t.update();
+  }
+  get loading() { const s = this.tiles?.stats; return s ? (s.downloading || 0) + (s.parsing || 0) : 0; }
+  // data sources of the tiles on screen, most frequent first, as Google asks
+  attributions() {
+    const list = this.tiles?.getAttributions() ?? [], count = new Map();
+    for (const a of list) if (a.type === 'string') for (const s of String(a.value).split(';')) { const k = s.trim(); if (k) count.set(k, (count.get(k) || 0) + 1); }
+    return [...count.entries()].sort((a, b) => b[1] - a[1]).map(e => e[0]);
+  }
+  // first hit of a ray on the Google surface (x, y altitude, z in scene metres)
+  raycast(raycaster) {
+    if (!this.tiles) return null;
+    raycaster.firstHitOnly = true;
+    const hit = raycaster.intersectObject(this.tiles.group, true)[0];
+    return hit ? hit.point : null;
+  }
+}

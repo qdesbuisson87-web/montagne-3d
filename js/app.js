@@ -1,13 +1,14 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609292032';
-import { SITE, SITE_LIST } from './sites.js?v=202609292032';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609292032';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609292032';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609292032';
-import { searchPlaces } from './search.js?v=202609292032';
-import { TerrainShadows } from './shadows.js?v=202609292032';
-import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609292032';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609292036';
+import { SITE, SITE_LIST } from './sites.js?v=202609292036';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609292036';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609292036';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609292036';
+import { searchPlaces } from './search.js?v=202609292036';
+import { TerrainShadows } from './shadows.js?v=202609292036';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609292036';
+import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609292036';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -173,11 +174,16 @@ void main(){
     // tinted by the lit ground so the relief stays readable under the colour
     col = mix(col, sc * (0.6 + 0.5*sqrt(dot(col, LUM))), cover * 0.8);
   }
+  // aerial perspective: the air thins with altitude (haze scale height 2.5 km), so valleys are hazier than
+  // summits; blue light is scattered more, so distant relief turns blue-grey (horizon and glow colours come
+  // from the same scattering model as the sky)
   float d = length(cameraPosition - vW);
-  float f = 1.0 - exp(-d * (fogDensity + haze*0.000018));
+  float hc = cameraPosition.y / exag, hf = vW.y / exag, dh = (hf - hc) / 2500.0;
+  float dens = abs(dh) > 1e-3 ? (exp(-hc / 2500.0) - exp(-hf / 2500.0)) / dh : exp(-hc / 2500.0);
+  vec3 T = exp(-d * dens * (fogDensity * 2.7 + haze * 0.00005) * vec3(0.62, 0.8, 1.0));
   vec3 V = normalize(vW - cameraPosition);
   vec3 fogC = mix(horizonCol, glowCol, pow(max(dot(V, sunDir), 0.0), 6.0) * 0.7);
-  col = mix(col, pow(fogC, vec3(2.2)), clamp(f, 0.0, 0.93));
+  col = mix(pow(fogC, vec3(2.2)), col, max(T, vec3(0.07)));
   gl_FragColor = vec4(pow(max(col, 0.0), vec3(1.0/2.2)), 1.0);
 }`;
 
@@ -185,16 +191,20 @@ const BOUNDS = SITE.bounds; // lon/lat of the streamed area
 const engine = new TerrainEngine({ renderer, scene, uniforms: U, vertexShader: terrainVS, fragmentShader: terrainFS, bounds: BOUNDS });
 const shadows = new TerrainShadows(renderer, engine, U);
 
-// ---------- sky ----------
+// ---------- sky: physical scattering baked into a panorama (atmosphere.js), grey veil when overcast ----------
+const skyBaker = new SkyBaker(THREE, renderer);
+const skyU = { sunDir: U.sunDir, sunCol: U.sunCol, skyTex: { value: skyBaker.texture }, overcast: { value: 0 }, ovGrey: { value: new THREE.Vector3(0.6, 0.6, 0.62) } };
 const sky = new THREE.Mesh(new THREE.SphereGeometry(200000, 48, 24), new THREE.ShaderMaterial({
-  uniforms: U, side: THREE.BackSide, depthWrite: false,
+  uniforms: skyU, side: THREE.BackSide, depthWrite: false,
   vertexShader: `varying vec3 vD; void main(){ vD = position; gl_Position = projectionMatrix*viewMatrix*modelMatrix*vec4(position,1.0); }`,
-  fragmentShader: `uniform vec3 sunDir, sunCol, skyCol, horizonCol, glowCol; varying vec3 vD;
-    void main(){ vec3 d = normalize(vD); float h = d.y;
-      vec3 c = mix(horizonCol, skyCol, pow(clamp(h, 0.0, 1.0), 0.5));
-      c = mix(c, horizonCol*0.55, smoothstep(0.0, -0.2, h));
-      float sg = max(dot(d, sunDir), 0.0);
-      c += glowCol*pow(sg, 8.0)*0.35 + glowCol*pow(sg, 90.0)*0.5 + vec3(1.0, 0.97, 0.9)*smoothstep(0.99955, 0.9998, sg)*1.5*step(0.0, sunDir.y);
+  fragmentShader: `uniform vec3 sunDir, sunCol, ovGrey; uniform float overcast; uniform sampler2D skyTex; varying vec3 vD;
+    ${SKY_LOOKUP_GLSL}
+    void main(){ vec3 d = normalize(vD);
+      vec3 c = texture2D(skyTex, skyUv(d)).rgb;
+      c = max(c, vec3(0.010, 0.014, 0.032));                                  // night: a deep blue, never pure black
+      float sg = dot(d, sunDir);                                              // the sun's disk, 0.53° across, tinted by the air
+      c += min(sunCol, vec3(1.0)) * smoothstep(0.99994, 0.99998, sg) * step(-0.01, sunDir.y) * (1.0 - overcast);
+      c = mix(c, ovGrey * (0.85 + 0.15 * clamp(d.y * 3.0, 0.0, 1.0)), overcast);
       gl_FragColor = vec4(min(c, 1.0), 1.0); }`
 }));
 sky.renderOrder = -1; sky.frustumCulled = false; scene.add(sky);
@@ -415,7 +425,7 @@ controls.addEventListener('start', () => {
 });
 
 // ---------- sun, sky, weather-driven look ----------
-let overcast = 0;
+let overcast = 0, skyAlt = 0;
 // lighting time = now, moved by the hour slider and by the chosen day (whole days, so the hour stays the same)
 state.dayOffset = 0;
 function lightingNow() { return new Date(Date.now() + state.hourOffset * 3600e3 + state.dayOffset * 864e5); }
@@ -423,13 +433,16 @@ function updateSky() {
   const date = lightingNow(), { az, el } = sunPosition(date, ORIGIN.lat, ORIGIN.lon);
   const s = Math.sin(el);
   U.sunDir.value.set(Math.sin(az) * Math.cos(el), s, -Math.cos(az) * Math.cos(el)).normalize();
-  const day = sstep(-0.1, 0.3, s), low = 1 - sstep(0.0, 0.3, s), ov = overcast;
+  const day = sstep(-0.1, 0.3, s), ov = overcast;
   const mixv = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
-  let skyC = mixv([0.02, 0.03, 0.08], [0.24, 0.47, 0.86], day);
-  let hor = mixv(mixv([0.1, 0.09, 0.14], [0.98, 0.62, 0.42], sstep(-0.12, 0.0, s)), [0.72, 0.82, 0.94], 1 - low);
-  let glow = mixv([1.0, 0.5, 0.2], [1.0, 0.92, 0.8], sstep(0.0, 0.4, s));
-  let sun = mixv([1.0, 0.5, 0.25], [1.0, 0.96, 0.9], sstep(0.0, 0.4, s)).map(v => v * 2.4 * sstep(-0.04, 0.08, s));
-  if (ov > 0) { const g = 0.35 + 0.45 * day; skyC = mixv(skyC, [g * 0.9, g * 0.93, g], ov); hor = mixv(hor, [g, g, g * 1.02], ov); glow = mixv(glow, [g, g, g], ov); sun = sun.map(v => v * (1 - 0.7 * ov)); }
+  // physical sky seen from the camera's altitude (atmosphere.js); the panorama and these colours agree
+  const alt = Math.max(camera.position.y / state.exag, 200); skyAlt = alt;
+  skyBaker.bake(U.sunDir.value, alt);
+  const A = skyColors(U.sunDir.value, alt), night = [0.02, 0.028, 0.06];
+  let skyC = A.zenith.map((v, i) => Math.max(v, night[i])), hor = A.horizon.map((v, i) => Math.max(v, night[i] * 1.4)), glow = A.glow, sun = A.sun;
+  // overcast: a grey veil whose brightness follows the daylight
+  const g = 0.35 + 0.45 * day; skyU.overcast.value = ov; skyU.ovGrey.value.set(g * 0.97, g * 0.98, g);
+  if (ov > 0) { skyC = mixv(skyC, [g * 0.9, g * 0.93, g], ov); hor = mixv(hor, [g, g, g * 1.02], ov); glow = mixv(glow, [g, g, g], ov); sun = sun.map(v => v * (1 - 0.7 * ov)); }
   U.skyCol.value.set(...skyC); U.horizonCol.value.set(...hor); U.glowCol.value.set(...glow); U.sunCol.value.set(...sun);
   gFog.color.setRGB(...hor); gFog.density = 2.3e-5 * (1 + overcast * 1.1);
   const hh = date.getHours(), mm = date.getMinutes();
@@ -920,6 +933,8 @@ function drawFrame() {
     const down = (x, z) => { rayG.set(new THREE.Vector3(x, 9000, z), new THREE.Vector3(0, -1, 0)); rayG.far = 20000; const y = google.raycast(rayG)?.y ?? null; rayG.far = Infinity; return y; };
     gGround = down(c.x, c.z);
   }
+  // the sky darkens and turns bluer as one climbs: re-bake it when the altitude has changed noticeably
+  if (frameN % 20 === 0 && Math.abs(c.y / state.exag - skyAlt) > 400) updateSky();
   if (frameN % 60 === 0) {
     engine.ensureRoots(T.x, T.z, 45000);
     const far = Math.hypot(T.x, T.z) > 30000; // the weather stations only describe the massif

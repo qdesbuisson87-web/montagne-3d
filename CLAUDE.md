@@ -98,6 +98,10 @@ Tester chaque étape dans le navigateur (`?debugloop` si l'onglet est caché) et
 11. **Nuage de points LiDAR HD** (COPC, ~30 cm) : d'abord le sommet de l'Aiguille du Midi (~4 km², ~0,5–1 Go), puis le massif (15–50 Go). Conversion (PotreeConverter ou py3dtiles), affichage LOD fusionné avec le terrain de près. Stockage hors OneDrive, 50–100 Go libres ; en ligne, il faut un stockage objet (Cloudflare R2 ou équivalent).
 12. **Mode Google Photorealistic 3D Tiles**, séparé (pas de mélange avec l'IGN, conditions Google), avec la clé du propriétaire qu'il saisit lui-même ; bascule en gardant le point de vue ; nos surcouches (étiquettes, météo, fiche point, précipitations) restent affichées.
 
+### Relief plus fin (29/09/2026)
+- MAXZ = 20 (tuiles ≈ 26 m, maillage 0,4 m ≈ LiDAR 0,5 m) ; photo du z20 = quart de la photo z19 du parent déjà en mémoire (PHOTO_MAXZ = 19, pas de requête). Testé au sommet du Midi : 60 tuiles z20.
+- Forêts : pas d'arbres au-dessus de 2 500 m (la station du Midi sortait comme un sapin).
+
 ### Phase 4 : découverte
 13. **Mode viseur (type PeakFinder)** : `DeviceOrientationEvent` + GPS → caméra à la position et dans la direction du téléphone, noms des sommets visibles (occlusion par le relief). Permission iOS à demander sur un geste.
 14. **Film de l'enneigement** : liste des passages Sentinel-2 sans nuages des 6–12 derniers mois (STAC), animation de la neige NDSI date par date, avec un curseur de date.

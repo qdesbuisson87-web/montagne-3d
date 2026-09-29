@@ -6,8 +6,8 @@
 // flat roofs (no peak), and anything above 50 m.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { tileMerc, mercToLonLat, lonLatToL93, l93ToLonLat, lonLatToWorld } from './geo.js?v=202609292050';
-import { cachedFetch, TransientError } from './net.js?v=202609292050';
+import { tileMerc, mercToLonLat, lonLatToL93, l93ToLonLat, lonLatToWorld } from './geo.js?v=202609292051';
+import { cachedFetch, TransientError } from './net.js?v=202609292051';
 
 const MNH = 'IGNF_LIDAR-HD_MNH_ELEVATION.ELEVATIONGRIDCOVERAGE.LAMB93';
 const Z = 16, RES = 256, NEAR = 700; // metres: beyond, the simple tree
@@ -124,9 +124,11 @@ export class Forest {
       if (h - ring < 1.2) continue;
       const [lon, lat] = l93ToLonLat(bx0 + (i + 0.5) * rx, by1 - (j + 0.5) * ry), [x, z] = lonLatToWorld(lon, lat);
       if (x < t.x0 || x >= t.x1 || z < t.z0 || z >= t.z1) continue; // each tree belongs to one tile only
+      // no trees above the Alpine tree line: what stands up there (summit stations, huts, pylons) is not forest
+      const ground = t.heightAt(x, z); if (ground > 2500) continue;
       const rnd = Math.abs(((i + t.x * 977) * 73856093 ^ (j + t.y * 991) * 19349663) % 1000) / 1000; // stable per tree
       // r: horizontal scale of the unit tree (lower crown radius 0.36): crown radius ≈ 0.14 × height + 1 m
-      out.push({ x, z, base: t.heightAt(x, z), h, r: (0.14 * h + 1.0 + rnd * 0.6) / 0.36, u: (x - t.x0) / t.size, v: (z - t.z0) / (t.z1 - t.z0), rnd });
+      out.push({ x, z, base: ground, h, r: (0.14 * h + 1.0 + rnd * 0.6) / 0.36, u: (x - t.x0) / t.size, v: (z - t.z0) / (t.z1 - t.z0), rnd });
     }
     return out;
   }

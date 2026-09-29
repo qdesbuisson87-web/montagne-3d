@@ -2,8 +2,8 @@
 // elevation grid and photo. Close to the camera the tree goes down to zoom 19 (IGN photos 20 cm,
 // LiDAR HD elevation); far away it stays coarse. Nothing is pre-packaged: every tile is fetched live.
 import * as THREE from 'three';
-import { tileMerc, mercToWorld, mercToLonLat, worldToLonLat, lonLatToL93, lonLatToTile, K } from './geo.js?v=202609292050';
-import { cachedFetch, TransientError } from './net.js?v=202609292050';
+import { tileMerc, mercToWorld, mercToLonLat, worldToLonLat, lonLatToL93, lonLatToTile, K } from './geo.js?v=202609292051';
+import { cachedFetch, TransientError } from './net.js?v=202609292051';
 
 // NE: the grid plus a one-sample ring taken beyond the tile edge, so that normals and slopes at the edge
 // use the same central differences as the neighbour tile does (no seam in lighting or slope colours)
@@ -16,7 +16,9 @@ const URL_IGN_ELEV = (layer, b, w, h) => `https://data.geopf.fr/wms-r/wms?SERVIC
 // bare-earth model: the surface model (MNS) also records cable-car cables, which show up as curtains
 const LIDAR = 'IGNF_LIDAR-HD_MNT_ELEVATION.ELEVATIONGRIDCOVERAGE.LAMB93';
 const RGE = 'ELEVATION.ELEVATIONGRIDCOVERAGE.HIGHRES';
-export const MAXZ = 19;
+// zoom 20 (≈ 26 m tiles, 0.4 m mesh) matches the 0.5 m LiDAR close up; the photo there is the zoom-19 one
+// (20 cm, the finest IGN makes), cropped to the quarter
+export const MAXZ = 20, PHOTO_MAXZ = 19;
 export const LIDAR_LAYER = LIDAR;
 
 // ---------- shared geometry (index + uv), per-tile positions ----------
@@ -163,6 +165,7 @@ class Tile {
     return { e: extrapolateRing(e), src };
   }
   async loadPhoto() {
+    if (this.z > PHOTO_MAXZ) return this.loadPhotoCrop();
     const { z, x, y } = this;
     // a missing photo (404) is replaced below; a refused one makes the whole tile wait and retry
     const ign = await fetchBitmap(URL_IGN_PHOTO(z, x, y)).catch(unlessTransient(null));
@@ -183,6 +186,15 @@ class Tile {
       for (let k = 0; k < d.length; k += 4) if (!(d[k] >= 254 && d[k + 1] >= 254 && d[k + 2] >= 254)) { b[k] = d[k]; b[k + 1] = d[k + 1]; b[k + 2] = d[k + 2]; }
       c.putImageData(base, 0, 0); ign.close?.();
     }
+    return this.engine.makeTexture(await createImageBitmap(cv));
+  }
+  // beyond the finest photo: the quarter of the parent's photo (already in memory), smoothly enlarged
+  async loadPhotoCrop() {
+    const img = this.parent?.mesh?.material.uniforms.map.value?.image;
+    if (!img) throw new TransientError('photo du parent absente');
+    const cv = document.createElement('canvas'); cv.width = cv.height = 256; const c = cv.getContext('2d');
+    c.imageSmoothingQuality = 'high';
+    c.drawImage(img, (this.x & 1) * img.width / 2, (this.y & 1) * img.height / 2, img.width / 2, img.height / 2, 0, 0, 256, 256);
     return this.engine.makeTexture(await createImageBitmap(cv));
   }
 

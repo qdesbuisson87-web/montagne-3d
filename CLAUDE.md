@@ -38,6 +38,11 @@ le temps et les tokens nécessaires. Ne jamais sacrifier la qualité pour aller 
 - `js/live.js` : météo Open-Meteo modèle `meteofrance_seamless` (4 points + prévision à un point/altitude), recherche STAC Planetary Computer en GET (le POST déclenche un preflight CORS refusé), neige par tranche d'altitude, position du soleil.
 - `js/app.js` : scène, shaders (neige NDSI filtrée en bicubique et affinée au mètre avec la pente et la photo), ciel, mer de nuages selon la couverture réelle, pluie et neige qui tombent selon la météo à l'altitude visée, fiche d'un point au clic, étiquettes, téléphérique, packs hors ligne, UI.
 
+## Neige fausse de la photo (30/09/2026, signalé par le propriétaire sur le Mont Buet)
+- La photo IGN date parfois d'une période enneigée. Quand la dernière image Sentinel-2 nette voit un sol sans neige (NDSI bas, pas de nuage), le blanc de la photo (luminance linéaire > 0,5–0,72 et presque sans couleur, le calcaire pâle ≈ 0,45 n'est pas touché) est remplacé par le sol vu par Sentinel-2 ce jour-là (couleurs vraies TCI, désaturées à 30 %, × 1,2) avec un grain. La couche « vis » est donc chargée dès que « Neige du jour » est active.
+- Tuiles satellite : zoom 13 au lieu de 14 (4× moins de requêtes) et file par distance à la caméra (`pumpOverlays`, 8 en vol) : avant, le sommet regardé attendait derrière ~1 000 requêtes lointaines.
+- Limite : la vue Google 3D montre ses propres images (date inconnue), on ne peut pas les corriger (conditions Google).
+
 ## Déjà testé et écarté
 - « Couleurs du jour » (image Sentinel-2 fusionnée avec la photo) : taches bleues dues à un éclairage différent. Retiré.
 - Hauteur de neige au sol des modèles Open-Meteo : incohérente en haute montagne (46 cm à 2 800 m, 0 à 3 842 m). Pas affichée.

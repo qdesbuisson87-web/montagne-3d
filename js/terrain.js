@@ -2,8 +2,8 @@
 // elevation grid and photo. Close to the camera the tree goes down to zoom 19 (IGN photos 20 cm,
 // LiDAR HD elevation); far away it stays coarse. Nothing is pre-packaged: every tile is fetched live.
 import * as THREE from 'three';
-import { tileMerc, mercToWorld, mercToLonLat, worldToLonLat, lonLatToL93, lonLatToTile, K } from './geo.js?v=202609301733';
-import { cachedFetch, TransientError } from './net.js?v=202609301733';
+import { tileMerc, mercToWorld, mercToLonLat, worldToLonLat, lonLatToL93, lonLatToTile, K } from './geo.js?v=202609301740';
+import { cachedFetch, TransientError } from './net.js?v=202609301740';
 
 // NE: the grid plus a one-sample ring taken beyond the tile edge, so that normals and slopes at the edge
 // use the same central differences as the neighbour tile does (no seam in lighting or slope colours)
@@ -281,7 +281,7 @@ export class TerrainEngine {
     this.aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
     this.frame = 0; this.loading = 0; this.maxLoads = 8; this.splitK = 2; this.maxTiles = 700; this.exag = 1;
     this.frustum = new THREE.Frustum(); this.pv = new THREE.Matrix4();
-    this.overlay = { item: null, snow: false, vis: false, cache: new Map() };
+    this.overlay = { item: null, snow: false, vis: false, cache: new Map(), pending: new Set(), active: 0 };
     // roots: zoom-11 tiles, first over the massif and its surroundings, then wherever the camera goes (ensureRoots)
     const [ax, ay] = lonLatToTile(bounds[0], bounds[3], 11), [bx, by] = lonLatToTile(bounds[2], bounds[1], 11);
     this.roots = []; this.rootKeys = new Map();
@@ -322,7 +322,7 @@ export class TerrainEngine {
   // ndsi: continuous snow index (B03-B11)/(B03+B11) - smooth to interpolate, unlike the 10 m class map
   // cloud: clouds and cloud shadows from the scene classification, softened into a mask
   // vis: true colours of the day, used to re-colour the 20 cm photo rather than to replace it
-  setOverlayItem(item) { this.overlay.item = item; this.overlay.cache.forEach(o => o.tex?.dispose()); this.overlay.cache.clear(); this.forEachReady(t => this.attachOverlays(t)); }
+  setOverlayItem(item) { this.overlay.item = item; this.overlay.cache.forEach(o => o.tex?.dispose()); this.overlay.cache.clear(); this.overlay.pending.clear(); this.forEachReady(t => this.attachOverlays(t)); }
   setOverlay(kind, on) { this.overlay[kind] = on; this.forEachReady(t => this.attachOverlays(t)); }
   forEachReady(fn) { const walk = t => { if (t.state === 'ready') fn(t); t.children?.forEach(walk); }; this.roots.forEach(walk); }
   overlayUrl(kind, z, x, y) {
@@ -345,12 +345,29 @@ export class TerrainEngine {
     tx.minFilter = tx.magFilter = THREE.LinearFilter; tx.wrapS = tx.wrapT = THREE.ClampToEdgeWrapping; tx.needsUpdate = true;
     return tx;
   }
+  // Satellite tiles are slow to come (the server renders them on demand): at most `max` in flight, and always
+  // the nearest to the camera first, so the slope one looks at does not wait behind the far distance.
+  pumpOverlays(max = 8) {
+    const ov = this.overlay; if (!ov.pending.size || ov.active >= max || !this.cam) return;
+    const list = [...ov.pending].map(k => [k, ov.cache.get(k)]).filter(([, o]) => o && !o.started);
+    list.sort((a, b) => Math.hypot(a[1].cx - this.cam.x, a[1].cz - this.cam.z) - Math.hypot(b[1].cx - this.cam.x, b[1].cz - this.cam.z));
+    for (const [key, o] of list.slice(0, max - ov.active)) {
+      o.started = true; ov.pending.delete(key); ov.active++;
+      this.overlayTexture(o.kind, o.oz, o.ox, o.oy).then(tx => { if (ov.cache.get(key) !== o) return tx.dispose(); o.tex = tx; o.waiters.forEach(w => w()); o.waiters = []; })
+        .catch(err => { if (err instanceof TransientError && ov.cache.get(key) === o) ov.cache.delete(key); }) // asked again by the next tile built here
+        .finally(() => { ov.active--; });
+    }
+  }
   attachOverlays(t) {
     if (!t.mesh) return;
     const u = t.mesh.material.uniforms;
-    const oz = Math.min(t.z, 14), f = 2 ** (t.z - oz), ox = t.x >> (t.z - oz), oy = t.y >> (t.z - oz);
+    // zoom-13 overlay tiles (≈ 13 m per pixel, close to Sentinel-2's 10 m): 4× fewer requests than zoom 14,
+    // which the tile server could not serve fast enough (the summit waited behind a thousand requests)
+    const oz = Math.min(t.z, 13), f = 2 ** (t.z - oz), ox = t.x >> (t.z - oz), oy = t.y >> (t.z - oz);
     u.ovRect.value.set((t.x % f) / f, (t.y % f) / f, 1 / f, 1 / f);
-    const kinds = { ndsi: this.overlay.snow, cloud: this.overlay.snow || this.overlay.vis, vis: this.overlay.vis };
+    // with today's snow on, the true colours of the same clear pass are needed too: they replace the snow that
+    // the (older) aerial photo shows where the satellite now sees bare ground
+    const kinds = { ndsi: this.overlay.snow, cloud: this.overlay.snow || this.overlay.vis, vis: this.overlay.vis || this.overlay.snow };
     // only ask for tiles that the satellite image covers (outside its footprint the server answers 404)
     const covered = !this.overlay.item || footprintCovers(this.overlay.item, oz, ox, oy);
     for (const [kind, on] of Object.entries(kinds)) {
@@ -358,10 +375,9 @@ export class TerrainEngine {
       if (!on || !this.overlay.item || !covered) { u[has].value = 0; continue; }
       const key = `${kind}/${oz}/${ox}/${oy}`;
       let o = this.overlay.cache.get(key);
-      if (!o) {
-        o = { tex: null, waiters: [] }; this.overlay.cache.set(key, o);
-        this.overlayTexture(kind, oz, ox, oy).then(tx => { if (this.overlay.cache.get(key) !== o) return tx.dispose(); o.tex = tx; o.waiters.forEach(w => w()); o.waiters = []; })
-          .catch(err => { if (err instanceof TransientError && this.overlay.cache.get(key) === o) this.overlay.cache.delete(key); }); // asked again by the next tile built here
+      if (!o) { // queued; pumpOverlays() starts the ones nearest the camera first
+        const m = tileMerc(oz, ox, oy), [cx, cz] = mercToWorld((m.minx + m.maxx) / 2, (m.miny + m.maxy) / 2);
+        o = { tex: null, waiters: [], kind, oz, ox, oy, cx, cz, started: false }; this.overlay.cache.set(key, o); this.overlay.pending.add(key);
       }
       const apply = () => { if (!t.mesh) return; u[map].value = o.tex; u[has].value = 1; };
       if (o.tex) apply(); else { u[has].value = 0; o.waiters.push(apply); }
@@ -386,6 +402,7 @@ export class TerrainEngine {
       w.t.load().catch(() => { w.t.state = 'idle'; }).finally(() => { this.loading--; });
     }
     if (this.frame % 30 === 0) this.evict();
+    if (this.frame % 5 === 0) this.pumpOverlays();
     for (const m of this.drawn) m.visible = true;
   }
   want(t, p) { t.lastSeen = this.frame; if (t.state === 'idle') this.wanted.push({ t, p }); }

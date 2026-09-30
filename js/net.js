@@ -37,7 +37,7 @@ class Lane {
 const LANES = [
   [u => u.startsWith('https://data.geopf.fr/wms-r/'), new Lane(12, 25, 6)],
   [u => u.startsWith('https://data.geopf.fr/wmts'), new Lane(30, 60, 10)],
-  [u => u.startsWith('https://planetarycomputer.microsoft.com/'), new Lane(10, 20, 6)]
+  [u => u.startsWith('https://planetarycomputer.microsoft.com/'), new Lane(12, 24, 10)]
 ];
 const laneFor = url => LANES.find(([m]) => m(url))?.[1];
 

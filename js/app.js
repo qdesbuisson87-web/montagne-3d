@@ -1,18 +1,18 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301716';
-import { SITE, SITE_LIST } from './sites.js?v=202609301716';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301716';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301716';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301716';
-import { searchPlaces } from './search.js?v=202609301716';
-import { TerrainShadows } from './shadows.js?v=202609301716';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301716';
-import { Forest } from './forest.js?v=202609301716';
-import { Lakes } from './water.js?v=202609301716';
-import { Buildings } from './buildings.js?v=202609301716';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202609301716';
-import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301716';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301725';
+import { SITE, SITE_LIST } from './sites.js?v=202609301725';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301725';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301725';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301725';
+import { searchPlaces } from './search.js?v=202609301725';
+import { TerrainShadows } from './shadows.js?v=202609301725';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301725';
+import { Forest } from './forest.js?v=202609301725';
+import { Lakes } from './water.js?v=202609301725';
+import { Buildings } from './buildings.js?v=202609301725';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202609301725';
+import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301725';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -601,8 +601,9 @@ async function loadBera() {
   el.innerHTML = '<p class="cmeta">Récupération du bulletin…</p>';
   try { renderBera(await fetchBera(SITE.bra)); }
   catch (e) {
-    const msg = { key: "Météo-France refuse la clé : vérifie qu'elle est copiée en entier et que l'API « DonneesPubliquesBRA » est bien souscrite.", none: "Aucun bulletin publié pour ce massif en ce moment (les bulletins paraissent de novembre à mai).", network: 'Bulletin indisponible : pas de connexion et aucun bulletin gardé sur cet appareil.' }[e.kind] ?? `Bulletin indisponible (${esc(e.message)}).`;
-    el.innerHTML = `<p class="cline">${msg}</p>`; if (e.kind === 'key') $('beraKeyBlock').hidden = false;
+    const msg = { key: "Météo-France refuse la clé : vérifie que c'est bien une « API Key » (pas un jeton OAuth, qui expire en 1 h), copiée en entier, et que l'API « DonneesPubliquesBRA » est souscrite.", none: "Météo-France n'a pas de bulletin pour ce massif en ce moment (ils paraissent de novembre à mai) : la clé fonctionne.", network: 'Bulletin indisponible : pas de connexion et aucun bulletin gardé sur cet appareil.' }[e.kind] ?? 'Bulletin indisponible.';
+    el.innerHTML = `<p class="cline">${msg}</p><p class="cline small">Réponse de Météo-France : ${esc(e.message)}</p><button type="button" class="mini wide" data-bera-key>Changer la clé Météo-France</button>`;
+    if (e.kind === 'key') $('beraKeyBlock').hidden = false;
   }
 }
 function renderBera(b) {
@@ -633,7 +634,7 @@ function renderBera(b) {
     h += `<h3>Neige fraîche sur 24 h${b.fresh.alt ? ` (à ${fmt(b.fresh.alt)} m)` : ''}</h3><div class="tw"><table><tbody>${b.fresh.days.map(d => `<tr><th>${dayName(d.date)}</th><td class="n">${d.min == null ? '—' : d.min === d.max ? `${d.min} cm` : `${d.min} à ${d.max} cm`}</td></tr>`).join('')}</tbody></table></div>`;
   }
   const link = SITE.links.find(([u]) => /meteo-montagne/.test(u))?.[0];
-  h += `<p class="cnote">Bulletin d'estimation du risque d'avalanche de Météo-France, reproduit tel quel. Il ne remplace ni la lecture du bulletin complet${link ? ` (<a href="${link}" target="_blank" rel="noopener">voir sur Météo-France</a>)` : ''}, ni l'observation sur le terrain.</p></div>`;
+  h += `<p class="cnote">Bulletin d'estimation du risque d'avalanche de Météo-France, reproduit tel quel. Il ne remplace ni la lecture du bulletin complet${link ? ` (<a href="${link}" target="_blank" rel="noopener">voir sur Météo-France</a>)` : ''}, ni l'observation sur le terrain.</p><button type="button" class="mini wide" data-bera-key>Changer la clé Météo-France</button></div>`;
   $('bera').innerHTML = h;
 }
 $('mfKeySave').addEventListener('click', () => {
@@ -642,6 +643,7 @@ $('mfKeySave').addEventListener('click', () => {
   beraKey.set(k); $('mfKey').value = ''; loadBera();
 });
 $('mfKey').addEventListener('keydown', e => { if (e.key === 'Enter') $('mfKeySave').click(); });
+$('bera').addEventListener('click', e => { if (e.target.closest('[data-bera-key]')) { $('beraKeyBlock').hidden = false; $('mfKey').focus(); } });
 
 async function refreshLive() {
   loadBera();

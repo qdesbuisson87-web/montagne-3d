@@ -53,9 +53,14 @@ export async function fetchBera(massifId) {
     if (saved) return { ...parse(saved), offline: true };
     throw new BeraError('network', 'pas de connexion');
   }
-  if (r.status === 401 || r.status === 403) throw new BeraError('key', 'clé refusée par Météo-France');
-  if (r.status === 404 || r.status === 204) throw new BeraError('none', 'aucun bulletin publié pour ce massif');
-  if (!r.ok) throw new BeraError('server', `Météo-France répond ${r.status}`);
+  if (!r.ok || r.status === 204) {
+    // keep Météo-France's own words: they tell apart a wrong key, a missing subscription and "no bulletin"
+    const body = await r.text().catch(() => ''), said = (body.match(/"description"\s*:\s*"([^"]+)"/) ?? body.match(/"message"\s*:\s*"([^"]+)"/) ?? [])[1] ?? body.replace(/<[^>]+>/g, ' ').trim().slice(0, 160);
+    const detail = `code ${r.status}${said ? ` : « ${said} »` : ''}`;
+    if (r.status === 401 || r.status === 403) throw new BeraError('key', detail);
+    if (r.status === 404 || r.status === 204) throw new BeraError('none', detail);
+    throw new BeraError('server', detail);
+  }
   const xml = await r.text();
   const b = parse(xml);
   try { localStorage.setItem(STORE(massifId), xml); } catch { }

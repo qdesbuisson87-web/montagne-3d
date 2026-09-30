@@ -1,25 +1,26 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202609301812';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301812';
-import { SITE, SITE_LIST } from './sites.js?v=202609301812';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301812';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301812';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301812';
-import { searchPlaces } from './search.js?v=202609301812';
-import { TerrainShadows } from './shadows.js?v=202609301812';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301812';
-import { Forest } from './forest.js?v=202609301812';
-import { Lakes } from './water.js?v=202609301812';
-import { Buildings } from './buildings.js?v=202609301812';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202609301812';
-import { GpsTracker } from './gps.js?v=202609301812';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202609301812';
-import { walkingRoute } from './planner.js?v=202609301812';
-import { TrailsLayer } from './trails.js?v=202609301812';
-import { Weather3D } from './weather3d.js?v=202609301812';
-import { Sight } from './sight.js?v=202609301812';
-import { Photos360 } from './photos360.js?v=202609301812';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301812';
+import { EarthControls } from './controls.js?v=202609301900';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301900';
+import { SITE, SITE_LIST } from './sites.js?v=202609301900';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301900';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301900';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301900';
+import { searchPlaces } from './search.js?v=202609301900';
+import { TerrainShadows } from './shadows.js?v=202609301900';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301900';
+import { Forest } from './forest.js?v=202609301900';
+import { Lakes } from './water.js?v=202609301900';
+import { Buildings } from './buildings.js?v=202609301900';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202609301900';
+import { GpsTracker } from './gps.js?v=202609301900';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202609301900';
+import { walkingRoute } from './planner.js?v=202609301900';
+import { buildHikes, savedHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202609301900';
+import { TrailsLayer } from './trails.js?v=202609301900';
+import { Weather3D } from './weather3d.js?v=202609301900';
+import { Sight } from './sight.js?v=202609301900';
+import { Photos360 } from './photos360.js?v=202609301900';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301900';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -899,24 +900,51 @@ $('plIdeas').addEventListener('click', async () => {
   for (const c of near) { // one after the other: polite to the IGN service
     try {
       const [lon, lat] = worldToLonLat(c.x, c.z), r = await walkingRoute(from, { lon, lat }), st = pathStats(resamplePath(r.pts, groundAt));
-      // only walks: nothing that climbs above 3 000 m (glaciers, high mountain: an alpine route, not a hike)
-      // and nothing longer than a long day
-      // and only goals the paths actually reach (a summit 1 km beyond the end of the path is not a walk)
-      if (st && st.max <= 3000 && st.hours <= 9 && r.offEnd <= 400) out.push({ ...c, r, st, to: { lon, lat, name: c.name } });
+      // every goal is kept, labelled like the catalogue (high mountain above 3 000 m or beyond the paths)
+      if (st) out.push({ ...c, r, st, cls: classify({ ...st, offEnd: r.offEnd }), to: { lon, lat, name: c.name } });
     } catch { }
     $('plIdeasOut').innerHTML = `<p class="cmeta">Calcul des itinéraires… ${out.length} / ${near.length}</p>`;
   }
   out.sort((a, b) => a.st.hours - b.st.hours);
-  $('plIdeasOut').innerHTML = (out.length ? '<div class="places results ideas"></div>' : '<p class="cline small">Aucune randonnée trouvée.</p>')
-    + '<p class="cnote">Randonnées seulement : rien au-dessus de 3 000 m (glaciers, haute montagne : c\'est de l\'alpinisme, à préparer avec un guide ou le bureau des guides) ni au-delà de 9 h de marche.</p>';
+  $('plIdeasOut').innerHTML = out.length ? '<div class="places results ideas"></div>' : '<p class="cline small">Aucun itinéraire trouvé.</p>';
   for (const o of out) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'place';
-    b.innerHTML = `<span>${esc(o.name)}</span><span class="pa">${o.kind} · ${hm(o.st.hours)} · ${(o.st.dist / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km · +${fmt(o.st.up)} m${o.r.offEnd > 60 ? ` · sentier jusqu'à ${fmt(o.r.offEnd)} m du but` : ''}</span>`;
+    b.innerHTML = `<span>${esc(o.name)}</span><span class="pa"><span class="cls ${o.cls}">${CLASS_NAMES[o.cls]}</span>${o.kind} · ${hm(o.st.hours)} · ${(o.st.dist / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km · +${fmt(o.st.up)} m${o.r.offEnd > 60 ? ` · sentier jusqu'à ${fmt(o.r.offEnd)} m du but` : ''}</span>`;
     b.addEventListener('click', () => { route.setPath(o.r.pts, `${from.name ?? 'Départ'} → ${o.name}`); renderRoute(); frameRoute(); $('plNote').textContent = offPathNote(o.r, o.name); if (touch) closeSheets(); });
     $('plIdeasOut').firstChild.appendChild(b);
   }
 });
 renderPlan();
+
+// ---------- hikes catalogue (hikes.js): every named goal of the massif, from the nearest start ----------
+let hkFilter = 'all', hkList = savedHikes(SITE)?.hikes ?? [], hkBuilding = null;
+function renderHikes(done, total) {
+  const shown = hkList.filter(h => hkFilter === 'all' || h.cls === hkFilter).sort((a, b) => a.hours - b.hours);
+  if (hkBuilding) $('hkInfo').textContent = `Construction de la liste… ${done} / ${total} (les itinéraires arrivent au fur et à mesure)`;
+  else if (hkList.length) $('hkInfo').textContent = `${hkList.length} itinéraires pour ce massif · ${shown.length} affichés, du plus court au plus long.`;
+  $('hkBuild').hidden = !!hkBuilding || hkList.length > 0;
+  const box = $('hkList'); box.innerHTML = '';
+  for (const h of shown) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'place';
+    b.innerHTML = `<span>${esc(h.name)}${h.alt ? ` · ${fmt(h.alt)} m` : ''}</span><span class="pa"><span class="cls ${h.cls}">${CLASS_NAMES[h.cls]}</span>${h.kind} · depuis ${h.start === 'parking' ? `un parking à ${fmt(h.startAlt ?? 0)} m` : esc(h.start)} · ${hm(h.hours)} · ${(h.dist / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km · +${fmt(h.up)} m · point haut ${fmt(h.max)} m${h.offEnd > 150 ? ` · les sentiers s'arrêtent à ${fmt(h.offEnd)} m du but, la fin est hors sentier` : ''}</span>`;
+    b.addEventListener('click', () => {
+      route.setPath(hikePath(h), `${h.name} depuis ${h.start}`); renderRoute(); frameRoute();
+      $('plNote').textContent = h.cls === 'alpine' ? "Haute montagne : glacier ou rocher, crevasses et chutes de pierres possibles. Matériel d'alpinisme, expérience et encordement nécessaires ; guide conseillé. Le tracé s'arrête au bout des sentiers." : '';
+      if (touch) closeSheets();
+    });
+    box.appendChild(b);
+  }
+}
+document.querySelectorAll('[data-hk]').forEach(b => b.addEventListener('click', () => {
+  hkFilter = b.dataset.hk; document.querySelectorAll('[data-hk]').forEach(x => x.setAttribute('aria-pressed', x === b)); renderHikes();
+}));
+$('hkBuild').addEventListener('click', async () => {
+  if (hkBuilding) return; hkBuilding = new AbortController(); renderHikes(hkList.length, '…');
+  try { hkList = await buildHikes(SITE, (list, done, total) => { hkList = list; renderHikes(done, total); }, hkBuilding.signal); }
+  catch (err) { $('hkInfo').textContent = `Construction impossible : ${err.message}. Réessaie avec du réseau.`; }
+  hkBuilding = null; renderHikes();
+});
+renderHikes();
 $('gpxOut').addEventListener('click', () => {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([route.toGPX()], { type: 'application/gpx+xml' }));
   a.download = (route.name || 'itineraire').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-') + '.gpx'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);

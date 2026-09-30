@@ -50,6 +50,13 @@ img.photo { display: block; width: 100%; max-height: 260px; object-fit: cover; b
 .sightbar[hidden] { display: none; }
 .sightbar .mini { min-height: 40px; }
 body.sight .tl, body.sight .tabs, body.sight .fab, body.sight .readout { display: none; }
+.hkf { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; }
+.hkf button { appearance: none; border: 1px solid var(--line); background: rgba(255,255,255,.04); border-radius: 16px; padding: 7px 11px; min-height: 36px; font: 600 12.5px/1 "Barlow Condensed", "Arial Narrow", sans-serif; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; }
+.hkf button[aria-pressed="true"] { background: var(--ink); color: #10151c; }
+.hklist { max-height: none; }
+.hklist .place .pa { color: var(--muted); }
+.cls { display: inline-block; padding: 1px 6px; border-radius: 3px; font: 600 10.5px/1.5 "IBM Plex Mono", monospace; color: #111; margin-right: 4px; }
+.cls.easy { background: #7bd389; } .cls.medium { background: #6fb7ff; } .cls.hard { background: #ff9a3c; } .cls.long { background: #c58bff; } .cls.alpine { background: #fff; outline: 1px solid #e0261b; color: #c11; }
 .plrow { display: flex; gap: 10px; align-items: baseline; margin-top: 8px; font-size: 13.5px; }
 .plrow span { width: 58px; color: var(--muted); font-size: 12px; }
 .plrow b { color: var(--ice); font-weight: 600; }

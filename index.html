@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202609301812">
+<link rel="stylesheet" href="css/app.css?v=202609301900">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -164,6 +164,14 @@
   <button id="plIdeas" type="button" class="mini wide">Idées de sorties autour du départ</button>
   <div id="plIdeasOut"></div>
   <p class="cline small" id="plNote"></p>
+  <h3>Randonnées du massif</h3>
+  <p class="cline small" id="hkInfo">Tous les sommets, cols, refuges et lacs nommés par l'IGN, depuis le départ le plus proche (parking ou remontée), avec temps, dénivelé et point haut.</p>
+  <button id="hkBuild" type="button" class="mini wide">Construire la liste (quelques minutes la première fois)</button>
+  <div class="hkf" role="group" aria-label="Filtrer par difficulté">
+    <button type="button" data-hk="all" aria-pressed="true">Toutes</button><button type="button" data-hk="easy" aria-pressed="false">Facile</button><button type="button" data-hk="medium" aria-pressed="false">Moyenne</button><button type="button" data-hk="hard" aria-pressed="false">Difficile</button><button type="button" data-hk="long" aria-pressed="false">Très longue</button><button type="button" data-hk="alpine" aria-pressed="false">Haute montagne</button>
+  </div>
+  <div id="hkList" class="places results ideas hklist"></div>
+  <p class="cnote">Facile : moins de 3 h et 500 m de montée · Moyenne : moins de 5 h et 1 000 m · Difficile : moins de 8 h · Très longue : 8 h et plus · Haute montagne : au-dessus de 3 000 m ou au-delà des sentiers (glacier, rocher : matériel, expérience d'alpinisme, guide conseillé). Temps de marche sans pauses (norme DIN 33466), altitudes IGN RGE ALTI. Itinéraires calculés sur les chemins IGN, pas des topos vérifiés : consulte le bulletin et l'état des sentiers avant de partir.</p>
   <h3>Itinéraire</h3>
   <p class="cline small" id="routeHelp">Importe une trace GPX, ou touche « Tracer » puis touche le relief point par point (aussi pour mesurer une distance).</p>
   <div class="btns">
@@ -206,6 +214,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202609301812"></script>
+<script type="module" src="js/app.js?v=202609301900"></script>
 </body>
 </html>

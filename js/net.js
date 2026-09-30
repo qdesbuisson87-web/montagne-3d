@@ -56,6 +56,21 @@ export async function netFetch(url, attempts = 5) {
   }
 }
 
+// The same answer can come from several servers (mirrors): try them in turn, each with a time limit, and keep
+// the first good answer under `key` in the tile cache (so it is found again offline, whichever server gave it).
+export async function mirroredFetch(key, urls, timeoutMs = 20000) {
+  const c = await tileCache();
+  if (c) { const hit = await c.match(key).catch(() => null); if (hit) return hit; }
+  for (const url of urls) {
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), timeoutMs);
+    try {
+      const r = await fetch(url, { mode: 'cors', signal: ctl.signal });
+      if (r.ok) { if (c) c.put(key, r.clone()).catch(() => { }); return r; }
+    } catch { } finally { clearTimeout(timer); }
+  }
+  throw new TransientError('aucun serveur ne répond');
+}
+
 export async function cachedFetch(url, store = true) {
   const c = await tileCache();
   if (c) { const hit = await c.match(url).catch(() => null); if (hit) return hit; }

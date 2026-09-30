@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202609301740">
+<link rel="stylesheet" href="css/app.css?v=202609301747">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -113,7 +113,7 @@
     <p class="cline small" id="precipNow"></p></div>
   <div class="checks">
     <label for="c-slopes"><input id="c-slopes" type="checkbox"> Pentes (27° et plus)</label>
-    <label for="c-osm"><input id="c-osm" type="checkbox" checked> Sentiers, refuges, remontées et pistes</label>
+    <label for="c-trails"><input id="c-trails" type="checkbox" checked> Sentiers, refuges et remontées (IGN)</label>
     <label for="c-buildings"><input id="c-buildings" type="checkbox" checked> Bâtiments en 3D (BD TOPO IGN)</label>
     <label for="c-trees"><input id="c-trees" type="checkbox" checked> Forêts en 3D (LiDAR IGN)</label>
     <label for="c-snowtoday"><input id="c-snowtoday" type="checkbox" checked> Neige du jour (satellite)</label>
@@ -134,7 +134,7 @@
   <div class="row"><button id="packGo" type="button" class="btn">Télécharger</button><button id="packStop" type="button" class="mini" hidden>Arrêter</button></div>
   <p class="cline small" id="storageInfo"></p>
   <button id="cacheClear" type="button" class="mini">Vider le stockage</button>
-  <p class="cnote">Sources : relief © IGN (LiDAR HD, RGE ALTI), photos © IGN (BD ORTHO), hors France Sentinel-2 cloudless © EOX (CC BY-NC-SA 4.0) et relief Mapzen/AWS Terrain Tiles · Satellite du jour : Copernicus Sentinel-2 via Microsoft Planetary Computer · Météo : Météo-France via Open-Meteo · Sentiers, refuges, remontées et pistes : © contributeurs OpenStreetMap (ODbL) · Bâtiments et lacs : IGN BD TOPO · Vue Google 3D : Google Photorealistic 3D Tiles (© Google et fournisseurs affichés en bas de l'écran).</p>
+  <p class="cnote">Sources : relief © IGN (LiDAR HD, RGE ALTI), photos © IGN (BD ORTHO), hors France Sentinel-2 cloudless © EOX (CC BY-NC-SA 4.0) et relief Mapzen/AWS Terrain Tiles · Satellite du jour : Copernicus Sentinel-2 via Microsoft Planetary Computer · Météo : Météo-France via Open-Meteo · Sentiers, refuges, remontées, bâtiments et lacs : IGN BD TOPO · Vue Google 3D : Google Photorealistic 3D Tiles (© Google et fournisseurs affichés en bas de l'écran).</p>
 </section>
 
 <section id="sheet-route" class="sheet glass" hidden aria-label="Sortie">
@@ -176,6 +176,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202609301740"></script>
+<script type="module" src="js/app.js?v=202609301747"></script>
 </body>
 </html>

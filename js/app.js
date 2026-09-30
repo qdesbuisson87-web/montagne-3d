@@ -1,21 +1,21 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301740';
-import { SITE, SITE_LIST } from './sites.js?v=202609301740';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301740';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301740';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301740';
-import { searchPlaces } from './search.js?v=202609301740';
-import { TerrainShadows } from './shadows.js?v=202609301740';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301740';
-import { Forest } from './forest.js?v=202609301740';
-import { Lakes } from './water.js?v=202609301740';
-import { Buildings } from './buildings.js?v=202609301740';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202609301740';
-import { GpsTracker } from './gps.js?v=202609301740';
-import { RouteLayer } from './route.js?v=202609301740';
-import { OsmLayer } from './osm.js?v=202609301740';
-import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301740';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301747';
+import { SITE, SITE_LIST } from './sites.js?v=202609301747';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301747';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301747';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301747';
+import { searchPlaces } from './search.js?v=202609301747';
+import { TerrainShadows } from './shadows.js?v=202609301747';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301747';
+import { Forest } from './forest.js?v=202609301747';
+import { Lakes } from './water.js?v=202609301747';
+import { Buildings } from './buildings.js?v=202609301747';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202609301747';
+import { GpsTracker } from './gps.js?v=202609301747';
+import { RouteLayer } from './route.js?v=202609301747';
+import { TrailsLayer } from './trails.js?v=202609301747';
+import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301747';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -237,7 +237,7 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(200000, 48, 24), new THREE.S
 sky.renderOrder = -1; sky.frustumCulled = false; scene.add(sky);
 const lakes = new Lakes({ scene, engine, uniforms: U, sceneGLSL: SCENE_GLSL, skyGLSL: SKY_LOOKUP_GLSL, skyTex: skyBaker.texture });
 const buildings = new Buildings({ scene, uniforms: U, sceneGLSL: SCENE_GLSL });
-const osm = new OsmLayer({ scene, groundAt: (x, z) => engine.heightAt(x, z), onHuts: huts => addHuts(huts) });
+const trails = new TrailsLayer({ scene, groundAt: (x, z) => engine.heightAt(x, z), onHuts: huts => addHuts(huts) });
 
 // ---------- sea of clouds (driven by the forecast) ----------
 // The cloud noise is baked once into a tileable texture (same fractal as before, 6 octaves of value noise):
@@ -352,7 +352,7 @@ PLACES.forEach(p => {
   li.addEventListener('click', () => { flyToPlace(p); if (touch) closeSheets(); });
   $('placeList').appendChild(li);
 });
-// mountain huts found in OpenStreetMap (osm.js): small labels, unless the site already names that hut
+// mountain huts from IGN BD TOPO (trails.js): small labels, unless the site already names that hut
 const hutIds = new Set();
 function addHuts(huts) {
   for (const hut of huts) {
@@ -803,7 +803,7 @@ $('c-labels').addEventListener('change', e => { state.labels = e.target.checked;
 $('c-cable').addEventListener('change', e => { cable.visible = cabins.visible = e.target.checked; });
 state.trees = true; $('c-trees').addEventListener('change', e => { state.trees = e.target.checked; });
 $('c-buildings').addEventListener('change', e => { buildings.on = e.target.checked; });
-$('c-osm').addEventListener('change', e => { osm.on = e.target.checked; });
+$('c-trails').addEventListener('change', e => { trails.on = e.target.checked; });
 // slope map: toggle, legend built from the same classes as the shader, choice remembered on the device
 $('slopeRows').innerHTML = SLOPE_CLASSES.map(([a, c], i) => {
   const next = SLOPE_CLASSES[i + 1]?.[0];
@@ -1090,7 +1090,7 @@ function updateLabels() {
       for (let s = 1; s < 48 && !hid; s++) { const f = s / 48 * 0.94, g = groundAt(cam.x + dx * f, cam.z + dz * f); if (g != null && g * state.exag > cam.y + dy * f + 12) hid = true; }
       p.hidden = hid;
     }
-    p.el.classList.toggle('hidden', !on || !!p.hidden || (p.hut && !osm.on));
+    p.el.classList.toggle('hidden', !on || !!p.hidden || (p.hut && !trails.on));
     if (on) p.el.style.transform = `translate(${(proj.x * 0.5 + 0.5) * w}px, ${(-proj.y * 0.5 + 0.5) * h}px)`;
   });
 }
@@ -1098,7 +1098,7 @@ function updateLabels() {
 // ---------- loop ----------
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
-  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); route?.setResolution(w, h); osm?.setResolution(w, h);
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); route?.setResolution(w, h); trails?.setResolution(w, h);
   SU.proj.value = h * renderer.getPixelRatio() / (2 * Math.tan(camera.fov * Math.PI / 360));
 }
 addEventListener('resize', resize);
@@ -1151,7 +1151,7 @@ function drawFrame() {
   buildings.update(camera, controls.target, frameN, google.on);
   gps.update(camera, groundAt, state.exag); if (gps.on && frameN % 60 === 0) renderGps();
   route.update(frameN, state.exag, engine.busy);
-  osm.update(camera, controls.target, frameN, state.exag, google.on);
+  trails.update(camera, controls.target, frameN, state.exag, google.on);
   if (flyRoute) flyAlongRoute(dt);
   if (hoverNDC && frameN % (google.on ? 10 : 3) === 0) showPoint(pick(...hoverNDC));
   updateLabels(); frameN++;

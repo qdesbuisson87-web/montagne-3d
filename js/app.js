@@ -1,24 +1,24 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301758';
-import { SITE, SITE_LIST } from './sites.js?v=202609301758';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301758';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301758';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301758';
-import { searchPlaces } from './search.js?v=202609301758';
-import { TerrainShadows } from './shadows.js?v=202609301758';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301758';
-import { Forest } from './forest.js?v=202609301758';
-import { Lakes } from './water.js?v=202609301758';
-import { Buildings } from './buildings.js?v=202609301758';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202609301758';
-import { GpsTracker } from './gps.js?v=202609301758';
-import { RouteLayer } from './route.js?v=202609301758';
-import { TrailsLayer } from './trails.js?v=202609301758';
-import { Weather3D } from './weather3d.js?v=202609301758';
-import { Sight } from './sight.js?v=202609301758';
-import { Photos360 } from './photos360.js?v=202609301758';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301758';
+import { EarthControls } from './controls.js?v=202609301809';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301809';
+import { SITE, SITE_LIST } from './sites.js?v=202609301809';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301809';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301809';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301809';
+import { searchPlaces } from './search.js?v=202609301809';
+import { TerrainShadows } from './shadows.js?v=202609301809';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301809';
+import { Forest } from './forest.js?v=202609301809';
+import { Lakes } from './water.js?v=202609301809';
+import { Buildings } from './buildings.js?v=202609301809';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202609301809';
+import { GpsTracker } from './gps.js?v=202609301809';
+import { RouteLayer } from './route.js?v=202609301809';
+import { TrailsLayer } from './trails.js?v=202609301809';
+import { Weather3D } from './weather3d.js?v=202609301809';
+import { Sight } from './sight.js?v=202609301809';
+import { Photos360 } from './photos360.js?v=202609301809';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301809';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -36,12 +36,9 @@ renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 stage.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(50, 1, 1, 250000);
-const controls = new OrbitControls(camera, renderer.domElement);
-Object.assign(controls, { enableDamping: true, dampingFactor: 0.08, zoomToCursor: true, screenSpacePanning: false, minDistance: 15, maxDistance: 60000, maxPolarAngle: Math.PI * 0.495, rotateSpeed: 0.55, zoomSpeed: 1.2, autoRotateSpeed: 0.3 });
-// map gestures, as in Google Earth: one finger / left button drags the map, two fingers pinch to zoom and
-// turn or tilt the view, right button rotates; the pivot follows the ground (see frame())
-controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
-controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
+// Google-Earth-like gestures (controls.js): the ground under the finger is grabbed; the point under a screen
+// position comes from pick() (the IGN relief or the Google surface), defined further down
+const controls = new EarthControls(camera, renderer.domElement, (nx, ny) => { const h = pick(nx, ny); return h ? new THREE.Vector3(h.x, h.h * state.exag, h.z) : null; });
 
 // ---------- quality ----------
 const touch = matchMedia('(pointer: coarse)').matches;
@@ -491,8 +488,8 @@ renderer.domElement.addEventListener('pointerup', e => {
     if (!pickAt(hit)) pointReport(hit);
   }
 });
-// Pivot as in Google Earth: when a gesture begins, the orbit centre moves to the ground under the middle of the
-// screen. That point lies on the line of sight, so the view does not move; nothing is adjusted during the gesture.
+// When a gesture begins, the look-at point moves to the ground under the middle of the screen: it lies on the
+// line of sight, so the view does not move, and the automatic turn and the "3D" tilt then pivot on real ground.
 controls.addEventListener('start', () => {
   fly = null; flyRoute = null; controls.autoRotate = false; $('c-spin').checked = false;
   const hit = pick(0, 0);
@@ -1205,10 +1202,13 @@ function updateLabels() {
 // ---------- loop ----------
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
+  if (!w || !h) return; // hidden (background tab, app starting): keep the last good size, never divide by zero
   renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); route?.setResolution(w, h); trails?.setResolution(w, h);
   SU.proj.value = h * renderer.getPixelRatio() / (2 * Math.tan(camera.fov * Math.PI / 360));
 }
 addEventListener('resize', resize);
+// the stage can change size without a window resize (a hidden tab coming back, the phone's bars appearing)
+new ResizeObserver(() => resize()).observe(stage);
 applyQuality(state.quality);
 const clock = new THREE.Clock(); let fpsAcc = 0, fpsN = 0, adAcc = 0, adN = 0, started = false, gGround = null;
 // ?debugloop keeps rendering in a hidden tab (for automated checks); normal use follows the display refresh
@@ -1228,7 +1228,7 @@ function drawFrame() {
     camera.position.y += Math.sin(f * Math.PI) * fly.fP.distanceTo(fly.tP) * 0.1;
     if (f >= 1) fly = null;
   }
-  if (sight.on) sightFrame(); else controls.update(); // in the viewfinder the phone drives the camera
+  if (sight.on) sightFrame(); else controls.update(Math.min(dt, 0.1)); // in the viewfinder the phone drives the camera
   const c = camera.position;
   // ground under the camera (keeps it above the surface, sets the near plane): Google's own surface in that view,
   // probed a few times per second since a ray through the tiles costs more than a grid lookup

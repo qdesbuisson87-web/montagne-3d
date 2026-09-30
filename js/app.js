@@ -1,23 +1,24 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301756';
-import { SITE, SITE_LIST } from './sites.js?v=202609301756';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301756';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301756';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301756';
-import { searchPlaces } from './search.js?v=202609301756';
-import { TerrainShadows } from './shadows.js?v=202609301756';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301756';
-import { Forest } from './forest.js?v=202609301756';
-import { Lakes } from './water.js?v=202609301756';
-import { Buildings } from './buildings.js?v=202609301756';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202609301756';
-import { GpsTracker } from './gps.js?v=202609301756';
-import { RouteLayer } from './route.js?v=202609301756';
-import { TrailsLayer } from './trails.js?v=202609301756';
-import { Weather3D } from './weather3d.js?v=202609301756';
-import { Sight } from './sight.js?v=202609301756';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301756';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301758';
+import { SITE, SITE_LIST } from './sites.js?v=202609301758';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301758';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301758';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301758';
+import { searchPlaces } from './search.js?v=202609301758';
+import { TerrainShadows } from './shadows.js?v=202609301758';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301758';
+import { Forest } from './forest.js?v=202609301758';
+import { Lakes } from './water.js?v=202609301758';
+import { Buildings } from './buildings.js?v=202609301758';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202609301758';
+import { GpsTracker } from './gps.js?v=202609301758';
+import { RouteLayer } from './route.js?v=202609301758';
+import { TrailsLayer } from './trails.js?v=202609301758';
+import { Weather3D } from './weather3d.js?v=202609301758';
+import { Sight } from './sight.js?v=202609301758';
+import { Photos360 } from './photos360.js?v=202609301758';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301758';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -252,6 +253,17 @@ sky.renderOrder = -1; sky.frustumCulled = false; scene.add(sky);
 const lakes = new Lakes({ scene, engine, uniforms: U, sceneGLSL: SCENE_GLSL, skyGLSL: SKY_LOOKUP_GLSL, skyTex: skyBaker.texture });
 const buildings = new Buildings({ scene, uniforms: U, sceneGLSL: SCENE_GLSL });
 const weather3d = new Weather3D({ scene, uniforms: U });
+const photos = new Photos360({ scene, groundAt: (x, z) => engine.heightAt(x, z) });
+// a Panoramax photo: preview in the point sheet, with its author, date and licence (required by CC BY-SA)
+function showPhoto(p) {
+  sheets.forEach(s => { $('sheet-' + s).hidden = true; $('tab-' + s).setAttribute('aria-pressed', 'false'); });
+  $('sheet-point').hidden = false; pin = { x: p.x, z: p.z, h: p.h ?? 0 };
+  $('ptTitle').textContent = p.pano ? 'Photo 360°' : 'Photo';
+  const lic = /by-sa/i.test(p.license) ? 'CC BY-SA 4.0' : /by/i.test(p.license) ? 'CC BY' : p.license || 'licence non indiquée';
+  $('ptOut').innerHTML = `${p.sd || p.thumb ? `<img class="photo" src="${esc(p.sd || p.thumb)}" alt="Photo prise ici${p.date ? ' le ' + dayName(p.date) : ''}" loading="lazy">` : ''}
+    <p class="cmeta">${p.date ? p.date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'date inconnue'} · © ${esc(p.author || 'contributeur Panoramax')} · ${esc(lic)}</p>
+    <p class="cline"><a href="https://api.panoramax.xyz/#focus=pic&pic=${encodeURIComponent(p.id)}" target="_blank" rel="noopener">${p.pano ? 'Voir la photo à 360° et se promener' : 'Voir la photo'} sur Panoramax</a></p>`;
+}
 const trails = new TrailsLayer({ scene, groundAt: (x, z) => engine.heightAt(x, z), onHuts: huts => addHuts(huts) });
 
 // ---------- sea of clouds (driven by the forecast) ----------
@@ -469,7 +481,10 @@ renderer.domElement.addEventListener('pointerdown', e => { downAt = [e.clientX, 
 renderer.domElement.addEventListener('pointerup', e => {
   if (!downAt) return;
   if (Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) < 8 && performance.now() - downAt[2] < 400) {
-    const r = renderer.domElement.getBoundingClientRect(), hit = pick((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+    const r = renderer.domElement.getBoundingClientRect();
+    const photo = !route.drawing && photos.pick(e.clientX - r.left, e.clientY - r.top, camera, r.width, r.height);
+    if (photo) { showPhoto(photo); return; }
+    const hit = pick((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
     if (!hit) return;
     showPoint(hit);
     if (route.drawing) { route.add(hit.x, hit.z); renderRoute(); return; } // drawing an itinerary: each tap is a point
@@ -894,6 +909,7 @@ state.trees = true; $('c-trees').addEventListener('change', e => { state.trees =
 $('c-buildings').addEventListener('change', e => { buildings.on = e.target.checked; });
 $('c-trails').addEventListener('change', e => { trails.on = e.target.checked; });
 $('c-freeze').addEventListener('change', e => { weather3d.showFreeze = e.target.checked; });
+$('c-photos').addEventListener('change', e => { photos.on = e.target.checked; });
 $('c-wind').addEventListener('change', e => { weather3d.showWind = e.target.checked; });
 // slope map: toggle, legend built from the same classes as the shader, choice remembered on the device
 $('slopeRows').innerHTML = SLOPE_CLASSES.map(([a, c], i) => {
@@ -1244,6 +1260,7 @@ function drawFrame() {
   route.update(frameN, state.exag, engine.busy);
   trails.update(camera, controls.target, frameN, state.exag, google.on);
   weather3d.update(state.exag, state.far);
+  photos.update(controls.target, frameN, state.exag, google.on);
   if (flyRoute) flyAlongRoute(dt);
   if (hoverNDC && frameN % (google.on ? 10 : 3) === 0) showPoint(pick(...hoverNDC));
   updateLabels(); frameN++;

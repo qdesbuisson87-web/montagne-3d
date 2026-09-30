@@ -1,7 +1,7 @@
 // Coordinates: web-mercator for tiles, a local metric frame for the 3D scene
 // (origin at the selected summit, x = east, z = south, y = altitude in metres), Lambert-93 for IGN elevation.
 export const RE = 20037508.342789244;
-import { SITE } from './sites.js?v=202609301756';
+import { SITE } from './sites.js?v=202609301758';
 export const ORIGIN = SITE.origin;
 
 const d2r = Math.PI / 180;

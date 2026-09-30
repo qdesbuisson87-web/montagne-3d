@@ -3,8 +3,8 @@
 // the sun's glint and, for the nearest lake (Haute / Extrême quality), a true mirror of the mountains.
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202609301747';
-import { cachedFetch } from './net.js?v=202609301747';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202609301750';
+import { cachedFetch } from './net.js?v=202609301750';
 
 const CELL = 0.04; // degrees: lakes are fetched by cells of ≈ 3 × 4.5 km
 const WFS = (s, w, n, e) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=BDTOPO_V3:plan_d_eau&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=500&BBOX=${s},${w},${n},${e},urn:ogc:def:crs:EPSG::4326`;
@@ -55,6 +55,8 @@ export class Lakes {
     }
   }
   add(f) {
+    // the "plan_d_eau" layer also holds glaciers and névés ("Glacier, névé"): they are ice on the relief, not lakes
+    if (/glacier|névé|neve/i.test(f.properties.nature ?? '')) return;
     const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
     const rings = polys.map(p => p.map(ring => ring.map(([lon, lat]) => lonLatToWorld(lon, lat))));
     const pts = rings.flat(2), cx = pts.reduce((s, p) => s + p[0], 0) / pts.length, cz = pts.reduce((s, p) => s + p[1], 0) / pts.length;

@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202609301747">
+<link rel="stylesheet" href="css/app.css?v=202609301750">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -113,6 +113,8 @@
     <p class="cline small" id="precipNow"></p></div>
   <div class="checks">
     <label for="c-slopes"><input id="c-slopes" type="checkbox"> Pentes (27° et plus)</label>
+    <label for="c-freeze"><input id="c-freeze" type="checkbox"> Isotherme 0 °C (plan à l'altitude du gel)</label>
+    <label for="c-wind"><input id="c-wind" type="checkbox"> Vent en altitude (≈ 3 000 m)</label>
     <label for="c-trails"><input id="c-trails" type="checkbox" checked> Sentiers, refuges et remontées (IGN)</label>
     <label for="c-buildings"><input id="c-buildings" type="checkbox" checked> Bâtiments en 3D (BD TOPO IGN)</label>
     <label for="c-trees"><input id="c-trees" type="checkbox" checked> Forêts en 3D (LiDAR IGN)</label>
@@ -176,6 +178,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202609301747"></script>
+<script type="module" src="js/app.js?v=202609301750"></script>
 </body>
 </html>

@@ -1,21 +1,22 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301747';
-import { SITE, SITE_LIST } from './sites.js?v=202609301747';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301747';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301747';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301747';
-import { searchPlaces } from './search.js?v=202609301747';
-import { TerrainShadows } from './shadows.js?v=202609301747';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301747';
-import { Forest } from './forest.js?v=202609301747';
-import { Lakes } from './water.js?v=202609301747';
-import { Buildings } from './buildings.js?v=202609301747';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202609301747';
-import { GpsTracker } from './gps.js?v=202609301747';
-import { RouteLayer } from './route.js?v=202609301747';
-import { TrailsLayer } from './trails.js?v=202609301747';
-import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301747';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301750';
+import { SITE, SITE_LIST } from './sites.js?v=202609301750';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301750';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301750';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301750';
+import { searchPlaces } from './search.js?v=202609301750';
+import { TerrainShadows } from './shadows.js?v=202609301750';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301750';
+import { Forest } from './forest.js?v=202609301750';
+import { Lakes } from './water.js?v=202609301750';
+import { Buildings } from './buildings.js?v=202609301750';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202609301750';
+import { GpsTracker } from './gps.js?v=202609301750';
+import { RouteLayer } from './route.js?v=202609301750';
+import { TrailsLayer } from './trails.js?v=202609301750';
+import { Weather3D } from './weather3d.js?v=202609301750';
+import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301750';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -220,15 +221,22 @@ const forest = new Forest({ scene, engine, uniforms: U, sceneGLSL: SCENE_GLSL })
 
 // ---------- sky: physical scattering baked into a panorama (atmosphere.js), grey veil when overcast ----------
 const skyBaker = new SkyBaker(THREE, renderer);
-const skyU = { sunDir: U.sunDir, sunCol: U.sunCol, skyTex: { value: skyBaker.texture }, overcast: { value: 0 }, ovGrey: { value: new THREE.Vector3(0.6, 0.6, 0.62) } };
+const skyU = { sunDir: U.sunDir, sunCol: U.sunCol, time: U.time, stars: { value: 0 }, skyTex: { value: skyBaker.texture }, overcast: { value: 0 }, ovGrey: { value: new THREE.Vector3(0.6, 0.6, 0.62) } };
 const sky = new THREE.Mesh(new THREE.SphereGeometry(200000, 48, 24), new THREE.ShaderMaterial({
   uniforms: skyU, side: THREE.BackSide, depthWrite: false,
   vertexShader: `varying vec3 vD; void main(){ vD = position; gl_Position = projectionMatrix*viewMatrix*modelMatrix*vec4(position,1.0); }`,
-  fragmentShader: `uniform vec3 sunDir, sunCol, ovGrey; uniform float overcast; uniform sampler2D skyTex; varying vec3 vD;
+  fragmentShader: `uniform vec3 sunDir, sunCol, ovGrey; uniform float overcast, stars, time; uniform sampler2D skyTex; varying vec3 vD;
     ${SKY_LOOKUP_GLSL}
     void main(){ vec3 d = normalize(vD);
       vec3 c = texture2D(skyTex, skyUv(d)).rgb;
       c = max(c, vec3(0.010, 0.014, 0.032));                                  // night: a deep blue, never pure black
+      // stars once the sun is well below the horizon: one in ~300 sky cells, of varied brightness, twinkling
+      if (stars > 0.0 && d.y > 0.0) {
+        vec3 q = d * 380.0, cell = floor(q);
+        float h = fract(sin(dot(cell, vec3(12.9898, 78.233, 37.719))) * 43758.5453), b = fract(h * 91.7);
+        float star = step(0.9967, h) * smoothstep(0.42, 0.1, length(fract(q) - 0.5)) * (0.35 + 0.65 * b * b);
+        c += vec3(0.9, 0.95, 1.0) * star * stars * smoothstep(0.0, 0.15, d.y) * (0.8 + 0.2 * sin(time * 3.0 + h * 60.0)) * (1.0 - overcast);
+      }
       float sg = dot(d, sunDir);                                              // the sun's disk, 0.53° across, tinted by the air
       c += min(sunCol, vec3(1.0)) * smoothstep(0.99994, 0.99998, sg) * step(-0.01, sunDir.y) * (1.0 - overcast);
       c = mix(c, ovGrey * (0.85 + 0.15 * clamp(d.y * 3.0, 0.0, 1.0)), overcast);
@@ -237,6 +245,7 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(200000, 48, 24), new THREE.S
 sky.renderOrder = -1; sky.frustumCulled = false; scene.add(sky);
 const lakes = new Lakes({ scene, engine, uniforms: U, sceneGLSL: SCENE_GLSL, skyGLSL: SKY_LOOKUP_GLSL, skyTex: skyBaker.texture });
 const buildings = new Buildings({ scene, uniforms: U, sceneGLSL: SCENE_GLSL });
+const weather3d = new Weather3D({ scene, uniforms: U });
 const trails = new TrailsLayer({ scene, groundAt: (x, z) => engine.heightAt(x, z), onHuts: huts => addHuts(huts) });
 
 // ---------- sea of clouds (driven by the forecast) ----------
@@ -486,6 +495,7 @@ function updateSky() {
   const A = skyColors(U.sunDir.value, alt), night = [0.02, 0.028, 0.06];
   let skyC = A.zenith.map((v, i) => Math.max(v, night[i])), hor = A.horizon.map((v, i) => Math.max(v, night[i] * 1.4)), glow = A.glow, sun = A.sun;
   // overcast: a grey veil whose brightness follows the daylight
+  skyU.stars.value = 1 - sstep(-0.2, -0.06, s); // from nautical twilight on
   const g = 0.35 + 0.45 * day; skyU.overcast.value = ov; skyU.ovGrey.value.set(g * 0.97, g * 0.98, g);
   if (ov > 0) { skyC = mixv(skyC, [g * 0.9, g * 0.93, g], ov); hor = mixv(hor, [g, g, g * 1.02], ov); glow = mixv(glow, [g, g, g], ov); sun = sun.map(v => v * (1 - 0.7 * ov)); }
   U.skyCol.value.set(...skyC); U.horizonCol.value.set(...hor); U.glowCol.value.set(...glow); U.sunCol.value.set(...sun);
@@ -517,14 +527,22 @@ function renderWeather() {
     return `<div class="spot"><div class="sn">${esc(s.name)}<span>${fmt(s.alt)} m</span></div><div class="st">${t1(c.temperature_2m)}°</div>
       <div class="sd">${esc(WMO[c.weather_code] || '—')} · ressenti ${t1(c.apparent_temperature)}°<br>Vent ${compass(c.wind_direction_10m)} ${Math.round(c.wind_speed_10m)} km/h · rafales ${Math.round(c.wind_gusts_10m)}</div></div>`;
   }).join('');
-  let fz = null;
+  let fz = null, wa = null;
   const ex = W.extra?.hourly;
-  if (ex) { const now = W.top.current.time.slice(0, 13), k = ex.time.findIndex(t => t.slice(0, 13) === now); if (k >= 0) { fz = ex.freezing_level_height[k]; } } // model snow depth: unreliable in high mountains, not shown (the bulletin gives the real one)
+  if (ex) { // (model snow depth is not requested: unreliable in high mountains; the avalanche bulletin gives the real one)
+    const now = W.top.current.time.slice(0, 13), k = ex.time.findIndex(t => t.slice(0, 13) === now);
+    if (k >= 0) {
+      fz = ex.freezing_level_height[k];
+      if (ex.wind_speed_700hPa?.[k] != null) wa = { speed: ex.wind_speed_700hPa[k], dir: ex.wind_direction_700hPa[k], alt: ex.geopotential_height_700hPa?.[k] ?? 3000 };
+    }
+  }
+  weather3d.setData({ freeze: fz, windSpeed: wa?.speed ?? null, windDir: wa?.dir, windAlt: wa?.alt });
   const d = W.top.daily;
   const days = d.time.map((t, i) => `<tr><th>${dayName(new Date(t + 'T12:00'))}</th><td>${esc(WMO[d.weather_code[i]] || '—')}</td><td class="n">${Math.round(d.temperature_2m_min[i])}° / ${Math.round(d.temperature_2m_max[i])}°</td><td class="n">${d.snowfall_sum[i] > 0 ? t1(d.snowfall_sum[i]) + ' cm' : '—'}</td><td class="n">${Math.round(d.wind_gusts_10m_max[i])}</td></tr>`).join('');
   el.innerHTML = `<p class="cmeta">Météo-France (AROME/ARPEGE) · reçu ${W.fetchedAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
     <div class="spots">${spots}</div>
-    <p class="cline"><b>Isotherme 0 °C</b> ${fz != null ? fmt(fz) + ' m' : '—'}</p>
+    <p class="cline"><b>Isotherme 0 °C</b> ${fz != null ? fmt(fz) + ' m' : '—'}${wa ? ` · <b>Vent vers ${fmt(wa.alt)} m</b> ${Math.round(wa.speed)} km/h de ${compass(wa.dir)}` : ''}</p>
+    <p class="cline small">Affichables en 3D : Affichage → « Isotherme 0 °C » et « Vent en altitude » (prévision de l'heure, autour du massif).</p>
     <h3>Prévisions — ${esc(SPOTS.top.name)} (${fmt(SPOTS.top.alt)} m)</h3>
     <div class="tw"><table><thead><tr><th></th><th>Ciel</th><th class="n">Min / max</th><th class="n">Neige</th><th class="n">Rafales</th></tr></thead><tbody>${days}</tbody></table></div>`;
   // look of the scene
@@ -804,6 +822,8 @@ $('c-cable').addEventListener('change', e => { cable.visible = cabins.visible = 
 state.trees = true; $('c-trees').addEventListener('change', e => { state.trees = e.target.checked; });
 $('c-buildings').addEventListener('change', e => { buildings.on = e.target.checked; });
 $('c-trails').addEventListener('change', e => { trails.on = e.target.checked; });
+$('c-freeze').addEventListener('change', e => { weather3d.showFreeze = e.target.checked; });
+$('c-wind').addEventListener('change', e => { weather3d.showWind = e.target.checked; });
 // slope map: toggle, legend built from the same classes as the shader, choice remembered on the device
 $('slopeRows').innerHTML = SLOPE_CLASSES.map(([a, c], i) => {
   const next = SLOPE_CLASSES[i + 1]?.[0];
@@ -1152,6 +1172,7 @@ function drawFrame() {
   gps.update(camera, groundAt, state.exag); if (gps.on && frameN % 60 === 0) renderGps();
   route.update(frameN, state.exag, engine.busy);
   trails.update(camera, controls.target, frameN, state.exag, google.on);
+  weather3d.update(state.exag, state.far);
   if (flyRoute) flyAlongRoute(dt);
   if (hoverNDC && frameN % (google.on ? 10 : 3) === 0) showPoint(pick(...hoverNDC));
   updateLabels(); frameN++;

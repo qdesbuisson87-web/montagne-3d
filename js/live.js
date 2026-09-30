@@ -1,7 +1,7 @@
 // Live data, fetched every time the app opens: Météo-France forecasts (via Open-Meteo),
 // the latest Sentinel-2 pass and the latest clear one (Microsoft Planetary Computer), snow by altitude.
-import { lonLatToMerc, RE } from './geo.js?v=202609301747';
-import { SITE } from './sites.js?v=202609301747';
+import { lonLatToMerc, RE } from './geo.js?v=202609301750';
+import { SITE } from './sites.js?v=202609301750';
 
 export const SPOTS = SITE.spots; // top, peak2, mid, valley
 const qs = o => new URLSearchParams(o).toString();
@@ -21,7 +21,7 @@ export async function fetchWeather() {
   // freezing level and modelled snow depth come from the global models (best match)
   out.extra = await json('https://api.open-meteo.com/v1/forecast?' + qs({
     latitude: SPOTS.mid.lat, longitude: SPOTS.mid.lon, elevation: SPOTS.mid.alt, timezone: 'Europe/Paris', forecast_days: 3,
-    hourly: 'freezing_level_height,snow_depth'
+    hourly: 'freezing_level_height,wind_speed_700hPa,wind_direction_700hPa,geopotential_height_700hPa'
   })).catch(() => null);
   out.fetchedAt = new Date();
   return out;

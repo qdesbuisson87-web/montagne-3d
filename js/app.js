@@ -1,27 +1,27 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202609301945';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301945';
-import { SITE, SITE_LIST } from './sites.js?v=202609301945';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301945';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301945';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301945';
-import { searchPlaces } from './search.js?v=202609301945';
-import { TerrainShadows } from './shadows.js?v=202609301945';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301945';
-import { Forest } from './forest.js?v=202609301945';
-import { Lakes } from './water.js?v=202609301945';
-import { Buildings } from './buildings.js?v=202609301945';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202609301945';
-import { GpsTracker } from './gps.js?v=202609301945';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202609301945';
-import { walkingRoute } from './planner.js?v=202609301945';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202609301945';
-import { TrailsLayer } from './trails.js?v=202609301945';
-import { Weather3D } from './weather3d.js?v=202609301945';
-import { Sight } from './sight.js?v=202609301945';
-import { Photos360 } from './photos360.js?v=202609301945';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202609301945';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301945';
+import { EarthControls } from './controls.js?v=202609301947';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301947';
+import { SITE, SITE_LIST } from './sites.js?v=202609301947';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301947';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301947';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301947';
+import { searchPlaces } from './search.js?v=202609301947';
+import { TerrainShadows } from './shadows.js?v=202609301947';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301947';
+import { Forest } from './forest.js?v=202609301947';
+import { Lakes } from './water.js?v=202609301947';
+import { Buildings } from './buildings.js?v=202609301947';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202609301947';
+import { GpsTracker } from './gps.js?v=202609301947';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202609301947';
+import { walkingRoute } from './planner.js?v=202609301947';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202609301947';
+import { TrailsLayer } from './trails.js?v=202609301947';
+import { Weather3D } from './weather3d.js?v=202609301947';
+import { Sight } from './sight.js?v=202609301947';
+import { Photos360 } from './photos360.js?v=202609301947';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202609301947';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301947';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -1034,11 +1034,12 @@ $('ptLegend').innerHTML = POINT_CLASSES.map(([, name, hex]) => `<li><i style="ba
 function applyLidar(on) {
   lidar.on = on; $('c-lidar').checked = on; $('f-lidar').hidden = !on; if (!on) lidar.release();
   if (on) navigator.storage?.persist?.(); // ask the browser to keep what is downloaded (installed apps usually get it)
-  try { localStorage.setItem('midi3d-lidar', on ? '1' : '0'); } catch { }
+  try { localStorage.setItem('midi3d-lidar-v2', on ? '1' : '0'); } catch { }
 }
 $('c-lidar').addEventListener('change', e => applyLidar(e.target.checked));
-let savedLidar = null; try { savedLidar = localStorage.getItem('midi3d-lidar'); } catch { }
-applyLidar(savedLidar !== '0');
+// off unless chosen: the owner prefers the photo on the relief to raw points (a point cloud has no photo of its own)
+let savedLidar = null; try { savedLidar = localStorage.getItem('midi3d-lidar-v2'); } catch { }
+applyLidar(savedLidar === '1');
 seg('ptcolor', 'ptcolor', v => { lidar.setColorMode(v === 'classes' ? 1 : 0); $('ptLegend').hidden = v !== 'classes'; });
 const ptDate = d => new Date(d.replace(/Z$/, '')).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 function renderLidarInfo() {

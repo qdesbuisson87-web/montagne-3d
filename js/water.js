@@ -3,8 +3,8 @@
 // the sun's glint and, for the nearest lake (Haute / Extrême quality), a true mirror of the mountains.
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202609301754';
-import { cachedFetch } from './net.js?v=202609301754';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202609301756';
+import { cachedFetch } from './net.js?v=202609301756';
 
 const CELL = 0.04; // degrees: lakes are fetched by cells of ≈ 3 × 4.5 km
 const WFS = (s, w, n, e) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=BDTOPO_V3:plan_d_eau&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=500&BBOX=${s},${w},${n},${e},urn:ogc:def:crs:EPSG::4326`;

@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202609301754">
+<link rel="stylesheet" href="css/app.css?v=202609301756">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -85,6 +85,14 @@
   <h3>Neige vue par satellite (Sentinel-2)</h3>
   <div id="sat"></div>
   <p class="cline small" id="cloudNote"></p>
+  <h3>Film de l'enneigement (12 derniers mois)</h3>
+  <p class="cline small">La neige vue par Sentinel-2 à chaque passage peu nuageux de l'année, posée sur le relief.</p>
+  <button id="filmLoad" type="button" class="mini wide">Charger les images de l'année</button>
+  <div id="film" hidden>
+    <div class="field"><label for="filmRange">Date <output id="filmDate">—</output></label><input id="filmRange" type="range" min="0" max="0" step="1" value="0"></div>
+    <div class="btns"><button id="filmPlay" type="button" class="mini">Lecture</button><button id="filmBack" type="button" class="mini">Revenir à la dernière image nette</button></div>
+    <p class="cline small" id="filmNote"></p>
+  </div>
   <button id="refresh" type="button" class="btn">Actualiser</button>
   <h3>À vérifier avant de partir</h3>
   <ul class="links" id="links"></ul>
@@ -186,6 +194,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202609301754"></script>
+<script type="module" src="js/app.js?v=202609301756"></script>
 </body>
 </html>

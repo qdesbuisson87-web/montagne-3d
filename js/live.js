@@ -1,7 +1,7 @@
 // Live data, fetched every time the app opens: Météo-France forecasts (via Open-Meteo),
 // the latest Sentinel-2 pass and the latest clear one (Microsoft Planetary Computer), snow by altitude.
-import { lonLatToMerc, RE } from './geo.js?v=202609301754';
-import { SITE } from './sites.js?v=202609301754';
+import { lonLatToMerc, RE } from './geo.js?v=202609301756';
+import { SITE } from './sites.js?v=202609301756';
 
 export const SPOTS = SITE.spots; // top, peak2, mid, valley
 const qs = o => new URLSearchParams(o).toString();
@@ -79,6 +79,22 @@ export async function findSentinel(onProgress) {
   }
   if (clear) clear.bands = await snowByAltitude(clear.id).catch(() => null);
   return { latest, clear };
+}
+
+// Snow film: the Sentinel-2 passes of the last `days` days over the massif, on the grid square that covers it,
+// with less than `maxCloud` of clouds on that square (Copernicus' own figure for the whole 110 km square: the
+// massif itself may still be clouded on some dates, the scene classification then masks those clouds).
+export async function sentinelYear(days = 365, maxCloud = 30) {
+  const now = new Date(), from = new Date(now - days * 864e5), c = SITE.core;
+  const res = await json(`${PC}/stac/v1/search?` + qs({ collections: 'sentinel-2-l2a', bbox: c.join(','), datetime: `${from.toISOString()}/${now.toISOString()}`, sortby: '-datetime', limit: 1000 }));
+  const covers = f => f.bbox && f.bbox[0] <= c[0] && f.bbox[1] <= c[1] && f.bbox[2] >= c[2] && f.bbox[3] >= c[3];
+  const tile = res.features.find(covers)?.properties['s2:mgrs_tile'];
+  const seen = new Set();
+  return res.features
+    .filter(f => f.properties['s2:mgrs_tile'] === tile && (f.properties['eo:cloud_cover'] ?? 100) < maxCloud)
+    .map(f => ({ id: f.id, bbox: f.bbox, footprint: f.geometry, date: new Date(f.properties.datetime), cloudTile: f.properties['eo:cloud_cover'] }))
+    .filter(e => { const d = e.date.toISOString().slice(0, 10); if (seen.has(d)) return false; seen.add(d); return true; }) // one per day
+    .sort((a, b) => a.date - b.date);
 }
 
 // share of snow-covered ground per 100 m band, north- and south-facing slopes (DEM: Terrarium z12)

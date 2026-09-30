@@ -1,23 +1,23 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301754';
-import { SITE, SITE_LIST } from './sites.js?v=202609301754';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301754';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301754';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301754';
-import { searchPlaces } from './search.js?v=202609301754';
-import { TerrainShadows } from './shadows.js?v=202609301754';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301754';
-import { Forest } from './forest.js?v=202609301754';
-import { Lakes } from './water.js?v=202609301754';
-import { Buildings } from './buildings.js?v=202609301754';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202609301754';
-import { GpsTracker } from './gps.js?v=202609301754';
-import { RouteLayer } from './route.js?v=202609301754';
-import { TrailsLayer } from './trails.js?v=202609301754';
-import { Weather3D } from './weather3d.js?v=202609301754';
-import { Sight } from './sight.js?v=202609301754';
-import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301754';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301756';
+import { SITE, SITE_LIST } from './sites.js?v=202609301756';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301756';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301756';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301756';
+import { searchPlaces } from './search.js?v=202609301756';
+import { TerrainShadows } from './shadows.js?v=202609301756';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301756';
+import { Forest } from './forest.js?v=202609301756';
+import { Lakes } from './water.js?v=202609301756';
+import { Buildings } from './buildings.js?v=202609301756';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202609301756';
+import { GpsTracker } from './gps.js?v=202609301756';
+import { RouteLayer } from './route.js?v=202609301756';
+import { TrailsLayer } from './trails.js?v=202609301756';
+import { Weather3D } from './weather3d.js?v=202609301756';
+import { Sight } from './sight.js?v=202609301756';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301756';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -700,6 +700,37 @@ $('mfKeySave').addEventListener('click', () => {
 $('mfKey').addEventListener('keydown', e => { if (e.key === 'Enter') $('mfKeySave').click(); });
 $('bera').addEventListener('click', e => { if (e.target.closest('[data-bera-key]')) { $('beraKeyBlock').hidden = false; $('mfKey').focus(); } });
 
+// ---------- snow film: today's-snow layer switched from one clear pass of the year to the next ----------
+let film = null;
+function showFilmFrame(i) {
+  const e = film.list[i]; film.i = i; $('filmRange').value = i;
+  $('filmDate').textContent = e.date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  $('filmNote').textContent = `Passage du ${dayName(e.date)} · ${Math.round(e.cloudTile)} % de nuages sur la zone couverte par l'image (les nuages restants sont masqués). Les images arrivent en quelques secondes.`;
+  if (!state.snowToday) { $('c-snowtoday').checked = true; $('c-snowtoday').dispatchEvent(new Event('change')); }
+  engine.setOverlayItem(e);
+}
+$('filmLoad').addEventListener('click', async () => {
+  $('filmLoad').disabled = true; $('filmLoad').textContent = 'Recherche des images…';
+  try {
+    const list = await sentinelYear();
+    if (!list.length) { $('filmLoad').textContent = 'Aucune image peu nuageuse cette année'; return; }
+    film = { list, i: list.length - 1, timer: null };
+    $('filmRange').max = list.length - 1; $('film').hidden = false; $('filmLoad').hidden = true;
+    showFilmFrame(list.length - 1);
+  } catch (err) { $('filmLoad').disabled = false; $('filmLoad').textContent = `Échec (${err.message}) — réessayer`; }
+});
+$('filmRange').addEventListener('input', e => showFilmFrame(+e.target.value));
+$('filmPlay').addEventListener('click', () => {
+  if (film.timer) { clearInterval(film.timer); film.timer = null; $('filmPlay').textContent = 'Lecture'; return; }
+  $('filmPlay').textContent = 'Pause';
+  film.timer = setInterval(() => showFilmFrame((film.i + 1) % film.list.length), 5000); // time for the satellite tiles to arrive
+});
+$('filmBack').addEventListener('click', () => {
+  if (film?.timer) { clearInterval(film.timer); film.timer = null; $('filmPlay').textContent = 'Lecture'; }
+  if (state.s2?.clear) engine.setOverlayItem(state.s2.clear);
+  $('filmNote').textContent = state.s2?.clear ? `Retour à la dernière image nette (${dayName(state.s2.clear.date)}).` : '';
+});
+
 async function refreshLive() {
   loadBera();
   $('wx').innerHTML = '<p class="cmeta">Récupération de la météo…</p>';
@@ -1013,7 +1044,7 @@ function pickAt(hit) {
 let pin = null, pinSeq = 0;
 // Sentinel-2 at the exact point (10 m pixel): snow index and scene class of the last clear pass
 async function satSnowAt(lat, lon) {
-  const S = state.s2?.clear; if (!S || !engine.overlay.item) return null;
+  const S = engine.overlay.item; if (!S) return null; // the pass on screen (the latest clear one, or the film's date)
   const [fx, fy] = lonLatToTile(lon, lat, 14), x = Math.floor(fx), y = Math.floor(fy);
   const px = Math.min(255, Math.floor((fx - x) * 256)), py = Math.min(255, Math.floor((fy - y) * 256));
   const read = async kind => {

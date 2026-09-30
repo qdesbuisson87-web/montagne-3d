@@ -6,9 +6,9 @@
 // Nothing is invented: where the path ends short of a goal (glaciers, rock) the entry says how far, and
 // everything above 3 000 m or off the paths is marked as high mountain (mountaineering, not hiking).
 // Built once per massif (a few minutes, done politely one request at a time) and kept on the device.
-import { lonLatToWorld } from './geo.js?v=202609301900';
-import { cachedFetch } from './net.js?v=202609301900';
-import { walkingRoute } from './planner.js?v=202609301900';
+import { lonLatToWorld } from './geo.js?v=202609301913';
+import { cachedFetch } from './net.js?v=202609301913';
+import { walkingRoute } from './planner.js?v=202609301913';
 
 const WFS = (layer, cql) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=${layer}&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=3000&CQL_FILTER=${encodeURIComponent(cql)}`;
 const ALTI = (lons, lats) => `https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json?lon=${lons.join('|')}&lat=${lats.join('|')}&resource=ign_rge_alti_wld&zonly=true`;
@@ -40,6 +40,12 @@ export function classify(h) {
 export const CLASS_NAMES = { easy: 'Facile', medium: 'Moyenne', hard: 'Difficile', long: 'Très longue', alpine: 'Haute montagne' };
 
 export function savedHikes(site) { try { return JSON.parse(localStorage.getItem(STORE(site.id)) || 'null'); } catch { return null; } }
+// the catalogue shipped with the app (data/hikes-<site>.json, built the same way beforehand), unless the device
+// already holds its own; null for a massif that has none yet
+export async function loadHikes(site) {
+  const own = savedHikes(site); if (own?.hikes?.length) return own;
+  try { const r = await fetch(`data/hikes-${site.id}.json`); return r.ok ? await r.json() : null; } catch { return null; }
+}
 export function hikePath(h) { return h.path.map(([lon, lat]) => lonLatToWorld(lon, lat)); }
 
 // Builds (or completes) the catalogue; onProgress(list, done, total) is called as entries arrive.

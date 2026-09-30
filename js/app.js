@@ -1,26 +1,26 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202609301900';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301900';
-import { SITE, SITE_LIST } from './sites.js?v=202609301900';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301900';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301900';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301900';
-import { searchPlaces } from './search.js?v=202609301900';
-import { TerrainShadows } from './shadows.js?v=202609301900';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301900';
-import { Forest } from './forest.js?v=202609301900';
-import { Lakes } from './water.js?v=202609301900';
-import { Buildings } from './buildings.js?v=202609301900';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202609301900';
-import { GpsTracker } from './gps.js?v=202609301900';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202609301900';
-import { walkingRoute } from './planner.js?v=202609301900';
-import { buildHikes, savedHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202609301900';
-import { TrailsLayer } from './trails.js?v=202609301900';
-import { Weather3D } from './weather3d.js?v=202609301900';
-import { Sight } from './sight.js?v=202609301900';
-import { Photos360 } from './photos360.js?v=202609301900';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301900';
+import { EarthControls } from './controls.js?v=202609301913';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301913';
+import { SITE, SITE_LIST } from './sites.js?v=202609301913';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301913';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301913';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301913';
+import { searchPlaces } from './search.js?v=202609301913';
+import { TerrainShadows } from './shadows.js?v=202609301913';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301913';
+import { Forest } from './forest.js?v=202609301913';
+import { Lakes } from './water.js?v=202609301913';
+import { Buildings } from './buildings.js?v=202609301913';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202609301913';
+import { GpsTracker } from './gps.js?v=202609301913';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202609301913';
+import { walkingRoute } from './planner.js?v=202609301913';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202609301913';
+import { TrailsLayer } from './trails.js?v=202609301913';
+import { Weather3D } from './weather3d.js?v=202609301913';
+import { Sight } from './sight.js?v=202609301913';
+import { Photos360 } from './photos360.js?v=202609301913';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301913';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -917,7 +917,8 @@ $('plIdeas').addEventListener('click', async () => {
 renderPlan();
 
 // ---------- hikes catalogue (hikes.js): every named goal of the massif, from the nearest start ----------
-let hkFilter = 'all', hkList = savedHikes(SITE)?.hikes ?? [], hkBuilding = null;
+let hkFilter = 'all', hkList = [], hkBuilding = null;
+loadHikes(SITE).then(c => { if (!hkBuilding) { hkList = c?.hikes ?? []; renderHikes(); } }); // the catalogue shipped with the app (built beforehand), or the device's own
 function renderHikes(done, total) {
   const shown = hkList.filter(h => hkFilter === 'all' || h.cls === hkFilter).sort((a, b) => a.hours - b.hours);
   if (hkBuilding) $('hkInfo').textContent = `Construction de la liste… ${done} / ${total} (les itinéraires arrivent au fur et à mesure)`;

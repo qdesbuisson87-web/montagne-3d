@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202609301900">
+<link rel="stylesheet" href="css/app.css?v=202609301913">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -166,7 +166,7 @@
   <p class="cline small" id="plNote"></p>
   <h3>Randonnées du massif</h3>
   <p class="cline small" id="hkInfo">Tous les sommets, cols, refuges et lacs nommés par l'IGN, depuis le départ le plus proche (parking ou remontée), avec temps, dénivelé et point haut.</p>
-  <button id="hkBuild" type="button" class="mini wide">Construire la liste (quelques minutes la première fois)</button>
+  <button id="hkBuild" type="button" hidden class="mini wide">Construire la liste (quelques minutes)</button>
   <div class="hkf" role="group" aria-label="Filtrer par difficulté">
     <button type="button" data-hk="all" aria-pressed="true">Toutes</button><button type="button" data-hk="easy" aria-pressed="false">Facile</button><button type="button" data-hk="medium" aria-pressed="false">Moyenne</button><button type="button" data-hk="hard" aria-pressed="false">Difficile</button><button type="button" data-hk="long" aria-pressed="false">Très longue</button><button type="button" data-hk="alpine" aria-pressed="false">Haute montagne</button>
   </div>
@@ -214,6 +214,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202609301900"></script>
+<script type="module" src="js/app.js?v=202609301913"></script>
 </body>
 </html>

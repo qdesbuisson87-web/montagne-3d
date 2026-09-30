@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202609301750">
+<link rel="stylesheet" href="css/app.css?v=202609301754">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -157,8 +157,16 @@
     <button id="gpxOut" type="button" class="mini">Exporter en GPX</button>
     <button id="routeClear" type="button" class="mini">Effacer</button>
   </div>
-  <div id="sightBlock"></div>
+  <h3>Viseur</h3>
+  <p class="cline small">Lève le téléphone vers les montagnes : la vue se place à ta position GPS et suit la direction du téléphone, avec le nom des sommets visibles.</p>
+  <button id="sightGo" type="button" class="btn">Ouvrir le viseur</button>
+  <p class="cline small" id="sightNote"></p>
 </section>
+
+<div id="sightBar" class="sightbar glass" hidden>
+  <span id="sightInfo">Viseur</span>
+  <button id="sightOff" type="button" class="mini">Quitter</button>
+</div>
 
 <button id="gpsFab" type="button" class="fab glass" aria-label="Me localiser" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.5"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg></button>
 
@@ -178,6 +186,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202609301750"></script>
+<script type="module" src="js/app.js?v=202609301754"></script>
 </body>
 </html>

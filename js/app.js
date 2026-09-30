@@ -1,22 +1,23 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301750';
-import { SITE, SITE_LIST } from './sites.js?v=202609301750';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301750';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301750';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301750';
-import { searchPlaces } from './search.js?v=202609301750';
-import { TerrainShadows } from './shadows.js?v=202609301750';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301750';
-import { Forest } from './forest.js?v=202609301750';
-import { Lakes } from './water.js?v=202609301750';
-import { Buildings } from './buildings.js?v=202609301750';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202609301750';
-import { GpsTracker } from './gps.js?v=202609301750';
-import { RouteLayer } from './route.js?v=202609301750';
-import { TrailsLayer } from './trails.js?v=202609301750';
-import { Weather3D } from './weather3d.js?v=202609301750';
-import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301750';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301754';
+import { SITE, SITE_LIST } from './sites.js?v=202609301754';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301754';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301754';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301754';
+import { searchPlaces } from './search.js?v=202609301754';
+import { TerrainShadows } from './shadows.js?v=202609301754';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301754';
+import { Forest } from './forest.js?v=202609301754';
+import { Lakes } from './water.js?v=202609301754';
+import { Buildings } from './buildings.js?v=202609301754';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202609301754';
+import { GpsTracker } from './gps.js?v=202609301754';
+import { RouteLayer } from './route.js?v=202609301754';
+import { TrailsLayer } from './trails.js?v=202609301754';
+import { Weather3D } from './weather3d.js?v=202609301754';
+import { Sight } from './sight.js?v=202609301754';
+import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301754';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -149,10 +150,13 @@ void main(){
   // one texture period holds 16 noise cells: features of ~11 m (g1) and ~2.7 m (g2), each with finer octaves
   float g1 = texture2D(noiseTex, R1*q.zy/176.0).r*tw.x + texture2D(noiseTex, R1*q.xz/176.0).r*tw.y + texture2D(noiseTex, R1*q.xy/176.0).r*tw.z;
   float g2 = texture2D(noiseTex, R2*q.zy/43.0 + 0.37).r*tw.x + texture2D(noiseTex, R2*q.xz/43.0 + 0.37).r*tw.y + texture2D(noiseTex, R2*q.xy/43.0 + 0.37).r*tw.z;
-  alb *= 1.0 + ((g1 - 0.49)*1.2 + (g2 - 0.49)*0.5) * 0.45 * steep;
+  // the grain stands in for detail the photo lacks at a distance; within ~100 m the 20 cm photo and 0.4 m relief
+  // are there, and the grain would only look like melted plastic (seen in the viewfinder, at eye height)
+  float grainK = steep * smoothstep(25.0, 140.0, length(cameraPosition - vW));
+  alb *= 1.0 + ((g1 - 0.49)*1.2 + (g2 - 0.49)*0.5) * 0.45 * grainK;
   // the same grain as a small relief (up to ~1.5 m) that the light catches: surface-gradient bump mapping
   // from screen-space derivatives, no extra geometry
-  float bump = ((g1 - 0.49)*3.0 + (g2 - 0.49)*0.9) * steep; // metres: large facets, a little finer roughness
+  float bump = ((g1 - 0.49)*3.0 + (g2 - 0.49)*0.9) * grainK; // metres: large facets, a little finer roughness
   vec3 dpx = dFdx(vW), dpy = dFdy(vW), r1 = cross(dpy, n), r2 = cross(n, dpx);
   float det = dot(dpx, r1);
   vec3 nb = abs(det)*n - sign(det)*(dFdx(bump)*r1 + dFdy(bump)*r2);
@@ -167,15 +171,17 @@ void main(){
     float cover = smoothstep(0.4, 0.6, s) * valid;
     // the aerial photo may be years old and show snow that is not there today: where the clear satellite pass
     // sees no snow, the photo's white (bright and colourless) becomes the ground as that pass sees it
-    float chroma = max(max(photo.r, photo.g), photo.b) - min(min(photo.r, photo.g), photo.b);
-    // snow on the photo is near white (linear luminance ≈ 0.8); the pale limestone of the Buet (≈ 0.45) is not
-    float photoSnow = smoothstep(0.5, 0.72, plum) * (1.0 - smoothstep(0.05, 0.14, chroma));
+    // decided on the photo blurred to the satellite's 10 m (decided pixel by pixel it followed the sheen of the
+    // snow and gave a marbled, liquid look); snow on the photo is near white (linear luminance ≈ 0.8), the pale
+    // limestone of the Buet (≈ 0.45) is not
+    float chroma = max(max(low.r, low.g), low.b) - min(min(low.r, low.g), low.b);
+    float photoSnow = smoothstep(0.5, 0.72, llum) * (1.0 - smoothstep(0.05, 0.14, chroma));
     float gone = valid * (1.0 - smoothstep(0.08, 0.3, fsc)) * (1.0 - cover);
     vec4 vis = hasVis > 0.5 ? cubic(visMap, ou) : vec4(0.0);
     // the satellite's true colours are warmer than the aerial photo's: keep their brightness, little of their hue
     vec3 s2 = pow(vis.rgb, vec3(2.2)); s2 = mix(vec3(dot(s2, LUM)), s2, 0.3) * 1.2;
     vec3 bare = mix(vec3(0.19, 0.18, 0.16), s2, smoothstep(0.6, 0.95, vis.a));
-    bare *= 0.8 + 0.4 * (vnoise(vW.xz / 1.3) * 0.6 + vnoise(vW.xz / 4.5) * 0.4); // rock and scree grain
+    bare *= 0.9 + 0.2 * vnoise(vW.xz / 13.0); // gentle variation only: finer noise looked liquid up close
     alb = mix(alb, bare, photoSnow * gone);
     float detail = clamp(plum / max(llum, 0.02), 0.6, 1.4);
     vec3 snowC = vec3(0.86, 0.9, 0.97) * mix(1.0, detail, 0.35);
@@ -798,6 +804,40 @@ function flyAlongRoute(dt) {
   controls.target.lerp(tgt, 0.08); camera.position.lerp(eye, 0.08);
 }
 renderRoute();
+
+// ---------- viewfinder: the view from where one stands, turned with the phone ----------
+const sight = new Sight();
+async function sightOn() {
+  const err = await sight.start(); // asks iOS for the compass: must stay in the tap's call stack
+  if (err) { $('sightNote').textContent = err; return; }
+  if (!gps.on) { gpsCentered = true; gps.start(); }
+  if (state.exag !== 1) { $('exag').value = 1; $('exag').dispatchEvent(new Event('input')); } // true relief only
+  if (google.on) setView('ign');
+  controls.enabled = false; fly = null; flyRoute = null; closeSheets();
+  document.body.classList.add('sight'); $('sightBar').hidden = false;
+}
+function sightOffNow() {
+  sight.stop(); document.body.classList.remove('sight'); $('sightBar').hidden = true;
+  // hand back to the map, looking where the phone looked
+  const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+  controls.target.copy(camera.position).addScaledVector(dir, 600); camera.position.addScaledVector(dir, -200).y += 150;
+  controls.enabled = true;
+}
+$('sightGo').addEventListener('click', sightOn);
+$('sightOff').addEventListener('click', sightOffNow);
+// dragging sideways turns the view by hand: phone compasses are often a few degrees off
+let sightDrag = null;
+renderer.domElement.addEventListener('pointerdown', e => { if (sight.on) sightDrag = e.clientX; });
+renderer.domElement.addEventListener('pointermove', e => { if (sight.on && sightDrag != null) { sight.nudge((e.clientX - sightDrag) * 0.08); sightDrag = e.clientX; } });
+addEventListener('pointerup', () => { sightDrag = null; });
+function sightFrame() {
+  const p = gps.pos;
+  if (!p) { $('sightInfo').textContent = 'Viseur · recherche de ta position GPS…'; return; }
+  const g = groundAt(p.x, p.z) ?? p.gpsAlt ?? 0;
+  const ok = sight.apply(camera, new THREE.Vector3(p.x, g + 1.7, p.z));
+  $('sightInfo').textContent = !ok ? 'Viseur · en attente de la boussole…'
+    : `Viseur · ±${fmt(p.acc)} m${sight.absolute ? '' : ' · boussole relative : glisse pour caler le nord'}${sight.offset ? ` · calage ${Math.round(sight.offset)}°` : ''}`;
+}
 const seg = (group, key, fn) => document.querySelectorAll(`[data-${group}]`).forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll(`[data-${group}]`).forEach(x => x.setAttribute('aria-pressed', x === b)); state[key] = b.dataset[group]; fn?.(b.dataset[group]);
 }));
@@ -1141,7 +1181,7 @@ function drawFrame() {
     camera.position.y += Math.sin(f * Math.PI) * fly.fP.distanceTo(fly.tP) * 0.1;
     if (f >= 1) fly = null;
   }
-  controls.update();
+  if (sight.on) sightFrame(); else controls.update(); // in the viewfinder the phone drives the camera
   const c = camera.position;
   // ground under the camera (keeps it above the surface, sets the near plane): Google's own surface in that view,
   // probed a few times per second since a ray through the tiles costs more than a grid lookup
@@ -1198,7 +1238,7 @@ function drawFrame() {
     fpsAcc = 0; fpsN = 0;
   }
 }
-window.midi3d = { engine, google, camera, controls, adapt, applyScale, forest, lakes, shadows }; // handy for debugging from the console
+window.midi3d = { engine, google, camera, controls, adapt, applyScale, forest, lakes, shadows, gps, route, sight }; // handy for debugging from the console
 updateSky(); frame(); refreshLive();
 setInterval(() => { if (document.visibilityState === 'visible') refreshLive(); }, 15 * 60e3);
 setTimeout(() => $('loader').classList.add('done'), 15000);

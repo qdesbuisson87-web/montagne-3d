@@ -45,6 +45,10 @@ h1 .alt { font-weight: 600; font-size: 17px; color: var(--ice); margin-left: 4px
 .fab[aria-pressed="true"] { color: #fff; background: #1e88ff; border-color: #1e88ff; }
 body.google .fab { bottom: calc(174px + var(--safe-b)); }
 @media (min-width: 900px) { .fab { bottom: calc(90px + var(--safe-b)); } body.google .fab { bottom: calc(114px + var(--safe-b)); } }
+.sightbar { position: absolute; left: 50%; transform: translateX(-50%); top: calc(12px + var(--safe-t)); z-index: 5; display: flex; align-items: center; gap: 10px; padding: 6px 8px 6px 14px; max-width: calc(100vw - 24px); font-size: 12.5px; }
+.sightbar[hidden] { display: none; }
+.sightbar .mini { min-height: 40px; }
+body.sight .tl, body.sight .tabs, body.sight .fab, body.sight .readout { display: none; }
 .btns { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .btns .mini { min-height: 40px; }
 .btns .mini[aria-pressed="true"] { background: #ff3b30; border-color: #ff3b30; color: #fff; }

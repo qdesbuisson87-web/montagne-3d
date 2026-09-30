@@ -50,6 +50,10 @@ img.photo { display: block; width: 100%; max-height: 260px; object-fit: cover; b
 .sightbar[hidden] { display: none; }
 .sightbar .mini { min-height: 40px; }
 body.sight .tl, body.sight .tabs, body.sight .fab, body.sight .readout { display: none; }
+.plrow { display: flex; gap: 10px; align-items: baseline; margin-top: 8px; font-size: 13.5px; }
+.plrow span { width: 58px; color: var(--muted); font-size: 12px; }
+.plrow b { color: var(--ice); font-weight: 600; }
+.ideas .place .pa { white-space: normal; }
 .btns { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .btns .mini { min-height: 40px; }
 .btns .mini[aria-pressed="true"] { background: #ff3b30; border-color: #ff3b30; color: #fff; }

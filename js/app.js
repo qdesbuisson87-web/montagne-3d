@@ -1,24 +1,25 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202609301809';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301809';
-import { SITE, SITE_LIST } from './sites.js?v=202609301809';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301809';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301809';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301809';
-import { searchPlaces } from './search.js?v=202609301809';
-import { TerrainShadows } from './shadows.js?v=202609301809';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301809';
-import { Forest } from './forest.js?v=202609301809';
-import { Lakes } from './water.js?v=202609301809';
-import { Buildings } from './buildings.js?v=202609301809';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202609301809';
-import { GpsTracker } from './gps.js?v=202609301809';
-import { RouteLayer } from './route.js?v=202609301809';
-import { TrailsLayer } from './trails.js?v=202609301809';
-import { Weather3D } from './weather3d.js?v=202609301809';
-import { Sight } from './sight.js?v=202609301809';
-import { Photos360 } from './photos360.js?v=202609301809';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301809';
+import { EarthControls } from './controls.js?v=202609301812';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301812';
+import { SITE, SITE_LIST } from './sites.js?v=202609301812';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301812';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301812';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301812';
+import { searchPlaces } from './search.js?v=202609301812';
+import { TerrainShadows } from './shadows.js?v=202609301812';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301812';
+import { Forest } from './forest.js?v=202609301812';
+import { Lakes } from './water.js?v=202609301812';
+import { Buildings } from './buildings.js?v=202609301812';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202609301812';
+import { GpsTracker } from './gps.js?v=202609301812';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202609301812';
+import { walkingRoute } from './planner.js?v=202609301812';
+import { TrailsLayer } from './trails.js?v=202609301812';
+import { Weather3D } from './weather3d.js?v=202609301812';
+import { Sight } from './sight.js?v=202609301812';
+import { Photos360 } from './photos360.js?v=202609301812';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301812';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -484,6 +485,7 @@ renderer.domElement.addEventListener('pointerup', e => {
     const hit = pick((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
     if (!hit) return;
     showPoint(hit);
+    if (plan.tap) { planTap(hit); return; } // choosing an itinerary's start or destination
     if (route.drawing) { route.add(hit.x, hit.z); renderRoute(); return; } // drawing an itinerary: each tap is a point
     if (!pickAt(hit)) pointReport(hit);
   }
@@ -786,6 +788,7 @@ function renderGps() {
     $('gpsInfo').textContent = `Position à ±${fmt(p.acc)} m (${ago2(p.time)})${g != null ? ` · altitude du relief ${fmt(g)} m` : ''}${p.gpsAlt != null ? ` (GPS : ${fmt(p.gpsAlt)} m)` : ''}.`;
     if (!gpsCentered) { gpsCentered = true; centerOnGps(); }
   } else $('gpsInfo').textContent = 'Ta position GPS en direct sur la carte (il faut autoriser la localisation).';
+  if (typeof renderPlan === 'function' && $('plFrom')) renderPlan();
 }
 $('gpsGo').addEventListener('click', () => { if (gps.on) gps.stop(); else { gpsCentered = false; gps.start(); } });
 $('gpsFab').addEventListener('click', () => { if (!gps.on) { gpsCentered = false; gps.start(); } else centerOnGps(); });
@@ -813,16 +816,107 @@ $('drawUndo').addEventListener('click', () => { route.undo(); renderRoute(); });
 $('routeClear').addEventListener('click', () => { route.clear(); route.drawing = false; renderRoute(); });
 $('gpxIn').addEventListener('change', async e => {
   const f = e.target.files?.[0]; if (!f) return; e.target.value = '';
-  try {
-    route.importGPX(await f.text(), f.name); route.drawing = false; renderRoute();
-    // frame the whole itinerary
-    const xs = route.pts.map(p => p[0]), zs = route.pts.map(p => p[1]), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cz = (Math.min(...zs) + Math.max(...zs)) / 2;
-    const ext = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs), 800);
-    engine.ensureRoots(cx, cz, 45000);
-    const t = new THREE.Vector3(cx, (groundAt(cx, cz) ?? controls.target.y) * state.exag, cz);
-    startFly(t, t.clone().add(new THREE.Vector3(-0.5, 0.75, 0.9).normalize().multiplyScalar(ext * 1.3)), 2400);
-  } catch (err) { $('routeOut').innerHTML = `<p class="cline">Import impossible : ${esc(err.message)}.</p>`; }
+  try { route.importGPX(await f.text(), f.name); route.drawing = false; renderRoute(); frameRoute(); }
+  catch (err) { $('routeOut').innerHTML = `<p class="cline">Import impossible : ${esc(err.message)}.</p>`; }
 });
+// fly to see the whole itinerary
+function frameRoute() {
+  const xs = route.pts.map(p => p[0]), zs = route.pts.map(p => p[1]); if (!xs.length) return;
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cz = (Math.min(...zs) + Math.max(...zs)) / 2;
+  const ext = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs), 800);
+  engine.ensureRoots(cx, cz, 45000);
+  const t = new THREE.Vector3(cx, (groundAt(cx, cz) ?? controls.target.y) * state.exag, cz);
+  startFly(t, t.clone().add(new THREE.Vector3(-0.5, 0.75, 0.9).normalize().multiplyScalar(ext * 1.3)), 2400);
+}
+
+// ---------- itinerary proposals (planner.js): from a start to a destination, or ideas around the start ----------
+const plan = { from: null, to: null, tap: null }; // from null = my position
+const llName = p => p.name ?? `${p.lat.toFixed(4)}° N, ${p.lon.toFixed(4)}° E`;
+function planStart() { return plan.from ?? (gps.pos ? { lon: gps.pos.lon, lat: gps.pos.lat, name: 'ma position' } : null); }
+function renderPlan() {
+  $('plFrom').textContent = plan.from ? llName(plan.from) : gps.pos ? 'ma position' : 'ma position (localisation à activer, ou choisis un autre départ)';
+  $('plTo').textContent = plan.to ? llName(plan.to) : 'à choisir';
+}
+$('plFromGps').addEventListener('click', () => { plan.from = null; if (!gps.on) { gpsCentered = true; gps.start(); } renderPlan(); });
+$('plFromTap').addEventListener('click', () => { plan.tap = 'from'; $('plNote').textContent = 'Touche le relief à l\'endroit du départ.'; if (touch) closeSheets(); });
+$('plToTap').addEventListener('click', () => { plan.tap = 'to'; $('plNote').textContent = 'Touche le relief à l\'endroit de l\'arrivée.'; if (touch) closeSheets(); });
+$('plFromCenter').addEventListener('click', () => {
+  const h = pick(0, 0); if (!h) return;
+  const [lon, lat] = worldToLonLat(h.x, h.z); plan.from = { lon, lat, name: `centre de l'écran (${fmt(h.h)} m)` }; renderPlan();
+});
+// a tap on the relief while choosing a start or a destination (called from the tap handler)
+function planTap(hit) {
+  const [lon, lat] = worldToLonLat(hit.x, hit.z);
+  plan[plan.tap] = { lon, lat, name: `point touché (${fmt(hit.h)} m)` }; plan.tap = null; $('plNote').textContent = '';
+  renderPlan(); openSheet('route');
+}
+$('plSearch').addEventListener('submit', async e => {
+  e.preventDefault(); const q = $('plQ').value.trim(); if (q.length < 2) return;
+  $('plQ').blur(); $('plResults').innerHTML = ''; $('plNote').textContent = 'Recherche…';
+  try {
+    const s = planStart() ?? (() => { const [lon, lat] = worldToLonLat(controls.target.x, controls.target.z); return { lon, lat }; })();
+    const list = await searchPlaces(q, s); $('plNote').textContent = list.length ? '' : `Aucun lieu trouvé pour « ${q} ».`;
+    list.forEach(p => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'place';
+      b.innerHTML = `<span>${esc(p.name)}</span><span class="pa">${esc(p.detail || p.src)}</span>`;
+      b.addEventListener('click', () => { plan.to = { lon: p.lon, lat: p.lat, name: p.name }; $('plResults').innerHTML = ''; renderPlan(); });
+      $('plResults').appendChild(b);
+    });
+  } catch (err) { $('plNote').textContent = `Recherche impossible : ${err.message}.`; }
+});
+function offPathNote(r, toName) {
+  const bits = [];
+  if (r.offStart > 60) bits.push(`le départ est à ${fmt(r.offStart)} m du sentier le plus proche`);
+  if (r.offEnd > 60) bits.push(`les sentiers s'arrêtent à ${fmt(r.offEnd)} m ${toName ? `de ${toName}` : "de l'arrivée"} (au-delà, terrain hors sentier : non tracé)`);
+  return bits.length ? bits.join(' ; ') + '.' : '';
+}
+async function planGo(from, to) {
+  $('plNote').textContent = "Calcul de l'itinéraire par l'IGN…";
+  try {
+    const r = await walkingRoute(from, to);
+    route.setPath(r.pts, `${from.name ?? 'Départ'} → ${to.name ?? 'Arrivée'}`); renderRoute(); frameRoute();
+    $('plNote').textContent = ['Itinéraire IGN sur sentiers et chemins : vérifie l\'état (neige, fermetures, difficulté) avant de partir.', offPathNote(r, to.name)].filter(Boolean).join(' ');
+  } catch (err) { $('plNote').textContent = `Itinéraire impossible : ${err.message}.`; }
+}
+$('plGo').addEventListener('click', () => {
+  const from = planStart();
+  if (!from) { $('plNote').textContent = 'Choisis un départ (ta position, un point touché ou le centre de l\'écran).'; return; }
+  if (!plan.to) { $('plNote').textContent = "Choisis une arrivée (recherche ou point touché)."; return; }
+  planGo(from, plan.to);
+});
+// ideas: huts, lakes and named places within 12 km of the start, walked there by the IGN paths, quickest first
+$('plIdeas').addEventListener('click', async () => {
+  const from = planStart();
+  if (!from) { $('plNote').textContent = 'Choisis d\'abord un départ.'; return; }
+  const [fx, fz] = lonLatToWorld(from.lon, from.lat), cands = [];
+  for (const p of PLACES) if (!p.area && p.name) cands.push({ name: p.name, x: p.x, z: p.z, kind: p.hut ? 'refuge' : 'sommet ou repère' });
+  for (const l of lakes.lakes.values()) if (l.name) cands.push({ name: l.name, x: l.cx, z: l.cz, kind: 'lac' });
+  const seen = new Set(), near = cands.map(c => ({ ...c, d: Math.hypot(c.x - fx, c.z - fz) }))
+    .filter(c => c.d > 300 && c.d < 12000 && !seen.has(c.name) && seen.add(c.name)).sort((a, b) => a.d - b.d).slice(0, 8);
+  if (!near.length) { $('plIdeasOut').innerHTML = '<p class="cline small">Pas de refuge, lac ou sommet connu à moins de 12 km.</p>'; return; }
+  $('plIdeasOut').innerHTML = '<p class="cmeta">Calcul des itinéraires…</p>';
+  const out = [];
+  for (const c of near) { // one after the other: polite to the IGN service
+    try {
+      const [lon, lat] = worldToLonLat(c.x, c.z), r = await walkingRoute(from, { lon, lat }), st = pathStats(resamplePath(r.pts, groundAt));
+      // only walks: nothing that climbs above 3 000 m (glaciers, high mountain: an alpine route, not a hike)
+      // and nothing longer than a long day
+      // and only goals the paths actually reach (a summit 1 km beyond the end of the path is not a walk)
+      if (st && st.max <= 3000 && st.hours <= 9 && r.offEnd <= 400) out.push({ ...c, r, st, to: { lon, lat, name: c.name } });
+    } catch { }
+    $('plIdeasOut').innerHTML = `<p class="cmeta">Calcul des itinéraires… ${out.length} / ${near.length}</p>`;
+  }
+  out.sort((a, b) => a.st.hours - b.st.hours);
+  $('plIdeasOut').innerHTML = (out.length ? '<div class="places results ideas"></div>' : '<p class="cline small">Aucune randonnée trouvée.</p>')
+    + '<p class="cnote">Randonnées seulement : rien au-dessus de 3 000 m (glaciers, haute montagne : c\'est de l\'alpinisme, à préparer avec un guide ou le bureau des guides) ni au-delà de 9 h de marche.</p>';
+  for (const o of out) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'place';
+    b.innerHTML = `<span>${esc(o.name)}</span><span class="pa">${o.kind} · ${hm(o.st.hours)} · ${(o.st.dist / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km · +${fmt(o.st.up)} m${o.r.offEnd > 60 ? ` · sentier jusqu'à ${fmt(o.r.offEnd)} m du but` : ''}</span>`;
+    b.addEventListener('click', () => { route.setPath(o.r.pts, `${from.name ?? 'Départ'} → ${o.name}`); renderRoute(); frameRoute(); $('plNote').textContent = offPathNote(o.r, o.name); if (touch) closeSheets(); });
+    $('plIdeasOut').firstChild.appendChild(b);
+  }
+});
+renderPlan();
 $('gpxOut').addEventListener('click', () => {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([route.toGPX()], { type: 'application/gpx+xml' }));
   a.download = (route.name || 'itineraire').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-') + '.gpx'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);

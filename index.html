@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202609301809">
+<link rel="stylesheet" href="css/app.css?v=202609301812">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -153,6 +153,17 @@
   <h3>Ma position</h3>
   <div class="row"><button id="gpsGo" type="button" class="btn">Me localiser</button></div>
   <p class="cline small" id="gpsInfo">Ta position GPS en direct sur la carte (il faut autoriser la localisation).</p>
+  <h3>Proposer un itinéraire</h3>
+  <p class="cline small">Chemin à pied calculé par l'IGN sur ses sentiers et chemins, avec temps, dénivelé et profil.</p>
+  <div class="plrow"><span>Départ</span><b id="plFrom">ma position</b></div>
+  <div class="btns"><button id="plFromGps" type="button" class="mini">Ma position</button><button id="plFromTap" type="button" class="mini">Toucher la carte</button><button id="plFromCenter" type="button" class="mini">Centre de l'écran</button></div>
+  <div class="plrow"><span>Arrivée</span><b id="plTo">à choisir</b></div>
+  <form id="plSearch" class="row search"><label class="sr" for="plQ">Chercher l'arrivée</label><input id="plQ" type="search" placeholder="Refuge, lac, sommet, village…" enterkeyhint="search" autocomplete="off"><button type="submit" class="mini go">Chercher</button></form>
+  <div id="plResults" class="places results"></div>
+  <div class="btns"><button id="plToTap" type="button" class="mini">Toucher la carte</button><button id="plGo" type="button" class="mini go">Tracer l'itinéraire</button></div>
+  <button id="plIdeas" type="button" class="mini wide">Idées de sorties autour du départ</button>
+  <div id="plIdeasOut"></div>
+  <p class="cline small" id="plNote"></p>
   <h3>Itinéraire</h3>
   <p class="cline small" id="routeHelp">Importe une trace GPX, ou touche « Tracer » puis touche le relief point par point (aussi pour mesurer une distance).</p>
   <div class="btns">
@@ -195,6 +206,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202609301809"></script>
+<script type="module" src="js/app.js?v=202609301812"></script>
 </body>
 </html>

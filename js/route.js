@@ -7,9 +7,34 @@ import * as THREE from 'three';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202609301809';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202609301812';
 
 const STEP = 10, STORE = 'midi3d-route'; // metres between resampled points
+
+// points every STEP metres along a path [[x, z], …], with the relief's altitude (null where nothing is loaded)
+export function resamplePath(pts, groundAt) {
+  const out = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [ax, az] = pts[i], [bx, bz] = pts[i + 1], L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(L / STEP));
+    for (let k = 0; k < n; k++) out.push({ x: ax + (bx - ax) * k / n, z: az + (bz - az) * k / n });
+  }
+  if (pts.length) { const [x, z] = pts[pts.length - 1]; out.push({ x, z }); }
+  let d = 0; out.forEach((p, i) => { if (i) d += Math.hypot(p.x - out[i - 1].x, p.z - out[i - 1].z); p.d = d; p.h = groundAt(p.x, p.z); });
+  return out;
+}
+// the numbers of a resampled path (see the header for the rules)
+export function pathStats(samples) {
+  const s = samples.filter(p => p.h != null); if (s.length < 2) return null;
+  let up = 0, down = 0, ref = s[0].h, min = Infinity, max = -Infinity, steep = 0;
+  for (const p of s) {
+    min = Math.min(min, p.h); max = Math.max(max, p.h);
+    // climb counted in steps of at least 3 m, so that the relief's roughness does not add up
+    if (p.h - ref >= 3) { up += p.h - ref; ref = p.h; } else if (ref - p.h >= 3) { down += ref - p.h; ref = p.h; }
+  }
+  for (let i = 0, j = 0; i < s.length; i++) { while (j < s.length && s[j].d - s[i].d < 30) j++; if (j < s.length) steep = Math.max(steep, Math.abs(s[j].h - s[i].h) / (s[j].d - s[i].d)); }
+  const dist = s[s.length - 1].d, th = dist / 4000, tv = up / 300 + down / 500;
+  return { dist, up, down, min, max, steepDeg: Math.atan(steep) * 180 / Math.PI, hours: Math.max(th, tv) + Math.min(th, tv) / 2, complete: s.length === samples.length };
+}
 
 export class RouteLayer {
   constructor({ scene, groundAt }) {
@@ -46,29 +71,9 @@ export class RouteLayer {
   }
 
   // ----- geometry and numbers -----
-  // points every STEP metres along the path, with the relief's altitude (null where nothing is loaded yet)
-  resample() {
-    const out = [];
-    for (let i = 0; i < this.pts.length - 1; i++) {
-      const [ax, az] = this.pts[i], [bx, bz] = this.pts[i + 1], L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(L / STEP));
-      for (let k = 0; k < n; k++) out.push({ x: ax + (bx - ax) * k / n, z: az + (bz - az) * k / n });
-    }
-    if (this.pts.length) { const [x, z] = this.pts[this.pts.length - 1]; out.push({ x, z }); }
-    let d = 0; out.forEach((p, i) => { if (i) d += Math.hypot(p.x - out[i - 1].x, p.z - out[i - 1].z); p.d = d; p.h = this.groundAt(p.x, p.z); });
-    return out;
-  }
-  stats() {
-    const s = this.samples.filter(p => p.h != null); if (s.length < 2) return null;
-    let up = 0, down = 0, ref = s[0].h, min = Infinity, max = -Infinity, steep = 0;
-    for (const p of s) {
-      min = Math.min(min, p.h); max = Math.max(max, p.h);
-      // climb counted in steps of at least 3 m, so that the relief's roughness does not add up
-      if (p.h - ref >= 3) { up += p.h - ref; ref = p.h; } else if (ref - p.h >= 3) { down += ref - p.h; ref = p.h; }
-    }
-    for (let i = 0, j = 0; i < s.length; i++) { while (j < s.length && s[j].d - s[i].d < 30) j++; if (j < s.length) steep = Math.max(steep, Math.abs(s[j].h - s[i].h) / (s[j].d - s[i].d)); }
-    const dist = s[s.length - 1].d, th = dist / 4000, tv = up / 300 + down / 500;
-    return { dist, up, down, min, max, steepDeg: Math.atan(steep) * 180 / Math.PI, hours: Math.max(th, tv) + Math.min(th, tv) / 2, complete: s.length === this.samples.length };
-  }
+  resample() { return resamplePath(this.pts, this.groundAt); }
+  stats() { return pathStats(this.samples); }
+  setPath(pts, name) { this.pts = pts; this.name = name; this.drawing = false; this.dirty = true; this.save(); }
   pointAt(d) {
     const s = this.samples; if (!s.length) return null;
     let i = 1; while (i < s.length - 1 && s[i].d < d) i++;

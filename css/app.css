@@ -37,7 +37,23 @@ h1 .alt { font-weight: 600; font-size: 17px; color: var(--ice); margin-left: 4px
 
 .tabs { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(12px + var(--safe-b)); display: flex; gap: 4px; padding: 5px; }
 .tabs button { appearance: none; border: 0; background: transparent; padding: 8px 14px; border-radius: 7px; display: flex; flex-direction: column; align-items: center; gap: 3px; font: 600 12px/1 "Barlow Condensed", "Arial Narrow", sans-serif; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; min-width: 72px; }
-.tabs button.ico { min-width: 48px; }
+.tabs button.ico { min-width: 44px; }
+@media (max-width: 480px) { .tabs { gap: 2px; padding: 4px; } .tabs button { min-width: 0; padding: 8px 8px; font-size: 11px; } .tabs button.ico { min-width: 40px; padding: 8px 6px; } }
+/* floating "locate me" button, where the thumb is */
+.fab { position: absolute; right: 12px; bottom: calc(150px + var(--safe-b)); z-index: 3; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; }
+.fab svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.fab[aria-pressed="true"] { color: #fff; background: #1e88ff; border-color: #1e88ff; }
+body.google .fab { bottom: calc(174px + var(--safe-b)); }
+@media (min-width: 900px) { .fab { bottom: calc(90px + var(--safe-b)); } body.google .fab { bottom: calc(114px + var(--safe-b)); } }
+.btns { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.btns .mini { min-height: 40px; }
+.btns .mini[aria-pressed="true"] { background: #ff3b30; border-color: #ff3b30; color: #fff; }
+.filebtn { display: inline-flex; align-items: center; }
+.filebtn input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.profile svg { cursor: crosshair; touch-action: none; }
+.profile .area { fill: rgba(255, 59, 48, .18); }
+.profile .ln.n { stroke: #ff5b50; }
+.profile .cur { stroke: #fff; stroke-width: 1; }
 .tabs button.tilt { justify-content: center; font: 700 17px/1 "Barlow Condensed", "Arial Narrow", sans-serif; letter-spacing: .02em; }
 .tabs svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
 .tabs button[aria-pressed="true"] { background: var(--ink); color: #10151c; }

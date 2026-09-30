@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202609301728">
+<link rel="stylesheet" href="css/app.css?v=202609301733">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -45,6 +45,7 @@
 <nav class="tabs glass" aria-label="Menus">
   <button id="tab-places" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20 10 6l4 7 2-3 5 10z"/></svg>Lieux</button>
   <button id="tab-cond" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1.5A3.5 3.5 0 1 1 17 18z"/></svg>Conditions</button>
+  <button id="tab-route" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c3-1 3-5 7-6s4-5 7-7"/><circle cx="5" cy="19" r="1.8"/><circle cx="19" cy="6" r="1.8"/></svg>Sortie</button>
   <button id="tab-layers" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg>Affichage</button>
   <button id="tilt" type="button" class="ico tilt" aria-label="Incliner la vue (de face ou du dessus)" title="Vue de face / vue du dessus (ou clic droit + glisser, Ctrl + glisser)">3D</button>
   <button id="home" type="button" class="ico" aria-label="Revenir à l'Aiguille du Midi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4m0 10v4M3 12h4m10 0h4"/><circle cx="12" cy="12" r="4"/></svg></button>
@@ -135,6 +136,29 @@
   <p class="cnote">Sources : relief © IGN (LiDAR HD, RGE ALTI), photos © IGN (BD ORTHO), hors France Sentinel-2 cloudless © EOX (CC BY-NC-SA 4.0) et relief Mapzen/AWS Terrain Tiles · Satellite du jour : Copernicus Sentinel-2 via Microsoft Planetary Computer · Météo : Météo-France via Open-Meteo · Vue Google 3D : Google Photorealistic 3D Tiles (© Google et fournisseurs affichés en bas de l'écran).</p>
 </section>
 
+<section id="sheet-route" class="sheet glass" hidden aria-label="Sortie">
+  <div class="sh"><h2>Sortie</h2><button class="close" type="button" aria-label="Fermer">×</button></div>
+  <h3>Ma position</h3>
+  <div class="row"><button id="gpsGo" type="button" class="btn">Me localiser</button></div>
+  <p class="cline small" id="gpsInfo">Ta position GPS en direct sur la carte (il faut autoriser la localisation).</p>
+  <h3>Itinéraire</h3>
+  <p class="cline small" id="routeHelp">Importe une trace GPX, ou touche « Tracer » puis touche le relief point par point (aussi pour mesurer une distance).</p>
+  <div class="btns">
+    <label class="mini filebtn" for="gpxIn">Importer un GPX<input id="gpxIn" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml"></label>
+    <button id="drawGo" type="button" class="mini" aria-pressed="false">Tracer / mesurer</button>
+    <button id="drawUndo" type="button" class="mini">Annuler le dernier point</button>
+  </div>
+  <div id="routeOut"></div>
+  <div class="btns">
+    <button id="flyGo" type="button" class="mini">Survoler l'itinéraire</button>
+    <button id="gpxOut" type="button" class="mini">Exporter en GPX</button>
+    <button id="routeClear" type="button" class="mini">Effacer</button>
+  </div>
+  <div id="sightBlock"></div>
+</section>
+
+<button id="gpsFab" type="button" class="fab glass" aria-label="Me localiser" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.5"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg></button>
+
 <section id="sheet-point" class="sheet glass" hidden aria-label="Point choisi">
   <div class="sh"><h2 id="ptTitle">Point</h2><button class="close" type="button" aria-label="Fermer">×</button></div>
   <div id="ptOut"></div>
@@ -151,6 +175,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202609301728"></script>
+<script type="module" src="js/app.js?v=202609301733"></script>
 </body>
 </html>

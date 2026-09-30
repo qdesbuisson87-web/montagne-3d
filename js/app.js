@@ -1,18 +1,20 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301728';
-import { SITE, SITE_LIST } from './sites.js?v=202609301728';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301728';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301728';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301728';
-import { searchPlaces } from './search.js?v=202609301728';
-import { TerrainShadows } from './shadows.js?v=202609301728';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301728';
-import { Forest } from './forest.js?v=202609301728';
-import { Lakes } from './water.js?v=202609301728';
-import { Buildings } from './buildings.js?v=202609301728';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202609301728';
-import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301728';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301733';
+import { SITE, SITE_LIST } from './sites.js?v=202609301733';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301733';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301733';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301733';
+import { searchPlaces } from './search.js?v=202609301733';
+import { TerrainShadows } from './shadows.js?v=202609301733';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301733';
+import { Forest } from './forest.js?v=202609301733';
+import { Lakes } from './water.js?v=202609301733';
+import { Buildings } from './buildings.js?v=202609301733';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202609301733';
+import { GpsTracker } from './gps.js?v=202609301733';
+import { RouteLayer } from './route.js?v=202609301733';
+import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301733';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -427,13 +429,14 @@ renderer.domElement.addEventListener('pointerup', e => {
     const r = renderer.domElement.getBoundingClientRect(), hit = pick((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
     if (!hit) return;
     showPoint(hit);
+    if (route.drawing) { route.add(hit.x, hit.z); renderRoute(); return; } // drawing an itinerary: each tap is a point
     if (!pickAt(hit)) pointReport(hit);
   }
 });
 // Pivot as in Google Earth: when a gesture begins, the orbit centre moves to the ground under the middle of the
 // screen. That point lies on the line of sight, so the view does not move; nothing is adjusted during the gesture.
 controls.addEventListener('start', () => {
-  fly = null; controls.autoRotate = false; $('c-spin').checked = false;
+  fly = null; flyRoute = null; controls.autoRotate = false; $('c-spin').checked = false;
   const hit = pick(0, 0);
   if (hit) controls.target.set(hit.x, hit.h * state.exag, hit.z);
 });
@@ -659,13 +662,96 @@ async function refreshLive() {
 }
 
 // ---------- UI ----------
-const sheets = ['places', 'cond', 'layers'];
+const sheets = ['places', 'cond', 'route', 'layers'];
 function openSheet(name) {
   $('sheet-point').hidden = true;
   sheets.forEach(s => { const on = s === name && $('sheet-' + s).hidden; $('sheet-' + s).hidden = !on; $('tab-' + s).setAttribute('aria-pressed', on); });
 }
 function closeSheets() { sheets.forEach(s => { $('sheet-' + s).hidden = true; $('tab-' + s).setAttribute('aria-pressed', 'false'); }); }
 sheets.forEach(s => { $('tab-' + s).addEventListener('click', () => openSheet(s)); $('sheet-' + s).querySelector('.close').addEventListener('click', closeSheets); });
+
+// ---------- "Sortie": my position, an itinerary (GPX or drawn), its profile and numbers, a flight along it ----------
+const gps = new GpsTracker({ scene, onChange: renderGps });
+const route = new RouteLayer({ scene, groundAt });
+let gpsCentered = false, flyRoute = null;
+const ago2 = d => { const s = (Date.now() - d) / 1000; return s < 60 ? `il y a ${Math.round(s)} s` : `il y a ${Math.round(s / 60)} min`; };
+function centerOnGps() {
+  const p = gps.pos; if (!p) return;
+  const g = groundAt(p.x, p.z) ?? p.gpsAlt ?? controls.target.y, t = new THREE.Vector3(p.x, g * state.exag, p.z);
+  let dir = camera.position.clone().sub(controls.target).normalize(); if (dir.y < 0.3) { dir.y = 0.5; dir.normalize(); }
+  engine.ensureRoots(p.x, p.z, 45000); startFly(t, t.clone().addScaledVector(dir, 1200), 1800);
+}
+function renderGps() {
+  const on = gps.on; $('gpsFab').setAttribute('aria-pressed', on); $('gpsGo').textContent = on ? 'Arrêter la localisation' : 'Me localiser';
+  const p = gps.pos;
+  if (gps.error) $('gpsInfo').textContent = gps.error;
+  else if (on && !p) $('gpsInfo').textContent = 'Recherche de la position…';
+  else if (on && p) {
+    const g = groundAt(p.x, p.z);
+    $('gpsInfo').textContent = `Position à ±${fmt(p.acc)} m (${ago2(p.time)})${g != null ? ` · altitude du relief ${fmt(g)} m` : ''}${p.gpsAlt != null ? ` (GPS : ${fmt(p.gpsAlt)} m)` : ''}.`;
+    if (!gpsCentered) { gpsCentered = true; centerOnGps(); }
+  } else $('gpsInfo').textContent = 'Ta position GPS en direct sur la carte (il faut autoriser la localisation).';
+}
+$('gpsGo').addEventListener('click', () => { if (gps.on) gps.stop(); else { gpsCentered = false; gps.start(); } });
+$('gpsFab').addEventListener('click', () => { if (!gps.on) { gpsCentered = false; gps.start(); } else centerOnGps(); });
+const hm = h => { const m = Math.round(h * 60 / 5) * 5; return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`; };
+function renderRoute() {
+  route.drape(state.exag);
+  const st = route.stats(), n = route.pts.length;
+  $('drawGo').setAttribute('aria-pressed', route.drawing); $('drawGo').textContent = route.drawing ? 'Terminer le tracé' : 'Tracer / mesurer';
+  for (const id of ['drawUndo', 'flyGo', 'gpxOut', 'routeClear']) $(id).disabled = n < (id === 'drawUndo' || id === 'routeClear' ? 1 : 2);
+  if (!st) { $('routeOut').innerHTML = route.drawing ? `<p class="cline small">${n ? `${n} point${n > 1 ? 's' : ''} : touche le point suivant.` : 'Touche le relief pour poser le premier point.'}</p>` : ''; return; }
+  $('routeOut').innerHTML = `${route.name ? `<p class="cline"><b>${esc(route.name)}</b></p>` : ''}
+    <div class="kpis">
+      <div><span>Distance</span><b>${(st.dist / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} km</b></div>
+      <div><span>Temps estimé</span><b>${hm(st.hours)}</b></div>
+      <div><span>Dénivelé +</span><b>${fmt(st.up)} m</b></div>
+      <div><span>Dénivelé −</span><b>${fmt(st.down)} m</b></div>
+      <div><span>Point haut / bas</span><b>${fmt(st.max)} / ${fmt(st.min)} m</b></div>
+      <div><span>Pente la plus raide</span><b>${Math.round(st.steepDeg)}°</b></div>
+    </div>
+    ${route.profileSVG()}
+    <p class="cnote">Altitudes du relief LiDAR IGN sous le tracé${st.complete ? '' : ' (partiel : une partie du relief n\'est pas encore chargée)'}. Temps selon la norme DIN 33466 (randonneur moyen, sans pauses) ; pente maxi mesurée sur 30 m.</p>`;
+}
+$('drawGo').addEventListener('click', () => { route.drawing = !route.drawing; renderRoute(); if (route.drawing && touch) closeSheets(); });
+$('drawUndo').addEventListener('click', () => { route.undo(); renderRoute(); });
+$('routeClear').addEventListener('click', () => { route.clear(); route.drawing = false; renderRoute(); });
+$('gpxIn').addEventListener('change', async e => {
+  const f = e.target.files?.[0]; if (!f) return; e.target.value = '';
+  try {
+    route.importGPX(await f.text(), f.name); route.drawing = false; renderRoute();
+    // frame the whole itinerary
+    const xs = route.pts.map(p => p[0]), zs = route.pts.map(p => p[1]), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cz = (Math.min(...zs) + Math.max(...zs)) / 2;
+    const ext = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs), 800);
+    engine.ensureRoots(cx, cz, 45000);
+    const t = new THREE.Vector3(cx, (groundAt(cx, cz) ?? controls.target.y) * state.exag, cz);
+    startFly(t, t.clone().add(new THREE.Vector3(-0.5, 0.75, 0.9).normalize().multiplyScalar(ext * 1.3)), 2400);
+  } catch (err) { $('routeOut').innerHTML = `<p class="cline">Import impossible : ${esc(err.message)}.</p>`; }
+});
+$('gpxOut').addEventListener('click', () => {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([route.toGPX()], { type: 'application/gpx+xml' }));
+  a.download = (route.name || 'itineraire').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-') + '.gpx'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+});
+// touching the profile shows where that point is on the map
+$('routeOut').addEventListener('pointermove', e => {
+  const svg = e.target.closest('.profile svg'); if (!svg) return;
+  const r = svg.getBoundingClientRect(), vx = (e.clientX - r.left) / r.width * 320, f = (vx - +svg.dataset.l) / +svg.dataset.w;
+  if (f < 0 || f > 1) return;
+  const d = f * +svg.dataset.dist; route.showCursor(d, camera, state.exag);
+  const cur = svg.querySelector('.cur'); cur.setAttribute('x1', vx); cur.setAttribute('x2', vx); cur.setAttribute('visible', 'true');
+  const p = route.pointAt(d); if (p) $('rAlt').textContent = `${fmt(p.h)} m · km ${(d / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}`;
+});
+$('routeOut').addEventListener('pointerleave', () => route.showCursor(null));
+// flight along the itinerary: ~1 minute whatever its length, camera behind and above, looking ahead
+$('flyGo').addEventListener('click', () => { if (route.length > 0) { flyRoute = { d: 0, speed: Math.min(160, Math.max(25, route.length / 60)) }; fly = null; if (touch) closeSheets(); } });
+function flyAlongRoute(dt) {
+  const r = flyRoute; r.d += dt * r.speed;
+  if (r.d > route.length) { flyRoute = null; return; }
+  const p = route.pointAt(r.d), ahead = route.pointAt(Math.min(route.length, r.d + 350)), back = route.pointAt(Math.max(0, r.d - 250));
+  const e = state.exag, tgt = new THREE.Vector3(ahead.x, ahead.h * e, ahead.z), eye = new THREE.Vector3(back.x, Math.max(back.h, p.h) * e + 160, back.z);
+  controls.target.lerp(tgt, 0.08); camera.position.lerp(eye, 0.08);
+}
+renderRoute();
 const seg = (group, key, fn) => document.querySelectorAll(`[data-${group}]`).forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll(`[data-${group}]`).forEach(x => x.setAttribute('aria-pressed', x === b)); state[key] = b.dataset[group]; fn?.(b.dataset[group]);
 }));
@@ -983,7 +1069,7 @@ function updateLabels() {
 // ---------- loop ----------
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
-  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); route?.setResolution(w, h);
   SU.proj.value = h * renderer.getPixelRatio() / (2 * Math.tan(camera.fov * Math.PI / 360));
 }
 addEventListener('resize', resize);
@@ -1034,6 +1120,9 @@ function drawFrame() {
   forest.update(camera, google.on || !state.trees);
   lakes.update(camera, frameN, state.exag, google.on, controls.target);
   buildings.update(camera, controls.target, frameN, google.on);
+  gps.update(camera, groundAt, state.exag); if (gps.on && frameN % 60 === 0) renderGps();
+  route.update(frameN, state.exag, engine.busy);
+  if (flyRoute) flyAlongRoute(dt);
   if (hoverNDC && frameN % (google.on ? 10 : 3) === 0) showPoint(pick(...hoverNDC));
   updateLabels(); frameN++;
   if (frameN % 600 === 0 && state.hourOffset === 0) updateSky();

@@ -1,27 +1,27 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202609301935';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301935';
-import { SITE, SITE_LIST } from './sites.js?v=202609301935';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301935';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301935';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301935';
-import { searchPlaces } from './search.js?v=202609301935';
-import { TerrainShadows } from './shadows.js?v=202609301935';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301935';
-import { Forest } from './forest.js?v=202609301935';
-import { Lakes } from './water.js?v=202609301935';
-import { Buildings } from './buildings.js?v=202609301935';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202609301935';
-import { GpsTracker } from './gps.js?v=202609301935';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202609301935';
-import { walkingRoute } from './planner.js?v=202609301935';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202609301935';
-import { TrailsLayer } from './trails.js?v=202609301935';
-import { Weather3D } from './weather3d.js?v=202609301935';
-import { Sight } from './sight.js?v=202609301935';
-import { Photos360 } from './photos360.js?v=202609301935';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202609301935';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301935';
+import { EarthControls } from './controls.js?v=202609301945';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301945';
+import { SITE, SITE_LIST } from './sites.js?v=202609301945';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301945';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301945';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301945';
+import { searchPlaces } from './search.js?v=202609301945';
+import { TerrainShadows } from './shadows.js?v=202609301945';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301945';
+import { Forest } from './forest.js?v=202609301945';
+import { Lakes } from './water.js?v=202609301945';
+import { Buildings } from './buildings.js?v=202609301945';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202609301945';
+import { GpsTracker } from './gps.js?v=202609301945';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202609301945';
+import { walkingRoute } from './planner.js?v=202609301945';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202609301945';
+import { TrailsLayer } from './trails.js?v=202609301945';
+import { Weather3D } from './weather3d.js?v=202609301945';
+import { Sight } from './sight.js?v=202609301945';
+import { Photos360 } from './photos360.js?v=202609301945';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202609301945';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301945';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -1093,9 +1093,9 @@ function setView(v) {
     scene.fog = gFog;
   } else { google.stop(); scene.fog = null; }
   // layers computed on the IGN terrain are not drawn over Google's tiles
-  for (const id of ['c-slopes', 'c-snowtoday', 'exag']) $(id).disabled = g;
+  for (const id of ['c-slopes', 'c-snowtoday', 'c-lidar', 'exag']) $(id).disabled = g;
   $('slopeLegend').hidden = g || !state.slopes;
-  $('gNote').textContent = g ? 'Vue Google 3D (photos et relief Google, en ligne seulement). La carte des pentes, la neige du jour et le relief exagéré restent dans la vue IGN.' : '';
+  $('gNote').textContent = g ? 'Vue Google 3D (photos et relief Google, en ligne seulement). La carte des pentes, la neige du jour, les points LiDAR et le relief exagéré restent dans la vue IGN : touche « IGN (LiDAR) » pour les retrouver.' : '';
   try { localStorage.setItem('midi3d-view', v); } catch { }
 }
 document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));

@@ -1,18 +1,18 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301725';
-import { SITE, SITE_LIST } from './sites.js?v=202609301725';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301725';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301725';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301725';
-import { searchPlaces } from './search.js?v=202609301725';
-import { TerrainShadows } from './shadows.js?v=202609301725';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301725';
-import { Forest } from './forest.js?v=202609301725';
-import { Lakes } from './water.js?v=202609301725';
-import { Buildings } from './buildings.js?v=202609301725';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202609301725';
-import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301725';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301728';
+import { SITE, SITE_LIST } from './sites.js?v=202609301728';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301728';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301728';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301728';
+import { searchPlaces } from './search.js?v=202609301728';
+import { TerrainShadows } from './shadows.js?v=202609301728';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301728';
+import { Forest } from './forest.js?v=202609301728';
+import { Lakes } from './water.js?v=202609301728';
+import { Buildings } from './buildings.js?v=202609301728';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202609301728';
+import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301728';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -609,7 +609,7 @@ async function loadBera() {
 function renderBera(b) {
   $('beraKeyBlock').hidden = true;
   const now = Date.now(), expired = b.validUntil < now, offSeason = now - b.validUntil > 3 * 864e5;
-  let h = `<div class="bera"><p class="cmeta">Massif ${esc(b.massif)} · publié le ${dayTime(b.issued)}${b.amended ? ' · bulletin modifié' : ''}${b.offline ? ' · copie gardée hors ligne' : ''}</p>`;
+  let h = `<div class="bera"><p class="cmeta">Massif ${esc(b.massif)} · publié le ${dayTime(b.issued)}${b.amended ? ' · bulletin modifié' : ''}${b.offline ? ' · copie gardée hors ligne' : ''}${b.source === 'public' ? ' · lu sur meteofrance.com' : ''}</p>`;
   if (offSeason) h += `<p class="cline stale"><b>Pas de bulletin en cours.</b> Le dernier date du ${b.issued.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} ; les bulletins paraissent chaque jour de novembre à mai. Ce qui suit est ce dernier bulletin, pour mémoire.</p>`;
   else if (expired) h += `<p class="cline stale">Ce bulletin était valable jusqu'au ${dayTime(b.validUntil)} : le suivant n'est pas encore disponible.</p>`;
   else h += `<p class="cline small">Valable jusqu'au ${dayTime(b.validUntil)}.</p>`;

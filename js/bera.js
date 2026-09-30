@@ -4,6 +4,8 @@
 // depth by altitude on north and south slopes, snow line, fresh snow of the last days. Nothing is computed or
 // guessed here: every figure is the bulletin's, with its date. The last bulletin is kept for offline use.
 const API = id => `https://public-api.meteofrance.fr/public/DPBRA/v1/massif/BRA?id-massif=${id}&format=xml`;
+// the same bulletin as published on meteofrance.com (used only if the API answer cannot be read)
+const PUBLIC = id => `https://api.meteofrance.com/files/mountain/bulletins/BRA${String(id).padStart(2, '0')}.xml`;
 const KEY = 'midi3d-mf-key', STORE = id => `midi3d-bera-${id}`;
 
 export const beraKey = {
@@ -19,9 +21,19 @@ export const RISK = {
 export class BeraError extends Error { constructor(kind, msg) { super(msg); this.kind = kind; } }
 
 const num = v => (v === '' || v == null || +v < 0) ? null : +v; // "" and -1 mean "not given"
-function parse(xml) {
-  const doc = new DOMParser().parseFromString(xml, 'application/xml'), root = doc.querySelector('BULLETINS_NEIGE_AVALANCHE');
-  if (!root || doc.querySelector('parsererror')) throw new BeraError('format', 'réponse illisible');
+// the bulletin XML, wherever it is in the answer (plain XML, or a string inside a JSON envelope)
+function extractXml(text) {
+  const t = text.trim();
+  if (t.startsWith('{') || t.startsWith('[')) {
+    try { let found = null; JSON.parse(t, (k, v) => { if (typeof v === 'string' && v.includes('<BULLETINS_NEIGE_AVALANCHE')) found = v; return v; }); if (found) return found; } catch { }
+  }
+  const i = t.indexOf('<BULLETINS_NEIGE_AVALANCHE');
+  return i < 0 ? null : t.slice(i, t.lastIndexOf('</BULLETINS_NEIGE_AVALANCHE>') + 28);
+}
+function parse(text) {
+  const xml = extractXml(text);
+  const doc = xml && new DOMParser().parseFromString(xml, 'application/xml'), root = doc?.querySelector('BULLETINS_NEIGE_AVALANCHE');
+  if (!root || doc.querySelector('parsererror')) throw new BeraError('format', `réponse non reconnue (début : « ${text.replace(/\s+/g, ' ').slice(0, 90)} »)`);
   const $ = s => root.querySelector(s), txt = s => ($(s)?.textContent ?? '').trim(), at = (el, a) => el?.getAttribute(a) ?? '';
   const r = $('CARTOUCHERISQUE > RISQUE'), p = $('CARTOUCHERISQUE > PENTE');
   const enn = $(':scope > ENNEIGEMENT'), nf = $(':scope > NEIGEFRAICHE');
@@ -62,7 +74,16 @@ export async function fetchBera(massifId) {
     throw new BeraError('server', detail);
   }
   const xml = await r.text();
-  const b = parse(xml);
+  let b;
+  try { b = parse(xml); }
+  catch (e) {
+    // the key works but the answer is not a bulletin: take the same bulletin from Météo-France's public file
+    const pub = await fetch(PUBLIC(massifId)).then(p => p.ok ? p.text() : null).catch(() => null);
+    if (!pub) throw e;
+    b = { ...parse(pub), source: 'public' };
+    try { localStorage.setItem(STORE(massifId), pub); } catch { }
+    return b;
+  }
   try { localStorage.setItem(STORE(massifId), xml); } catch { }
   return b;
 }

@@ -5,6 +5,7 @@ const SITES = {
     id: 'midi', name: 'Aiguille du Midi', alt: 3842, region: 'Massif du Mont-Blanc · Chamonix',
     origin: { lat: 45.8786, lon: 6.8872 },
     geoidN: 53.4,                                // EGM2008 geoid above the WGS84 ellipsoid at the origin (Google 3D heights are ellipsoidal)
+    bra: 3,                                      // Météo-France avalanche bulletin massif number (Mont-Blanc)
     bounds: [6.45, 45.62, 7.35, 46.12],          // streamed area (lon/lat)
     core: [6.80, 45.82, 6.97, 45.935],           // snow statistics + offline pack
     detail: [6.874, 45.868, 6.902, 45.890],      // 20 cm level in the "Maximum" offline pack
@@ -49,6 +50,7 @@ const SITES = {
     id: 'buet', name: 'Mont Buet', alt: 3096, region: 'Aiguilles Rouges · Vallorcine · Sixt',
     origin: { lat: 46.0248, lon: 6.85256 },
     geoidN: 52.8, // EGM2008 at the summit
+    bra: 3,       // BERA massif Mont-Blanc (covers the Aiguilles Rouges and the Buet)
     bounds: [6.40, 45.78, 7.30, 46.27],
     core: [6.78, 45.97, 6.95, 46.08],
     detail: [6.838, 46.014, 6.866, 46.035],
@@ -85,6 +87,7 @@ const SITES = {
     id: 'sassiere', name: 'Grande Sassière', alt: 3747, region: 'Haute-Tarentaise · Tignes',
     origin: { lat: 45.5050, lon: 6.99972 },
     geoidN: 54.8,
+    bra: 6,       // BERA massif Haute-Tarentaise
     bounds: [6.65, 45.28, 7.35, 45.72],
     core: [6.84, 45.40, 7.10, 45.56],
     detail: [6.985, 45.492, 7.016, 45.515],

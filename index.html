@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202609292051">
+<link rel="stylesheet" href="css/app.css?v=202609301716">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -67,6 +67,13 @@
 
 <section id="sheet-cond" class="sheet glass" hidden aria-label="Conditions">
   <div class="sh"><h2>Conditions en direct</h2><button class="close" type="button" aria-label="Fermer">×</button></div>
+  <h3>Risque d'avalanche — bulletin Météo-France</h3>
+  <div id="bera"></div>
+  <div id="beraKeyBlock" class="gkey" hidden>
+    <p class="cline small">Le bulletin officiel demande ta clé Météo-France (portail-api.meteofrance.fr, API « DonneesPubliquesBRA »). Elle reste sur cet appareil et n'est envoyée qu'à Météo-France.</p>
+    <div class="row"><label class="sr" for="mfKey">Clé API Météo-France</label><input id="mfKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Clé API Météo-France"><button id="mfKeySave" type="button" class="mini go">OK</button></div>
+  </div>
+  <h3>Météo</h3>
   <div id="wx"></div>
   <div id="altBlock">
     <h3>À ton altitude</h3>
@@ -144,6 +151,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202609292051"></script>
+<script type="module" src="js/app.js?v=202609301716"></script>
 </body>
 </html>

@@ -6,8 +6,8 @@
 // flat roofs (no peak), and anything above 50 m.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { tileMerc, mercToLonLat, lonLatToL93, l93ToLonLat, lonLatToWorld } from './geo.js?v=202609292051';
-import { cachedFetch, TransientError } from './net.js?v=202609292051';
+import { tileMerc, mercToLonLat, lonLatToL93, l93ToLonLat, lonLatToWorld } from './geo.js?v=202609301716';
+import { cachedFetch, TransientError } from './net.js?v=202609301716';
 
 const MNH = 'IGNF_LIDAR-HD_MNH_ELEVATION.ELEVATIONGRIDCOVERAGE.LAMB93';
 const Z = 16, RES = 256, NEAR = 700; // metres: beyond, the simple tree

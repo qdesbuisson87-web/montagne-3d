@@ -1,17 +1,18 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609292051';
-import { SITE, SITE_LIST } from './sites.js?v=202609292051';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609292051';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609292051';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609292051';
-import { searchPlaces } from './search.js?v=202609292051';
-import { TerrainShadows } from './shadows.js?v=202609292051';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609292051';
-import { Forest } from './forest.js?v=202609292051';
-import { Lakes } from './water.js?v=202609292051';
-import { Buildings } from './buildings.js?v=202609292051';
-import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609292051';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301716';
+import { SITE, SITE_LIST } from './sites.js?v=202609301716';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301716';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301716';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301716';
+import { searchPlaces } from './search.js?v=202609301716';
+import { TerrainShadows } from './shadows.js?v=202609301716';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301716';
+import { Forest } from './forest.js?v=202609301716';
+import { Lakes } from './water.js?v=202609301716';
+import { Buildings } from './buildings.js?v=202609301716';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202609301716';
+import { fetchWeather, findSentinel, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301716';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -485,14 +486,14 @@ function renderWeather() {
     return `<div class="spot"><div class="sn">${esc(s.name)}<span>${fmt(s.alt)} m</span></div><div class="st">${t1(c.temperature_2m)}°</div>
       <div class="sd">${esc(WMO[c.weather_code] || '—')} · ressenti ${t1(c.apparent_temperature)}°<br>Vent ${compass(c.wind_direction_10m)} ${Math.round(c.wind_speed_10m)} km/h · rafales ${Math.round(c.wind_gusts_10m)}</div></div>`;
   }).join('');
-  let fz = null, sd = null;
+  let fz = null;
   const ex = W.extra?.hourly;
-  if (ex) { const now = W.top.current.time.slice(0, 13), k = ex.time.findIndex(t => t.slice(0, 13) === now); if (k >= 0) { fz = ex.freezing_level_height[k]; sd = ex.snow_depth[k]; } }
+  if (ex) { const now = W.top.current.time.slice(0, 13), k = ex.time.findIndex(t => t.slice(0, 13) === now); if (k >= 0) { fz = ex.freezing_level_height[k]; } } // model snow depth: unreliable in high mountains, not shown (the bulletin gives the real one)
   const d = W.top.daily;
   const days = d.time.map((t, i) => `<tr><th>${dayName(new Date(t + 'T12:00'))}</th><td>${esc(WMO[d.weather_code[i]] || '—')}</td><td class="n">${Math.round(d.temperature_2m_min[i])}° / ${Math.round(d.temperature_2m_max[i])}°</td><td class="n">${d.snowfall_sum[i] > 0 ? t1(d.snowfall_sum[i]) + ' cm' : '—'}</td><td class="n">${Math.round(d.wind_gusts_10m_max[i])}</td></tr>`).join('');
   el.innerHTML = `<p class="cmeta">Météo-France (AROME/ARPEGE) · reçu ${W.fetchedAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
     <div class="spots">${spots}</div>
-    <p class="cline"><b>Isotherme 0 °C</b> ${fz != null ? fmt(fz) + ' m' : '—'}${sd != null ? ` · <b>Neige au sol (modèle, Plan de l’Aiguille)</b> ${Math.round(sd * 100)} cm` : ''}</p>
+    <p class="cline"><b>Isotherme 0 °C</b> ${fz != null ? fmt(fz) + ' m' : '—'}</p>
     <h3>Prévisions — ${esc(SPOTS.top.name)} (${fmt(SPOTS.top.alt)} m)</h3>
     <div class="tw"><table><thead><tr><th></th><th>Ciel</th><th class="n">Min / max</th><th class="n">Neige</th><th class="n">Rafales</th></tr></thead><tbody>${days}</tbody></table></div>`;
   // look of the scene
@@ -579,7 +580,71 @@ function chart(bands) {
   return `<figure class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Part du terrain enneigé par altitude">${g}<line x1="${x(0.5)}" x2="${x(0.5)}" y1="${T}" y2="${H - B}" class="half"/><polyline points="${pts('north')}" class="ln n"/><polyline points="${pts('south')}" class="ln s"/></svg>
     <figcaption><span class="k n"></span>Versant nord <span class="k s"></span>Versant sud · part du terrain enneigé par altitude (m)</figcaption></figure>`;
 }
+// ---------- avalanche bulletin (bera.js): shown as published, with its date, never interpreted ----------
+const dayTime = d => d.toLocaleString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+const riskBox = r => r ? `<span class="badge r${r}" style="background:${RISK[r].color}">${r}</span>` : '<span class="badge" style="background:#666">?</span>';
+function aspectRose(aspects, color) {
+  const names = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'], fr = { W: 'O', SW: 'SO', NW: 'NO' };
+  let g = '';
+  names.forEach((k, i) => {
+    const a0 = (i * 45 - 22.5 - 90) * Math.PI / 180, a1 = (i * 45 + 22.5 - 90) * Math.PI / 180, R = 34, c = 43;
+    const p = `M${c},${c} L${(c + R * Math.cos(a0)).toFixed(1)},${(c + R * Math.sin(a0)).toFixed(1)} A${R},${R} 0 0 1 ${(c + R * Math.cos(a1)).toFixed(1)},${(c + R * Math.sin(a1)).toFixed(1)} Z`;
+    g += `<path d="${p}" fill="${aspects.includes(k) ? color : 'rgba(255,255,255,.06)'}"/>`;
+    const am = (i * 45 - 90) * Math.PI / 180; g += `<text x="${(c + 40 * Math.cos(am)).toFixed(1)}" y="${(c + 40 * Math.sin(am) + 3).toFixed(1)}" text-anchor="middle">${fr[k] ?? k}</text>`;
+  });
+  return `<svg class="rose" viewBox="0 0 86 86" role="img" aria-label="Orientations les plus exposées : ${aspects.map(a => ({ W: 'O', SW: 'SO', NW: 'NO' }[a] ?? a)).join(', ') || 'aucune signalée'}">${g}</svg>`;
+}
+async function loadBera() {
+  const el = $('bera');
+  if (!SITE.bra) { el.innerHTML = '<p class="cline small">Pas de bulletin Météo-France pour ce massif.</p>'; return; }
+  if (!beraKey.get()) { el.innerHTML = ''; $('beraKeyBlock').hidden = false; return; }
+  el.innerHTML = '<p class="cmeta">Récupération du bulletin…</p>';
+  try { renderBera(await fetchBera(SITE.bra)); }
+  catch (e) {
+    const msg = { key: "Météo-France refuse la clé : vérifie qu'elle est copiée en entier et que l'API « DonneesPubliquesBRA » est bien souscrite.", none: "Aucun bulletin publié pour ce massif en ce moment (les bulletins paraissent de novembre à mai).", network: 'Bulletin indisponible : pas de connexion et aucun bulletin gardé sur cet appareil.' }[e.kind] ?? `Bulletin indisponible (${esc(e.message)}).`;
+    el.innerHTML = `<p class="cline">${msg}</p>`; if (e.kind === 'key') $('beraKeyBlock').hidden = false;
+  }
+}
+function renderBera(b) {
+  $('beraKeyBlock').hidden = true;
+  const now = Date.now(), expired = b.validUntil < now, offSeason = now - b.validUntil > 3 * 864e5;
+  let h = `<div class="bera"><p class="cmeta">Massif ${esc(b.massif)} · publié le ${dayTime(b.issued)}${b.amended ? ' · bulletin modifié' : ''}${b.offline ? ' · copie gardée hors ligne' : ''}</p>`;
+  if (offSeason) h += `<p class="cline stale"><b>Pas de bulletin en cours.</b> Le dernier date du ${b.issued.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} ; les bulletins paraissent chaque jour de novembre à mai. Ce qui suit est ce dernier bulletin, pour mémoire.</p>`;
+  else if (expired) h += `<p class="cline stale">Ce bulletin était valable jusqu'au ${dayTime(b.validUntil)} : le suivant n'est pas encore disponible.</p>`;
+  else h += `<p class="cline small">Valable jusqu'au ${dayTime(b.validUntil)}.</p>`;
+  const top = b.riskMax ?? b.risk1;
+  h += `<div class="riskline">${riskBox(top)}<div class="rl"><b>Risque ${top ? RISK[top].name.toLowerCase() : 'non indiqué'}${top ? ` (${top}/5)` : ''}</b><span>${esc(b.comment || '')}</span></div>${b.aspects.length ? aspectRose(b.aspects, RISK[top]?.color ?? '#ccc') : ''}</div>`;
+  if (b.risk2 != null && b.altitude != null) {
+    const band = (r, e, label) => `<div class="band"><i style="background:${RISK[r]?.color ?? '#666'}"></i>${label} : <b>${r} — ${RISK[r]?.name ?? '?'}</b>${e ? `, évoluant vers ${e}` : ''}</div>`;
+    h += band(b.risk2, b.evol2, `Au-dessus de ${fmt(b.altitude)} m`) + band(b.risk1, b.evol1, `En dessous de ${fmt(b.altitude)} m`);
+  } else if (b.evol1) h += `<p class="cline small">Évolution dans la journée vers ${b.evol1} — ${RISK[b.evol1]?.name ?? ''}.</p>`;
+  if (b.aspects.length) h += `<p class="cline small">Pentes les plus exposées (en couleur sur la rose)${b.aspectNote ? ` : ${esc(b.aspectNote)}` : ''}.</p>`;
+  if (b.riskJ2) h += `<p class="cline small">Demain : risque ${b.riskJ2} — ${RISK[b.riskJ2]?.name ?? ''}${b.j2 ? `. ${esc(b.j2)}` : ''}</p>`;
+  if (b.summary) h += `<p class="cline txt">${esc(b.summary)}</p>`;
+  if (b.stability) h += `<details><summary>Stabilité du manteau neigeux${b.stabilityTitle ? ` — ${esc(b.stabilityTitle.slice(0, 80))}` : ''}</summary><p class="txt">${esc(b.stability)}</p></details>`;
+  if (b.quality) h += `<details><summary>Qualité de la neige</summary><p class="txt">${esc(b.quality)}</p></details>`;
+  if (b.snow?.levels.length) {
+    const cm = v => v == null ? '—' : `${v} cm`;
+    h += `<h3>Hauteur de neige (bulletin du ${b.snow.date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })})</h3>
+      <p class="cline small">Limite de l'enneigement : ${b.snow.lineN != null ? fmt(b.snow.lineN) + ' m' : '—'} au nord, ${b.snow.lineS != null ? fmt(b.snow.lineS) + ' m' : '—'} au sud.</p>
+      <div class="tw"><table><thead><tr><th>Altitude</th><th class="n">Nord</th><th class="n">Sud</th></tr></thead><tbody>${b.snow.levels.map(l => `<tr><th>${fmt(l.alt)} m</th><td class="n">${cm(l.n)}</td><td class="n">${cm(l.s)}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+  if (b.fresh?.days.length) {
+    h += `<h3>Neige fraîche sur 24 h${b.fresh.alt ? ` (à ${fmt(b.fresh.alt)} m)` : ''}</h3><div class="tw"><table><tbody>${b.fresh.days.map(d => `<tr><th>${dayName(d.date)}</th><td class="n">${d.min == null ? '—' : d.min === d.max ? `${d.min} cm` : `${d.min} à ${d.max} cm`}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+  const link = SITE.links.find(([u]) => /meteo-montagne/.test(u))?.[0];
+  h += `<p class="cnote">Bulletin d'estimation du risque d'avalanche de Météo-France, reproduit tel quel. Il ne remplace ni la lecture du bulletin complet${link ? ` (<a href="${link}" target="_blank" rel="noopener">voir sur Météo-France</a>)` : ''}, ni l'observation sur le terrain.</p></div>`;
+  $('bera').innerHTML = h;
+}
+$('mfKeySave').addEventListener('click', () => {
+  const k = $('mfKey').value.trim();
+  if (k.length < 20) { $('bera').innerHTML = '<p class="cline">Ça ne ressemble pas à une clé Météo-France (copie-la en entier depuis « Mes API » sur le portail).</p>'; return; }
+  beraKey.set(k); $('mfKey').value = ''; loadBera();
+});
+$('mfKey').addEventListener('keydown', e => { if (e.key === 'Enter') $('mfKeySave').click(); });
+
 async function refreshLive() {
+  loadBera();
   $('wx').innerHTML = '<p class="cmeta">Récupération de la météo…</p>';
   try { state.weather = await fetchWeather(); renderWeather(); }
   catch (e) { $('wx').innerHTML = `<p class="cline">Météo indisponible (${esc(e.message)}). Vérifiez la connexion.</p>`; }

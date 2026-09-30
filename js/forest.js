@@ -6,8 +6,8 @@
 // flat roofs (no peak), and anything above 50 m.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { tileMerc, mercToLonLat, lonLatToL93, l93ToLonLat, lonLatToWorld } from './geo.js?v=202609301913';
-import { cachedFetch, TransientError } from './net.js?v=202609301913';
+import { tileMerc, mercToLonLat, lonLatToL93, l93ToLonLat, lonLatToWorld } from './geo.js?v=202609301935';
+import { cachedFetch, TransientError } from './net.js?v=202609301935';
 
 const MNH = 'IGNF_LIDAR-HD_MNH_ELEVATION.ELEVATIONGRIDCOVERAGE.LAMB93';
 const Z = 16, RES = 256, NEAR = 700; // metres: beyond, the simple tree
@@ -134,7 +134,8 @@ export class Forest {
   }
 
   // every frame: show the forests of the tiles drawn at zoom 16 or finer, nearest first, within the budget
-  update(camera, hidden) {
+  // masked(x, z): places drawn by the LiDAR points, whose trees are the real ones
+  update(camera, hidden, masked) {
     this.group.visible = !hidden; if (hidden) return;
     const shown = new Set();
     for (const mesh of this.engine.drawn) { let t = mesh.userData.tile; while (t && t.z > Z) t = t.parent; if (t?.z === Z) shown.add(t); }
@@ -142,7 +143,7 @@ export class Forest {
     for (const [t, e] of this.tiles) {
       if (!e.meshes) continue;
       e.meshes[0].visible = e.meshes[1].visible = false;
-      if (shown.has(t)) list.push([Math.hypot(e.center[0] - cam.x, e.center[1] - cam.z), e]);
+      if (shown.has(t) && !masked?.(...e.center)) list.push([Math.hypot(e.center[0] - cam.x, e.center[1] - cam.z), e]);
     }
     list.sort((a, b) => a[0] - b[0]);
     let budget = this.maxTrees;

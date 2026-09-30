@@ -37,18 +37,20 @@ class Lane {
 const LANES = [
   [u => u.startsWith('https://data.geopf.fr/wms-r/'), new Lane(12, 25, 6)],
   [u => u.startsWith('https://data.geopf.fr/wmts'), new Lane(30, 60, 10)],
-  [u => u.startsWith('https://planetarycomputer.microsoft.com/'), new Lane(12, 24, 10)]
+  [u => u.startsWith('https://planetarycomputer.microsoft.com/'), new Lane(12, 24, 10)],
+  // LiDAR point clouds (IGN download service): its answers announce a budget of about 10 requests per second
+  [u => u.startsWith('https://data.geopf.fr/telechargement/'), new Lane(5, 8, 4)]
 ];
 const laneFor = url => LANES.find(([m]) => m(url))?.[1];
 
 // fetch with retries on refusals and network errors; throws TransientError when it gives up
-export async function netFetch(url, attempts = 5) {
+export async function netFetch(url, attempts = 5, init = {}) {
   const lane = laneFor(url);
   for (let a = 0; ; a++) {
     if (!navigator.onLine) throw new TransientError('hors ligne');
     if (lane) await lane.acquire();
     let r = null;
-    try { r = await fetch(url, { mode: 'cors' }); } catch { r = null; } finally { lane?.release(); }
+    try { r = await fetch(url, { mode: 'cors', ...init }); } catch { r = null; } finally { lane?.release(); }
     if (r && !RETRY.has(r.status)) { lane?.ok(); return r; }
     if (r) lane?.refused(+r.headers.get('retry-after'));
     if (a + 1 >= attempts) throw new TransientError(r ? `${r.status}` : 'réseau');

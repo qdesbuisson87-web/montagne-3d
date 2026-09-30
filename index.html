@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202609301913">
+<link rel="stylesheet" href="css/app.css?v=202609301935">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -127,12 +127,17 @@
     <label for="c-trails"><input id="c-trails" type="checkbox" checked> Sentiers, refuges et remontées (IGN)</label>
     <label for="c-buildings"><input id="c-buildings" type="checkbox" checked> Bâtiments en 3D (BD TOPO IGN)</label>
     <label for="c-trees"><input id="c-trees" type="checkbox" checked> Forêts en 3D (LiDAR IGN)</label>
+    <label for="c-lidar"><input id="c-lidar" type="checkbox"> Nuage de points LiDAR (de près)</label>
     <label for="c-snowtoday"><input id="c-snowtoday" type="checkbox" checked> Neige du jour (satellite)</label>
     <label for="c-clouds"><input id="c-clouds" type="checkbox" checked> Nuages réels</label>
     <label for="c-labels"><input id="c-labels" type="checkbox" checked> Noms des sommets</label>
     <label for="c-cable"><input id="c-cable" type="checkbox" checked> Téléphérique</label>
     <label for="c-spin"><input id="c-spin" type="checkbox"> Rotation auto</label>
   </div>
+  <div class="field" id="f-lidar" hidden><label>Points LiDAR : couleurs</label>
+    <div class="seg"><button type="button" data-ptcolor="photo" aria-pressed="true">Photo</button><button type="button" data-ptcolor="classes" aria-pressed="false">Classes</button></div>
+    <ul class="ptlegend" id="ptLegend" hidden></ul>
+    <p class="cline small" id="ptInfo"></p></div>
   <div class="field"><label for="vivid">Couleurs <output id="vividOut">+20 %</output></label><input id="vivid" type="range" min="0" max="1" step="0.01" value="0.2"></div>
   <div class="field"><label for="exag">Relief <output id="exagOut">×1.0</output></label><input id="exag" type="range" min="1" max="1.8" step="0.05" value="1"></div>
   <div class="field"><label>Qualité</label>
@@ -145,7 +150,12 @@
   <div class="row"><button id="packGo" type="button" class="btn">Télécharger</button><button id="packStop" type="button" class="mini" hidden>Arrêter</button></div>
   <p class="cline small" id="storageInfo"></p>
   <button id="cacheClear" type="button" class="mini">Vider le stockage</button>
-  <p class="cnote">Sources : relief © IGN (LiDAR HD, RGE ALTI), photos © IGN (BD ORTHO), hors France Sentinel-2 cloudless © EOX (CC BY-NC-SA 4.0) et relief Mapzen/AWS Terrain Tiles · Satellite du jour : Copernicus Sentinel-2 via Microsoft Planetary Computer · Météo : Météo-France via Open-Meteo · Sentiers, refuges, remontées, bâtiments et lacs : IGN BD TOPO · Vue Google 3D : Google Photorealistic 3D Tiles (© Google et fournisseurs affichés en bas de l'écran).</p>
+  <h3>Points LiDAR gardés</h3>
+  <p class="cline small">Chaque endroit vu de près est gardé pour s'ouvrir tout de suite et sans réseau. Au-delà de la limite, les endroits vus il y a le plus longtemps sont effacés.</p>
+  <div class="seg"><button type="button" data-ptlimit="0" aria-pressed="false">500 Mo</button><button type="button" data-ptlimit="1" aria-pressed="true">2 Go</button><button type="button" data-ptlimit="2" aria-pressed="false">5 Go</button></div>
+  <p class="cline small" id="ptStore"></p>
+  <button id="ptClear" type="button" class="mini">Vider les points LiDAR</button>
+  <p class="cnote">Sources : relief © IGN (LiDAR HD, RGE ALTI), photos © IGN (BD ORTHO), hors France Sentinel-2 cloudless © EOX (CC BY-NC-SA 4.0) et relief Mapzen/AWS Terrain Tiles · Satellite du jour : Copernicus Sentinel-2 via Microsoft Planetary Computer · Météo : Météo-France via Open-Meteo · Sentiers, refuges, remontées, bâtiments et lacs : IGN BD TOPO · Nuage de points : IGN LiDAR HD (Licence ouverte Etalab 2.0), décodé avec laz-perf (Hobu, Apache 2.0) · Vue Google 3D : Google Photorealistic 3D Tiles (© Google et fournisseurs affichés en bas de l'écran).</p>
 </section>
 
 <section id="sheet-route" class="sheet glass" hidden aria-label="Sortie">
@@ -214,6 +224,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202609301913"></script>
+<script type="module" src="js/app.js?v=202609301935"></script>
 </body>
 </html>

@@ -1,26 +1,27 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202609301913';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301913';
-import { SITE, SITE_LIST } from './sites.js?v=202609301913';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301913';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301913';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301913';
-import { searchPlaces } from './search.js?v=202609301913';
-import { TerrainShadows } from './shadows.js?v=202609301913';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301913';
-import { Forest } from './forest.js?v=202609301913';
-import { Lakes } from './water.js?v=202609301913';
-import { Buildings } from './buildings.js?v=202609301913';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202609301913';
-import { GpsTracker } from './gps.js?v=202609301913';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202609301913';
-import { walkingRoute } from './planner.js?v=202609301913';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202609301913';
-import { TrailsLayer } from './trails.js?v=202609301913';
-import { Weather3D } from './weather3d.js?v=202609301913';
-import { Sight } from './sight.js?v=202609301913';
-import { Photos360 } from './photos360.js?v=202609301913';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301913';
+import { EarthControls } from './controls.js?v=202609301935';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301935';
+import { SITE, SITE_LIST } from './sites.js?v=202609301935';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301935';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301935';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301935';
+import { searchPlaces } from './search.js?v=202609301935';
+import { TerrainShadows } from './shadows.js?v=202609301935';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301935';
+import { Forest } from './forest.js?v=202609301935';
+import { Lakes } from './water.js?v=202609301935';
+import { Buildings } from './buildings.js?v=202609301935';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202609301935';
+import { GpsTracker } from './gps.js?v=202609301935';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202609301935';
+import { walkingRoute } from './planner.js?v=202609301935';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202609301935';
+import { TrailsLayer } from './trails.js?v=202609301935';
+import { Weather3D } from './weather3d.js?v=202609301935';
+import { Sight } from './sight.js?v=202609301935';
+import { Photos360 } from './photos360.js?v=202609301935';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202609301935';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301935';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -48,9 +49,9 @@ const beefy = (navigator.deviceMemory || 8) >= 6 && (navigator.hardwareConcurren
 // k: tile split distance (detail), pr: highest pixel ratio, fps: frame rate the automatic adjustment defends,
 // fx: share of the snow/rain particles, clouds: layers of the sea of clouds
 const QUAL = {
-  standard: { k: 1.6, pr: 1.25, tiles: 450, loads: 6, fps: 50, fx: 0.3, clouds: 2, gErr: 24, shRes: 512, shSteps: 80, trees: 12000 },
-  haute: { k: 2.2, pr: 2, tiles: 800, loads: 8, fps: 55, fx: 0.6, clouds: 3, gErr: 12, shRes: 1024, shSteps: 112, trees: 40000 },
-  extreme: { k: 3.2, pr: 3, tiles: 1300, loads: 12, fps: 30, fx: 1, clouds: 4, gErr: 6, shRes: 2048, shSteps: 160, trees: 120000 } // gErr: Google 3D screen error (px); sh*: shadow maps
+  standard: { k: 1.6, pr: 1.25, tiles: 450, loads: 6, fps: 50, fx: 0.3, clouds: 2, gErr: 24, shRes: 512, shSteps: 80, trees: 12000, pts: 6e5, ptPx: 2.2 },
+  haute: { k: 2.2, pr: 2, tiles: 800, loads: 8, fps: 55, fx: 0.6, clouds: 3, gErr: 12, shRes: 1024, shSteps: 112, trees: 40000, pts: 1.5e6, ptPx: 1.7 },
+  extreme: { k: 3.2, pr: 3, tiles: 1300, loads: 12, fps: 30, fx: 1, clouds: 4, gErr: 6, shRes: 2048, shSteps: 160, trees: 120000, pts: 4e6, ptPx: 1.3 } // gErr: Google 3D screen error (px); sh*: shadow maps; pts: LiDAR point budget, ptPx: their spacing on screen (CSS px)
 };
 // phones start in "Haute" (the promise: 60 i/s on a high-end phone); "Extrême" is a deliberate choice there
 let savedQuality = null; try { savedQuality = localStorage.getItem('midi3d-quality'); } catch { }
@@ -251,6 +252,7 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(200000, 48, 24), new THREE.S
 sky.renderOrder = -1; sky.frustumCulled = false; scene.add(sky);
 const lakes = new Lakes({ scene, engine, uniforms: U, sceneGLSL: SCENE_GLSL, skyGLSL: SKY_LOOKUP_GLSL, skyTex: skyBaker.texture });
 const buildings = new Buildings({ scene, uniforms: U, sceneGLSL: SCENE_GLSL });
+const lidar = new PointCloud({ scene, uniforms: U, sceneGLSL: SCENE_GLSL, renderer });
 const weather3d = new Weather3D({ scene, uniforms: U });
 const photos = new Photos360({ scene, groundAt: (x, z) => engine.heightAt(x, z) });
 // a Panoramax photo: preview in the point sheet, with its author, date and licence (required by CC BY-SA)
@@ -1027,6 +1029,27 @@ $('c-labels').addEventListener('change', e => { state.labels = e.target.checked;
 $('c-cable').addEventListener('change', e => { cable.visible = cabins.visible = e.target.checked; });
 state.trees = true; $('c-trees').addEventListener('change', e => { state.trees = e.target.checked; });
 $('c-buildings').addEventListener('change', e => { buildings.on = e.target.checked; });
+// LiDAR point cloud: choice remembered; colours from the photo or by class (legend from the shader's own list)
+$('ptLegend').innerHTML = POINT_CLASSES.map(([, name, hex]) => `<li><i style="background:${hex}"></i>${esc(name)}</li>`).join('');
+function applyLidar(on) {
+  lidar.on = on; $('c-lidar').checked = on; $('f-lidar').hidden = !on; if (!on) lidar.release();
+  if (on) navigator.storage?.persist?.(); // ask the browser to keep what is downloaded (installed apps usually get it)
+  try { localStorage.setItem('midi3d-lidar', on ? '1' : '0'); } catch { }
+}
+$('c-lidar').addEventListener('change', e => applyLidar(e.target.checked));
+let savedLidar = null; try { savedLidar = localStorage.getItem('midi3d-lidar'); } catch { }
+applyLidar(savedLidar !== '0');
+seg('ptcolor', 'ptcolor', v => { lidar.setColorMode(v === 'classes' ? 1 : 0); $('ptLegend').hidden = v !== 'classes'; });
+const ptDate = d => new Date(d.replace(/Z$/, '')).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+function renderLidarInfo() {
+  const s = lidar.stats, el = $('ptInfo'); if (!lidar.on) return;
+  if (google.on) { el.textContent = 'Les points LiDAR restent dans la vue IGN.'; return; }
+  if (s.why === 'far') { el.textContent = 'Rapproche-toi (moins de 4 km du point regardé) pour voir les points.'; return; }
+  if (s.why === 'none') { el.textContent = "Pas de relevé LiDAR IGN publié ici (hors de France ou pas encore diffusé)."; return; }
+  if (s.why === 'wait' && !s.shown) { el.textContent = navigator.onLine ? 'Recherche des relevés LiDAR ici…' : "Hors ligne : seuls les endroits déjà vus s'affichent."; return; }
+  const when = s.dates?.length ? ` · relevé ${s.dates.length > 1 ? `de ${ptDate(s.dates[0])} à ${ptDate(s.dates[s.dates.length - 1])}` : `de ${ptDate(s.dates[0])}`}` : '';
+  el.textContent = `${fmt(s.shown)} points affichés${when}${s.missing ? ` · ${s.missing} morceaux ${navigator.onLine ? 'en chargement' : 'non gardés (hors ligne)'}` : ''}`;
+}
 $('c-trails').addEventListener('change', e => { trails.on = e.target.checked; });
 $('c-freeze').addEventListener('change', e => { weather3d.showFreeze = e.target.checked; });
 $('c-photos').addEventListener('change', e => { photos.on = e.target.checked; });
@@ -1103,6 +1126,7 @@ $('refresh').addEventListener('click', refreshLive);
 const adapt = { res: 1, detail: 1, good: 0, since: 0 };
 function applyScale() {
   const Q = QUAL[state.quality]; engine.splitK = Q.k * adapt.detail; google.setErrorTarget(Q.gErr / adapt.detail);
+  lidar.setQuality(Q.pts * adapt.detail * adapt.detail, Q.ptPx); // fewer LiDAR points along with the terrain detail
   const pr = Math.max(0.6, Math.min(window.devicePixelRatio || 1, Q.pr) * adapt.res);
   if (Math.abs(pr - renderer.getPixelRatio()) > 0.01) { renderer.setPixelRatio(pr); resize(); }
 }
@@ -1288,9 +1312,13 @@ document.querySelectorAll('[data-pack]').forEach(b => b.addEventListener('click'
 markSeg('pack', packChoice); showPack(); showStorage();
 $('packGo').addEventListener('click', runPack);
 $('packStop').addEventListener('click', () => { if (packRun) packRun.stop = true; });
+function showPtStore() { $('ptStore').textContent = `Points gardés sur l'appareil : ${mo(lidar.store.used / 1000)} sur ${mo(lidar.store.limit / 1000)} autorisés.`; }
+document.querySelectorAll('[data-ptlimit]').forEach(b => b.addEventListener('click', async () => { markSeg('ptlimit', b.dataset.ptlimit); await lidar.store.setLimit(LIMITS[+b.dataset.ptlimit]); showPtStore(); showStorage(); }));
+markSeg('ptlimit', String(Math.max(0, LIMITS.indexOf(lidar.store.limit)))); showPtStore();
+$('ptClear').addEventListener('click', async () => { await lidar.clear(); showPtStore(); showStorage(); });
 $('cacheClear').addEventListener('click', async () => {
   if ($('cacheClear').dataset.armed !== '1') { $('cacheClear').dataset.armed = '1'; $('cacheClear').textContent = 'Confirmer : tout effacer'; setTimeout(() => { $('cacheClear').dataset.armed = ''; $('cacheClear').textContent = 'Vider le stockage'; }, 4000); return; }
-  await caches.delete(TILE_CACHE).catch(() => { }); resetTileCache();
+  await caches.delete(TILE_CACHE).catch(() => { }); resetTileCache(); await lidar.clear(); showPtStore();
   $('cacheClear').dataset.armed = ''; $('cacheClear').textContent = 'Vider le stockage'; showStorage();
 });
 
@@ -1376,9 +1404,11 @@ function drawFrame() {
   SU.boxSize.value = Math.min(Math.max(td * 0.9, 40), 9000);
   if (cabins.visible) { const a = cabinGeo.attributes.position.array, ph = (t * 0.02) % 2, f = ph < 1 ? ph : 2 - ph; a.set(cablePoint(0, f), 0); a.set(cablePoint(1, 1 - f), 3); cabinGeo.attributes.position.needsUpdate = true; }
   if (google.on) google.update(); else engine.update(camera);
-  forest.update(camera, google.on || !state.trees);
+  lidar.update(camera, controls.target, state.exag, google.on);
+  const byPoints = (x, z) => lidar.covers(x, z);
+  forest.update(camera, google.on || !state.trees, byPoints);
   lakes.update(camera, frameN, state.exag, google.on, controls.target);
-  buildings.update(camera, controls.target, frameN, google.on);
+  buildings.update(camera, controls.target, frameN, google.on, byPoints);
   gps.update(camera, groundAt, state.exag); if (gps.on && frameN % 60 === 0) renderGps();
   route.update(frameN, state.exag, engine.busy);
   trails.update(camera, controls.target, frameN, state.exag, google.on);
@@ -1406,10 +1436,11 @@ function drawFrame() {
     $('rFps').textContent = `${Math.round(fpsN / fpsAcc)} i/s · ${google.on ? 'Google 3D' : `${engine.tileCount ?? 0} tuiles`}${auto}`;
     const busy = google.on ? google.loading : engine.busy;
     $('status').hidden = busy === 0; $('statusN').textContent = busy;
+    renderLidarInfo(); if (!$('sheet-layers').hidden) showPtStore();
     fpsAcc = 0; fpsN = 0;
   }
 }
-window.midi3d = { engine, google, camera, controls, adapt, applyScale, forest, lakes, shadows, gps, route, sight }; // handy for debugging from the console
+window.midi3d = { engine, google, camera, controls, adapt, applyScale, forest, lakes, shadows, gps, route, sight, lidar }; // handy for debugging from the console
 updateSky(); frame(); refreshLive();
 setInterval(() => { if (document.visibilityState === 'visible') refreshLive(); }, 15 * 60e3);
 setTimeout(() => $('loader').classList.add('done'), 15000);

@@ -1,7 +1,7 @@
 // Live data, fetched every time the app opens: Météo-France forecasts (via Open-Meteo),
 // the latest Sentinel-2 pass and the latest clear one (Microsoft Planetary Computer), snow by altitude.
-import { lonLatToMerc, RE } from './geo.js?v=202609301913';
-import { SITE } from './sites.js?v=202609301913';
+import { lonLatToMerc, RE } from './geo.js?v=202609301935';
+import { SITE } from './sites.js?v=202609301935';
 
 export const SPOTS = SITE.spots; // top, peak2, mid, valley
 const qs = o => new URLSearchParams(o).toString();

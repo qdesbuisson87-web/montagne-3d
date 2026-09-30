@@ -3,8 +3,8 @@
 // the long side for rectangular footprints (most chalets), a hip towards the middle otherwise.
 // Fetched by cells of ≈ 1 km around the view, one merged mesh per cell.
 import * as THREE from 'three';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202609301913';
-import { cachedFetch } from './net.js?v=202609301913';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202609301935';
+import { cachedFetch } from './net.js?v=202609301935';
 
 const CELL = 0.01, RANGE = 2600, SHOW = 5000; // degrees; metres around the view to fetch; metres to draw
 const WFS = (s, w, n, e) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=BDTOPO_V3:batiment&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=5000&BBOX=${s},${w},${n},${e},urn:ogc:def:crs:EPSG::4326`;
@@ -123,13 +123,14 @@ export class Buildings {
     const m = new THREE.Mesh(g, this.material); m.position.set(cell.cx, 0, cell.cz); this.group.add(m); cell.mesh = m;
   }
 
-  update(camera, target, frameN, hidden) {
+  // masked(x, z): places drawn by the LiDAR points, where the real buildings are already there
+  update(camera, target, frameN, hidden, masked) {
     this.group.visible = this.on && !hidden; if (!this.group.visible) return;
     if (frameN % 45 === 0) this.ensure(target.x, target.z);
     const c = camera.position;
     for (const [key, cell] of this.cells) {
       const d = Math.hypot(cell.cx - c.x, cell.cz - c.z);
-      if (cell.mesh) cell.mesh.visible = d < SHOW;
+      if (cell.mesh) cell.mesh.visible = d < SHOW && !masked?.(cell.cx, cell.cz);
       if (d > SHOW * 3 && cell.mesh) { this.group.remove(cell.mesh); cell.mesh.geometry.dispose(); this.cells.delete(key); } // far behind: free it
     }
   }

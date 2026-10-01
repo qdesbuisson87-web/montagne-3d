@@ -3,8 +3,8 @@
 // the long side for rectangular footprints (most chalets), a hip towards the middle otherwise.
 // Fetched by cells of ≈ 1 km around the view, one merged mesh per cell.
 import * as THREE from 'three';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610011842';
-import { cachedFetch } from './net.js?v=202610011842';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610011847';
+import { cachedFetch } from './net.js?v=202610011847';
 
 const CELL = 0.01, RANGE = 2600, SHOW = 5000; // degrees; metres around the view to fetch; metres to draw
 const WFS = (s, w, n, e) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=BDTOPO_V3:batiment&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=5000&BBOX=${s},${w},${n},${e},urn:ogc:def:crs:EPSG::4326`;

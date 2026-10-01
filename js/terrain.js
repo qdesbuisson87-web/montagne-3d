@@ -2,8 +2,8 @@
 // elevation grid and photo. Close to the camera the tree goes down to zoom 19 (IGN photos 20 cm,
 // LiDAR HD elevation); far away it stays coarse. Nothing is pre-packaged: every tile is fetched live.
 import * as THREE from 'three';
-import { tileMerc, mercToWorld, mercToLonLat, worldToLonLat, lonLatToL93, lonLatToTile, K } from './geo.js?v=202610011842';
-import { cachedFetch, TransientError } from './net.js?v=202610011842';
+import { tileMerc, mercToWorld, mercToLonLat, worldToLonLat, lonLatToL93, lonLatToTile, K } from './geo.js?v=202610011847';
+import { cachedFetch, TransientError } from './net.js?v=202610011847';
 
 // NE: the grid plus a one-sample ring taken beyond the tile edge, so that normals and slopes at the edge
 // use the same central differences as the neighbour tile does (no seam in lighting or slope colours)
@@ -65,6 +65,18 @@ export function elevRequest(z, x, y) {
   bx0 -= pad; by0 -= pad; bx1 += pad; by1 += pad;
   const w = Math.min(160, Math.ceil((bx1 - bx0) / res)), hgt = Math.min(160, Math.ceil((by1 - by0) / res)), bbox = [bx0, by0, bx1, by1];
   return { L, bbox, w, hgt, url: layer => URL_IGN_ELEV(layer, bbox, w, hgt) };
+}
+// Sentinel-2 cloudless (EOX), used where IGN has no photo (Italy, Switzerland), is darker in the mid-tones and
+// three times as saturated as the IGN photos: the border showed along the ridges. Measured on 12 zoom-14 tiles of
+// the French side where both exist (Chamonix valley, Aiguilles Rouges, Les Houches, Contamines, Buet, Megève;
+// 01/10/2026): its brightness is mapped onto IGN's by histogram matching (control points every 16 values) and its
+// saturation scaled by the ratio of mean chroma, 10.0 / 32.6. The three channels move together, so hues stay
+// (matching each channel on its own turned grey rock purple).
+const EOX_LUM = (p => Float32Array.from({ length: 256 }, (_, v) => { const i = Math.min(15, v >> 4), t = (v - i * 16) / (i === 15 ? 15 : 16); return p[i] + (p[i + 1] - p[i]) * t; }))(
+  [0, 40, 67, 90, 121, 145, 160, 170, 180, 189, 197, 204, 210, 217, 221, 225, 255]), EOX_SAT = 0.31;
+function eoxToIgn(b, k) {
+  const r = b[k], g = b[k + 1], bl = b[k + 2], y = 0.2126 * r + 0.7152 * g + 0.0722 * bl, s = EOX_LUM[Math.round(y)] / Math.max(y, 1);
+  b[k] = (y + (r - y) * EOX_SAT) * s; b[k + 1] = (y + (g - y) * EOX_SAT) * s; b[k + 2] = (y + (bl - y) * EOX_SAT) * s; // clamped by the array
 }
 const scratch = document.createElement('canvas'); scratch.width = scratch.height = 256;
 const sctx = scratch.getContext('2d', { willReadFrequently: true });
@@ -181,11 +193,12 @@ class Tile {
     const eox = await fetchBitmap(URL_EOX(ez, x >> (z - ez), y >> (z - ez))).catch(unlessTransient(null));
     const cv = document.createElement('canvas'); cv.width = cv.height = 256; const c = cv.getContext('2d');
     if (eox) { const s = 256 / f; c.drawImage(eox, (x % f) * s, (y % f) * s, s, s, 0, 0, 256, 256); eox.close?.(); } else { c.fillStyle = '#9a9a96'; c.fillRect(0, 0, 256, 256); }
-    if (data) {
-      const base = c.getImageData(0, 0, 256, 256), b = base.data, d = data.data;
-      for (let k = 0; k < d.length; k += 4) if (!(d[k] >= 254 && d[k + 1] >= 254 && d[k + 2] >= 254)) { b[k] = d[k]; b[k + 1] = d[k + 1]; b[k + 2] = d[k + 2]; }
-      c.putImageData(base, 0, 0); ign.close?.();
+    const base = c.getImageData(0, 0, 256, 256), b = base.data, d = data?.data;
+    for (let k = 0; k < b.length; k += 4) {
+      if (d && !(d[k] >= 254 && d[k + 1] >= 254 && d[k + 2] >= 254)) { b[k] = d[k]; b[k + 1] = d[k + 1]; b[k + 2] = d[k + 2]; }
+      else if (eox) eoxToIgn(b, k);
     }
+    c.putImageData(base, 0, 0); ign?.close?.();
     return this.engine.makeTexture(await createImageBitmap(cv));
   }
   // beyond the finest photo: the quarter of the parent's photo (already in memory), smoothly enlarged

@@ -1,31 +1,31 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610011847';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610011847';
-import { SITE, SITE_LIST } from './sites.js?v=202610011847';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610011847';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610011847';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610011847';
-import { searchPlaces } from './search.js?v=202610011847';
-import { TerrainShadows } from './shadows.js?v=202610011847';
-import { PostFX } from './post.js?v=202610011847';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610011847';
-import { Forest } from './forest.js?v=202610011847';
-import { Lakes } from './water.js?v=202610011847';
-import { Glaciers } from './glaciers.js?v=202610011847';
-import { NightLights } from './lights.js?v=202610011847';
-import { Buildings } from './buildings.js?v=202610011847';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610011847';
-import { GpsTracker } from './gps.js?v=202610011847';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610011847';
-import { walkingRoute } from './planner.js?v=202610011847';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610011847';
-import { TrailsLayer } from './trails.js?v=202610011847';
-import { Weather3D } from './weather3d.js?v=202610011847';
-import { Sight } from './sight.js?v=202610011847';
-import { Photos360 } from './photos360.js?v=202610011847';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610011847';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610011847';
-import { VolumeClouds } from './clouds.js?v=202610011847';
+import { EarthControls } from './controls.js?v=202610011858';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610011858';
+import { SITE, SITE_LIST } from './sites.js?v=202610011858';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610011858';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610011858';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610011858';
+import { searchPlaces } from './search.js?v=202610011858';
+import { TerrainShadows } from './shadows.js?v=202610011858';
+import { PostFX } from './post.js?v=202610011858';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610011858';
+import { Forest } from './forest.js?v=202610011858';
+import { Lakes } from './water.js?v=202610011858';
+import { Glaciers } from './glaciers.js?v=202610011858';
+import { NightLights } from './lights.js?v=202610011858';
+import { Buildings } from './buildings.js?v=202610011858';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610011858';
+import { GpsTracker } from './gps.js?v=202610011858';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610011858';
+import { walkingRoute } from './planner.js?v=202610011858';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610011858';
+import { TrailsLayer } from './trails.js?v=202610011858';
+import { Weather3D } from './weather3d.js?v=202610011858';
+import { Sight } from './sight.js?v=202610011858';
+import { Photos360 } from './photos360.js?v=202610011858';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610011858';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610011858';
+import { VolumeClouds } from './clouds.js?v=202610011858';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -1123,7 +1123,18 @@ $('exag').addEventListener('input', e => {
 });
 $('vivid').addEventListener('input', e => { U.vivid.value = +e.target.value; $('vividOut').textContent = +e.target.value < 0.02 ? 'naturelles' : '+' + Math.round(+e.target.value * 100) + ' %'; });
 $('c-snowtoday').addEventListener('change', e => { state.snowToday = e.target.checked; U.snowToday.value = e.target.checked ? 1 : 0; engine.setOverlay('snow', e.target.checked); });
-$('c-clouds').addEventListener('change', e => { state.clouds = e.target.checked; renderWeather(); if (!state.weather) cloudU.cover.value = 0; showCloudLayers(); });
+$('c-clouds').addEventListener('change', e => setWeatherShown(e.target.checked, false));
+// one switch for the real weather on screen (bottom bar and Affichage): clouds, their grey veil and haze, and
+// the rain or snow falling. Off, the mountains are seen as on a clear day, whatever the weather; remembered.
+function setWeatherShown(on, withPrecip = true) {
+  state.clouds = on; $('c-clouds').checked = on;
+  $('wxToggle').setAttribute('aria-pressed', on); $('wxToggle').setAttribute('aria-label', on ? 'Météo réelle affichée : nuages, pluie et neige (toucher pour les masquer)' : 'Météo masquée : vue dégagée (toucher pour afficher la météo réelle)');
+  if (withPrecip) { state.precip = on ? 'auto' : 'off'; markSeg('precip', state.precip); applyPrecip(); }
+  if (state.weather) renderWeather(); else { cloudU.cover.value = 0; showCloudLayers(); }
+  try { localStorage.setItem('midi3d-weather-shown', on ? '1' : '0'); } catch { }
+}
+$('wxToggle').addEventListener('click', () => setWeatherShown(!state.clouds));
+try { if (localStorage.getItem('midi3d-weather-shown') === '0') setWeatherShown(false); } catch { }
 // cloud layers cover the whole screen: none drawn in clear weather, fewer on lighter settings
 function showCloudLayers() { const n = QUAL[state.quality].clouds, vol = vclouds.on && post.enabled; clouds.children.forEach((m, i) => { m.visible = !vol && cloudU.cover.value > 0.01 && i < n && !state.far; }); }
 $('c-labels').addEventListener('change', e => { state.labels = e.target.checked; labelsEl.hidden = !e.target.checked; });

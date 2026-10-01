@@ -6,8 +6,8 @@
 // flat roofs (no peak), and anything above 50 m.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { tileMerc, mercToLonLat, lonLatToL93, l93ToLonLat, lonLatToWorld } from './geo.js?v=202610011759';
-import { cachedFetch, TransientError } from './net.js?v=202610011759';
+import { tileMerc, mercToLonLat, lonLatToL93, l93ToLonLat, lonLatToWorld } from './geo.js?v=202610011821';
+import { cachedFetch, TransientError } from './net.js?v=202610011821';
 
 const MNH = 'IGNF_LIDAR-HD_MNH_ELEVATION.ELEVATIONGRIDCOVERAGE.LAMB93';
 const Z = 16, RES = 256, NEAR = 700; // metres: beyond, the simple tree
@@ -56,7 +56,7 @@ export class Forest {
         if (light < 0.5) { const vec3 PL = vec3(0.196, 0.819, 0.539); col = alb * (0.6 + 0.6 * max(dot(n, PL), 0.0)); }
         else {
           float sh = shOn > 0.5 ? sunShadow(vW) : 1.0;
-          col = alb * 1.3 * (sunCol * max(dot(n, sunDir), 0.0) * sh + skyCol * 0.5 * (0.6 + 0.4 * n.y));
+          col = alb * 1.3 * (sunCol * max(dot(n, sunDir), 0.0) * sh + skyCol * 0.5 * (0.6 + 0.4 * n.y) * skyVis(vW));
         }
         gl_FragColor = vec4(pow(max(aerial(col, vW), 0.0), vec3(1.0/2.2)), 1.0);
       }`;

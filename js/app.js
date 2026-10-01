@@ -1,27 +1,29 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610011759';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610011759';
-import { SITE, SITE_LIST } from './sites.js?v=202610011759';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610011759';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610011759';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610011759';
-import { searchPlaces } from './search.js?v=202610011759';
-import { TerrainShadows } from './shadows.js?v=202610011759';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610011759';
-import { Forest } from './forest.js?v=202610011759';
-import { Lakes } from './water.js?v=202610011759';
-import { Buildings } from './buildings.js?v=202610011759';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610011759';
-import { GpsTracker } from './gps.js?v=202610011759';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610011759';
-import { walkingRoute } from './planner.js?v=202610011759';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610011759';
-import { TrailsLayer } from './trails.js?v=202610011759';
-import { Weather3D } from './weather3d.js?v=202610011759';
-import { Sight } from './sight.js?v=202610011759';
-import { Photos360 } from './photos360.js?v=202610011759';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610011759';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, SPOTS } from './live.js?v=202610011759';
+import { EarthControls } from './controls.js?v=202610011821';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610011821';
+import { SITE, SITE_LIST } from './sites.js?v=202610011821';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610011821';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610011821';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610011821';
+import { searchPlaces } from './search.js?v=202610011821';
+import { TerrainShadows } from './shadows.js?v=202610011821';
+import { PostFX } from './post.js?v=202610011821';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610011821';
+import { Forest } from './forest.js?v=202610011821';
+import { Lakes } from './water.js?v=202610011821';
+import { Buildings } from './buildings.js?v=202610011821';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610011821';
+import { GpsTracker } from './gps.js?v=202610011821';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610011821';
+import { walkingRoute } from './planner.js?v=202610011821';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610011821';
+import { TrailsLayer } from './trails.js?v=202610011821';
+import { Weather3D } from './weather3d.js?v=202610011821';
+import { Sight } from './sight.js?v=202610011821';
+import { Photos360 } from './photos360.js?v=202610011821';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610011821';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610011821';
+import { VolumeClouds } from './clouds.js?v=202610011821';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -38,6 +40,7 @@ const renderer = new THREE.WebGLRenderer({ antialias: (window.devicePixelRatio |
 renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 stage.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
+const post = new PostFX(renderer); // final image: highlights, glow, contrast (post.js)
 const camera = new THREE.PerspectiveCamera(50, 1, 1, 250000);
 // Google-Earth-like gestures (controls.js): the ground under the finger is grabbed; the point under a screen
 // position comes from pick() (the IGN relief or the Google surface), defined further down
@@ -51,9 +54,9 @@ const beefy = (navigator.deviceMemory || 8) >= 6 && (navigator.hardwareConcurren
 // k: tile split distance (detail), pr: highest pixel ratio, fps: frame rate the automatic adjustment defends,
 // fx: share of the snow/rain particles, clouds: layers of the sea of clouds
 const QUAL = {
-  standard: { k: 1.6, pr: 1.25, tiles: 450, loads: 6, fps: 50, fx: 0.3, clouds: 2, gErr: 24, shRes: 512, shSteps: 80, trees: 12000, pts: 6e5, ptPx: 2.2 },
-  haute: { k: 2.2, pr: 2, tiles: 800, loads: 8, fps: 55, fx: 0.6, clouds: 3, gErr: 12, shRes: 1024, shSteps: 112, trees: 40000, pts: 1.5e6, ptPx: 1.7 },
-  extreme: { k: 3.2, pr: 3, tiles: 1300, loads: 12, fps: 30, fx: 1, clouds: 4, gErr: 6, shRes: 2048, shSteps: 160, trees: 120000, pts: 4e6, ptPx: 1.3 } // gErr: Google 3D screen error (px); sh*: shadow maps; pts: LiDAR point budget, ptPx: their spacing on screen (CSS px)
+  standard: { k: 1.6, pr: 1.25, tiles: 450, loads: 6, fps: 50, fx: 0.3, clouds: 2, gErr: 24, shRes: 512, shSteps: 80, ao: 8, trees: 12000, vSteps: 0, pts: 6e5, ptPx: 2.2 },
+  haute: { k: 2.2, pr: 2, tiles: 800, loads: 8, fps: 55, fx: 0.6, clouds: 3, gErr: 12, shRes: 1024, shSteps: 112, ao: 10, trees: 40000, vSteps: 28, pts: 1.5e6, ptPx: 1.7 },
+  extreme: { k: 3.2, pr: 3, tiles: 1300, loads: 12, fps: 30, fx: 1, clouds: 4, gErr: 6, shRes: 2048, shSteps: 160, ao: 16, trees: 120000, vSteps: 48, pts: 4e6, ptPx: 1.3 } // gErr: Google 3D screen error (px); sh*: shadow maps; ao: directions searched for the sky visibility; vSteps: steps through the clouds in volume (0 = flat layers); pts: LiDAR point budget, ptPx: their spacing on screen (CSS px)
 };
 // phones start in "Haute" (the promise: 60 i/s on a high-end phone); "Extrême" is a deliberate choice there
 let savedQuality = null; try { savedQuality = localStorage.getItem('midi3d-quality'); } catch { }
@@ -66,8 +69,12 @@ const U = {
   noiseTex: { value: cloudNoiseTexture() }, // tileable fractal noise: cloud shapes and rock grain
   // cast shadows (shadows.js): fine and coarse shadow maps and their squares on the ground
   shF: { value: null }, shC: { value: null }, srF: { value: new THREE.Vector4() }, srC: { value: new THREE.Vector4() }, shOn: { value: 0 },
+  aoF: { value: null }, aoC: { value: null }, aoOn: { value: 0 }, // sky visibility (ambient occlusion), same squares
+  // shadows of the clouds in volume (clouds.js): their noise, the densest layer's altitude and cover, the wind
+  clNoise: { value: null }, clOn: { value: 0 }, clAlt: { value: 2500 }, clCover: { value: 0 }, clWind: { value: null },
   light: { value: 0 }, vivid: { value: 0.2 }, snowToday: { value: 1 }, visToday: { value: 0 }, slopes: { value: state.slopes ? 1 : 0 }, fogDensity: { value: 0.000016 }, haze: { value: 0 }, time: { value: 0 }
 };
+U.clTime = U.time; // the clouds' clock under its own name (several shaders already declare "time")
 // slope classes (degrees, lower bound) and their colours; the shader and the on-screen legend both read this
 const SLOPE_CLASSES = [[27, '#ffe135'], [30, '#ff9419'], [35, '#e3261f'], [40, '#9a37d0'], [45, '#484a55']];
 const glslColor = hex => 'vec3(' + [1, 3, 5].map(i => (Math.pow(parseInt(hex.slice(i, i + 2), 16) / 255, 2.2)).toFixed(4)).join(', ') + ')';
@@ -85,14 +92,29 @@ void main(){
 const SCENE_GLSL = `
 uniform float exag, light, fogDensity, haze, shOn;
 uniform vec3 sunDir, sunCol, skyCol, horizonCol, glowCol;
-uniform sampler2D shF, shC; uniform vec4 srF, srC;
-// share of the sun reaching a point: fine map near the view centre, fading into the coarse one at its edges
-float sunShadow(vec3 w){
+uniform sampler2D shF, shC, aoF, aoC; uniform vec4 srF, srC; uniform float aoOn;
+// a light map of the relief at a point: fine map near the view centre, fading into the coarse one at its edges
+float reliefMap(sampler2D f, sampler2D c, vec3 w){
   vec2 uf = vec2((w.x - srF.x) / srF.z, (srF.y - w.z) / srF.z), uc = vec2((w.x - srC.x) / srC.z, (srC.y - w.z) / srC.z);
-  float c = (uc.x > 0.0 && uc.y > 0.0 && uc.x < 1.0 && uc.y < 1.0) ? texture2D(shC, uc).r : 1.0;
+  float vc = (uc.x > 0.0 && uc.y > 0.0 && uc.x < 1.0 && uc.y < 1.0) ? texture2D(c, uc).r : 1.0;
   float edge = min(min(uf.x, uf.y), min(1.0 - uf.x, 1.0 - uf.y));
-  return mix(c, texture2D(shF, clamp(uf, 0.0, 1.0)).r, smoothstep(0.0, 0.06, edge));
+  return mix(vc, texture2D(f, clamp(uf, 0.0, 1.0)).r, smoothstep(0.0, 0.06, edge));
 }
+precision highp sampler3D;
+uniform sampler3D clNoise; uniform float clOn, clAlt, clCover, clTime; uniform vec2 clWind;
+// share of the sun reaching a point: cast shadows of the relief, and of the clouds (where the sun's ray crosses
+// the densest cloud layer, the same noise as the clouds drawn, moving with them)
+float sunShadow(vec3 w){
+  float s = reliefMap(shF, shC, w);
+  if (clOn > 0.5 && sunDir.y > 0.03 && w.y < clAlt * exag) {
+    vec3 p = w + sunDir * ((clAlt * exag - w.y) / sunDir.y);
+    float n = texture(clNoise, vec3(p.x + clWind.x * clTime, clAlt, p.z + clWind.y * clTime) / vec3(7000.0, 2600.0, 7000.0)).r;
+    s *= 1.0 - 0.8 * smoothstep(1.0 - clCover - 0.08, 1.0 - clCover + 0.28, n);
+  }
+  return s;
+}
+// share of the sky seen from a point (1 on open ground, less in gullies, at the foot of cliffs, in deep valleys)
+float skyVis(vec3 w){ return aoOn > 0.5 ? reliefMap(aoF, aoC, w) : 1.0; }
 // aerial perspective: the air thins with altitude (haze scale height 2.5 km), so valleys are hazier than
 // summits; blue light is scattered more, so distant relief turns blue-grey (horizon and glow colours come
 // from the same scattering model as the sky). col is linear; returns linear.
@@ -198,12 +220,16 @@ void main(){
     // is lit from where the sun stood during the IGN flights (south-south-east, late morning)
     const vec3 PL = vec3(0.196, 0.819, 0.539);
     col = alb * mix(0.88 + 0.14*n.y, 0.45 + 0.75*max(dot(nl, PL), 0.0), steep);
+    // the photo already holds its own shading: the hollows are only deepened a little
+    col *= mix(1.0, skyVis(vW), 0.45);
   }
   else {
     float sh = shOn > 0.5 ? sunShadow(vW) : 1.0; // cast by the surrounding relief
-    float ndl = max(dot(nl, sunDir), 0.0) * sh;
+    float ndl = max(dot(nl, sunDir), 0.0) * sh, sv = skyVis(vW);
     vec3 a = alb / (0.55 + 0.9*lum) * 0.95;
-    col = a * (sunCol*ndl + skyCol*0.5*(0.6 + 0.4*n.y));
+    // sky light only from the part of the sky the place sees; the sun a little dimmer in deep hollows too
+    // (light bounced off the walls there is not modelled, and a full sun made gullies look flat)
+    col = a * (sunCol*ndl*mix(1.0, sv, 0.25) + skyCol*0.5*(0.6 + 0.4*n.y)*sv);
     vec3 V = normalize(cameraPosition - vW), H = normalize(sunDir + V);
     col += sunCol * pow(max(dot(nl, H), 0.0), 60.0) * smoothstep(0.5, 0.8, lum) * 0.35 * sh;
   }
@@ -247,9 +273,10 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(200000, 48, 24), new THREE.S
         c += vec3(0.9, 0.95, 1.0) * star * stars * smoothstep(0.0, 0.15, d.y) * (0.8 + 0.2 * sin(time * 3.0 + h * 60.0)) * (1.0 - overcast);
       }
       float sg = dot(d, sunDir);                                              // the sun's disk, 0.53° across, tinted by the air
-      c += min(sunCol, vec3(1.0)) * smoothstep(0.99994, 0.99998, sg) * step(-0.01, sunDir.y) * (1.0 - overcast);
+      // the sun's disk is written brighter than white: the final pass makes it glow (clipped to white without it)
+      vec3 disk = min(sunCol, vec3(1.0)) * 3.0 * smoothstep(0.99994, 0.99998, sg) * step(-0.01, sunDir.y) * (1.0 - overcast);
       c = mix(c, ovGrey * (0.85 + 0.15 * clamp(d.y * 3.0, 0.0, 1.0)), overcast);
-      gl_FragColor = vec4(min(c, 1.0), 1.0); }`
+      gl_FragColor = vec4(min(c, 1.0) + disk, 1.0); }`
 }));
 sky.renderOrder = -1; sky.frustumCulled = false; scene.add(sky);
 const lakes = new Lakes({ scene, engine, uniforms: U, sceneGLSL: SCENE_GLSL, skyGLSL: SKY_LOOKUP_GLSL, skyTex: skyBaker.texture });
@@ -290,6 +317,21 @@ function cloudNoiseTexture(S = 512, period = 16) {
   return t;
 }
 const cloudU = { ...U, cloudAlt: { value: 2100 }, cover: { value: 0 }, wind: { value: new THREE.Vector2(3, 1) } };
+// clouds in volume from "Haute" up (they need the final image pass); the flat layers below remain for "Standard"
+const vclouds = new VolumeClouds(renderer, U); post.clouds = vclouds;
+// the model's cloud profile for the hour shown (the time slider shows the forecast clouds of that hour)
+function updateCloudProfile() {
+  const W = state.weather, d = lightingNow(), p2 = n => String(n).padStart(2, '0');
+  const hour = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}T${p2(d.getHours())}`;
+  const prof = state.clouds && !state.far && W ? cloudProfile(W.extra, hour) : null;
+  vclouds.setProfile(prof);
+  showCloudLayers();
+  // say where the clouds drawn come from (the model's layers for the hour shown)
+  if (state.cloudNote != null) {
+    const layers = vclouds.active && prof ? prof.filter(l => l.cover >= 0.2).map(l => `${fmt(l.alt)} m : ${Math.round(l.cover * 100)} %`) : [];
+    $('cloudNote').textContent = (vclouds.active ? state.cloudInside : state.cloudNote) + (vclouds.active ? (layers.length ? `Nuages en 3D placés selon le modèle à ${String(d.getHours()).padStart(2, '0')} h (${layers.join(' · ')}).` : 'Le modèle ne prévoit pas de couche nuageuse notable à cette heure.') : '');
+  }
+}
 const clouds = new THREE.Group(); scene.add(clouds);
 for (let i = 0; i < 4; i++) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(90000, 90000, 1, 1), new THREE.ShaderMaterial({
@@ -530,6 +572,7 @@ function updateSky() {
   gFog.color.setRGB(...hor); gFog.density = 2.3e-5 * (1 + overcast * 1.1);
   const hh = date.getHours(), mm = date.getMinutes();
   const live = state.hourOffset === 0 && state.dayOffset === 0;
+  if (state.weather) updateCloudProfile();
   $('timeOut').textContent = (live ? 'maintenant, ' : state.dayOffset ? date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ', ' : '') + `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
 }
 const isoDay = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -565,6 +608,8 @@ function renderWeather() {
     }
   }
   weather3d.setData({ freeze: fz, windSpeed: wa?.speed ?? null, windDir: wa?.dir, windAlt: wa?.alt });
+  // the clouds drift with the wind aloft (m/s; the noise moves against its offset, hence the signs)
+  if (wa) { const d = wa.dir * Math.PI / 180, v = wa.speed / 3.6; vclouds.setWind(Math.sin(d) * v, -Math.cos(d) * v); }
   const d = W.top.daily;
   const days = d.time.map((t, i) => `<tr><th>${dayName(new Date(t + 'T12:00'))}</th><td>${esc(WMO[d.weather_code[i]] || '—')}</td><td class="n">${Math.round(d.temperature_2m_min[i])}° / ${Math.round(d.temperature_2m_max[i])}°</td><td class="n">${d.snowfall_sum[i] > 0 ? t1(d.snowfall_sum[i]) + ' cm' : '—'}</td><td class="n">${Math.round(d.wind_gusts_10m_max[i])}</td></tr>`).join('');
   el.innerHTML = `<p class="cmeta">Météo-France (AROME/ARPEGE) · reçu ${W.fetchedAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
@@ -585,8 +630,11 @@ function renderWeather() {
   cloudU.wind.value.set(-Math.sin(wdir) * wsp, Math.cos(wdir) * wsp);
   overcast = state.clouds ? Math.max(0, Math.min(1, (Math.max(midiC, cham.cloud_cover) - 40) / 60)) * 0.8 : 0;
   U.haze.value = overcast;
-  $('cloudNote').textContent = (inside ? `${esc(SPOTS.top.name)} est dans les nuages en ce moment (${Math.round(midiC)} % de couverture) : la vue réelle serait bouchée. ` : '')
+  // (with the clouds in volume, the estimated sea of clouds is replaced by the model's layers: updateCloudProfile)
+  state.cloudInside = inside ? `${SPOTS.top.name} est dans les nuages en ce moment (${Math.round(midiC)} % de couverture) : la vue réelle serait bouchée. ` : '';
+  state.cloudNote = state.cloudInside
     + (cover > 0.15 ? `Mer de nuages estimée vers ${fmt(alt)} m d'après la couverture nuageuse à ${esc(SPOTS.valley.name)} et à ${esc(SPOTS.mid.name)}.` : inside ? '' : 'Peu de nuages annoncés sur le massif en ce moment.');
+  $('cloudNote').textContent = state.cloudNote;
   updatePrecipForView(); applyPrecip(); updateSky();
 }
 // What falls where you are looking: current precipitation and temperature from the four stations of the
@@ -1029,7 +1077,7 @@ $('vivid').addEventListener('input', e => { U.vivid.value = +e.target.value; $('
 $('c-snowtoday').addEventListener('change', e => { state.snowToday = e.target.checked; U.snowToday.value = e.target.checked ? 1 : 0; engine.setOverlay('snow', e.target.checked); });
 $('c-clouds').addEventListener('change', e => { state.clouds = e.target.checked; renderWeather(); if (!state.weather) cloudU.cover.value = 0; showCloudLayers(); });
 // cloud layers cover the whole screen: none drawn in clear weather, fewer on lighter settings
-function showCloudLayers() { const n = QUAL[state.quality].clouds; clouds.children.forEach((m, i) => { m.visible = cloudU.cover.value > 0.01 && i < n && !state.far; }); }
+function showCloudLayers() { const n = QUAL[state.quality].clouds, vol = vclouds.on && post.enabled; clouds.children.forEach((m, i) => { m.visible = !vol && cloudU.cover.value > 0.01 && i < n && !state.far; }); }
 $('c-labels').addEventListener('change', e => { state.labels = e.target.checked; labelsEl.hidden = !e.target.checked; });
 $('c-cable').addEventListener('change', e => { cable.visible = cabins.visible = e.target.checked; });
 state.trees = true; $('c-trees').addEventListener('change', e => { state.trees = e.target.checked; });
@@ -1155,7 +1203,10 @@ function applyQuality(q) {
   const Q = QUAL[q]; engine.maxTiles = Q.tiles; engine.maxLoads = Q.loads;
   Object.assign(adapt, { res: 1, detail: 1, good: 0, since: performance.now() });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.pr)); resize(); applyScale();
-  showCloudLayers(); applyPrecip(); shadows.setQuality(Q.shRes, Q.shSteps); forest.maxTrees = Q.trees; lakes.mirrorOn = q !== 'standard'; lakes.mirrorEvery = q === 'extreme' ? 2 : 3;
+  // final pass from "Haute" up; the scene buffer multisampled where the renderer would have been (screens below 2×)
+  post.setOptions({ enabled: q !== 'standard', samples: (window.devicePixelRatio || 1) < 2 ? 4 : 0 });
+  vclouds.on = Q.vSteps > 0; vclouds.setQuality(Q.vSteps, q === 'extreme' ? 4 : 3);
+  showCloudLayers(); applyPrecip(); shadows.setQuality(Q.shRes, Q.shSteps, Q.ao); forest.maxTrees = Q.trees; lakes.mirrorOn = q !== 'standard'; lakes.mirrorEvery = q === 'extreme' ? 2 : 3;
   try { localStorage.setItem('midi3d-quality', q); } catch { }
 }
 markSeg('quality', state.quality);
@@ -1399,7 +1450,7 @@ function drawFrame() {
   if (frameN % 60 === 0) {
     engine.ensureRoots(T.x, T.z, 45000);
     const far = Math.hypot(T.x, T.z) > 30000; // the weather stations only describe the massif
-    if (far !== state.far) { state.far = far; showCloudLayers(); updatePrecipForView(); }
+    if (far !== state.far) { state.far = far; updateCloudProfile(); updatePrecipForView(); }
   }
   if (pin?.search) pin.h = (google.on ? null : groundAt(pin.x, pin.z)) ?? pin.h;
   const g = google.on ? (gGround ?? groundAt(c.x, c.z)) : groundAt(c.x, c.z);
@@ -1426,9 +1477,10 @@ function drawFrame() {
   if (frameN % 600 === 0 && state.hourOffset === 0) updateSky();
   if (frameN % 45 === 0) updatePrecipForView();
   // cast shadows only with the real sun on the IGN terrain (photos and Google tiles carry their own)
-  if (state.light === 'sun' && !google.on && started) shadows.update(controls.target, U.sunDir.value, state.exag, performance.now());
+  // light maps of the relief (sky visibility always, cast shadows with the real sun); Google tiles carry their own
+  if (!google.on && started) shadows.update(controls.target, U.sunDir.value, state.exag, performance.now(), state.light === 'sun');
   else shadows.off();
-  renderer.render(scene, camera);
+  post.render(scene, camera, t);
   // start when the IGN relief is there, or when the Google view was chosen during loading (IGN then paused)
   if (!started && (engine.roots.filter(r => r.state === 'ready').length >= engine.roots.length * 0.6 || (google.on && t > 3))) {
     started = true; $('loader').classList.add('done'); home();
@@ -1446,7 +1498,8 @@ function drawFrame() {
     fpsAcc = 0; fpsN = 0;
   }
 }
-window.midi3d = { engine, google, camera, controls, adapt, applyScale, forest, lakes, shadows, gps, route, sight, lidar }; // handy for debugging from the console
+window.midi3d = { engine, google, camera, controls, adapt, applyScale, forest, lakes, shadows, gps, route, sight, lidar, post, U, state,
+  set overcast(v) { overcast = v; U.haze.value = v; updateSky(); } }; // handy for debugging from the console
 updateSky(); frame(); refreshLive();
 setInterval(() => { if (document.visibilityState === 'visible') refreshLive(); }, 15 * 60e3);
 setTimeout(() => $('loader').classList.add('done'), 15000);

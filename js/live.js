@@ -1,9 +1,19 @@
 // Live data, fetched every time the app opens: Météo-France forecasts (via Open-Meteo),
 // the latest Sentinel-2 pass and the latest clear one (Microsoft Planetary Computer), snow by altitude.
-import { lonLatToMerc, RE } from './geo.js?v=202610011759';
-import { SITE } from './sites.js?v=202610011759';
+import { lonLatToMerc, RE } from './geo.js?v=202610011821';
+import { SITE } from './sites.js?v=202610011821';
 
 export const SPOTS = SITE.spots; // top, peak2, mid, valley
+// pressure levels (hPa) of the cloud profile: ≈ 1 500, 2 000, 3 000, 4 200, 5 600, 7 200 and 9 200 m
+export const CLOUD_LEVELS = [850, 800, 700, 600, 500, 400, 300];
+// cloud profile of one hour: [{ alt (m), cover (0–1) }] from low to high, or null when the model gave nothing
+export function cloudProfile(extra, hourIso) {
+  const h = extra?.hourly; if (!h) return null;
+  const k = h.time.findIndex(t => t.slice(0, 13) === hourIso.slice(0, 13)); if (k < 0) return null;
+  const out = CLOUD_LEVELS.map(p => ({ alt: h[`geopotential_height_${p}hPa`]?.[k], cover: h[`cloud_cover_${p}hPa`]?.[k] }))
+    .filter(l => l.alt != null && l.cover != null).map(l => ({ alt: l.alt, cover: l.cover / 100 }));
+  return out.length >= 3 ? out.sort((a, b) => a.alt - b.alt) : null;
+}
 const qs = o => new URLSearchParams(o).toString();
 async function json(url, opts) { const r = await fetch(url, opts); if (!r.ok) throw new Error(`${r.status} ${url.slice(0, 60)}`); return r.json(); }
 
@@ -18,10 +28,12 @@ export async function fetchWeather() {
       daily: 'temperature_2m_max,temperature_2m_min,snowfall_sum,precipitation_sum,weather_code,wind_gusts_10m_max,sunrise,sunset'
     }));
   }));
-  // freezing level and modelled snow depth come from the global models (best match)
+  // freezing level, wind aloft and the cloud cover at each pressure level (with the level's altitude) come from
+  // the global models (best match): the 3D clouds are placed at the altitudes the model gives, hour by hour
+  const levels = CLOUD_LEVELS.flatMap(p => [`cloud_cover_${p}hPa`, `geopotential_height_${p}hPa`]).join(',');
   out.extra = await json('https://api.open-meteo.com/v1/forecast?' + qs({
     latitude: SPOTS.mid.lat, longitude: SPOTS.mid.lon, elevation: SPOTS.mid.alt, timezone: 'Europe/Paris', forecast_days: 3,
-    hourly: 'freezing_level_height,wind_speed_700hPa,wind_direction_700hPa,geopotential_height_700hPa'
+    hourly: `freezing_level_height,wind_speed_700hPa,wind_direction_700hPa,geopotential_height_700hPa,${levels}`
   })).catch(() => null);
   out.fetchedAt = new Date();
   return out;

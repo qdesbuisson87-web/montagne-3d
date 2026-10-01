@@ -5,9 +5,9 @@
 // Every piece fetched is kept on the device (Cache Storage, offline) within a size limit the owner chooses; the
 // oldest-used pieces are dropped first. Decoding runs in workers (lidar-worker.js).
 import * as THREE from 'three';
-import { lonLatToWorld, l93ToLonLat, lonLatToL93, worldToLonLat, lonLatToTile } from './geo.js?v=202610011759';
-import { cachedFetch, netFetch, TransientError } from './net.js?v=202610011759';
-import { photoUrl } from './terrain.js?v=202610011759';
+import { lonLatToWorld, l93ToLonLat, lonLatToL93, worldToLonLat, lonLatToTile } from './geo.js?v=202610011821';
+import { cachedFetch, netFetch, TransientError } from './net.js?v=202610011821';
+import { photoUrl } from './terrain.js?v=202610011821';
 
 const CACHE = 'midi3d-lidar-v1', INDEX = 'midi3d-lidar-index', LIMIT = 'midi3d-lidar-limit';
 export const LIMITS = [5e8, 2e9, 5e9]; // bytes the owner can allow on the device
@@ -172,7 +172,7 @@ export class PointCloud {
           if (light < 0.5) { const vec3 PL = vec3(0.196, 0.819, 0.539); col = alb * mix(0.88 + 0.14 * n.y, 0.45 + 0.75 * max(dot(n, PL), 0.0), colorMode > 0.5 ? 1.0 : steep); }
           else {
             float sh = shOn > 0.5 ? sunShadow(vW) : 1.0;
-            col = alb / (0.55 + 0.9 * lum) * 0.95 * (sunCol * max(dot(n, sunDir), 0.0) * sh + skyCol * 0.5 * (0.6 + 0.4 * n.y));
+            col = alb / (0.55 + 0.9 * lum) * 0.95 * (sunCol * max(dot(n, sunDir), 0.0) * sh + skyCol * 0.5 * (0.6 + 0.4 * n.y) * skyVis(vW));
           }
           gl_FragColor = vec4(pow(max(aerial(col, vW), 0.0), vec3(1.0/2.2)), 1.0);
         }`
@@ -208,7 +208,7 @@ export class PointCloud {
     if (!this.workers.length) {
       const n = Math.max(1, Math.min(3, (navigator.hardwareConcurrency || 4) - 2));
       for (let i = 0; i < n; i++) {
-        const w = new Worker(new URL('./lidar-worker.js?v=202610011759', import.meta.url));
+        const w = new Worker(new URL('./lidar-worker.js?v=202610011821', import.meta.url));
         w.onmessage = ({ data }) => { const j = this.jobs.get(data.id); this.jobs.delete(data.id); data.error ? j?.reject(new Error(data.error)) : j?.resolve(data); };
         this.workers.push(w);
       }

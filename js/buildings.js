@@ -3,8 +3,8 @@
 // the long side for rectangular footprints (most chalets), a hip towards the middle otherwise.
 // Fetched by cells of ≈ 1 km around the view, one merged mesh per cell.
 import * as THREE from 'three';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610011759';
-import { cachedFetch } from './net.js?v=202610011759';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610011821';
+import { cachedFetch } from './net.js?v=202610011821';
 
 const CELL = 0.01, RANGE = 2600, SHOW = 5000; // degrees; metres around the view to fetch; metres to draw
 const WFS = (s, w, n, e) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=BDTOPO_V3:batiment&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=5000&BBOX=${s},${w},${n},${e},urn:ogc:def:crs:EPSG::4326`;
@@ -39,7 +39,7 @@ export class Buildings {
         void main(){
           vec3 n = normalize(vN) * (gl_FrontFacing ? 1.0 : -1.0), alb = pow(vC, vec3(2.2)), col;
           if (light < 0.5) { const vec3 PL = vec3(0.196, 0.819, 0.539); col = alb * (0.5 + 0.65 * max(dot(n, PL), 0.0)); }
-          else { float sh = shOn > 0.5 ? sunShadow(vW) : 1.0; col = alb * 1.2 * (sunCol * max(dot(n, sunDir), 0.0) * sh + skyCol * 0.5 * (0.6 + 0.4 * n.y)); }
+          else { float sh = shOn > 0.5 ? sunShadow(vW) : 1.0; col = alb * 1.2 * (sunCol * max(dot(n, sunDir), 0.0) * sh + skyCol * 0.5 * (0.6 + 0.4 * n.y) * skyVis(vW)); }
           gl_FragColor = vec4(pow(max(aerial(col, vW), 0.0), vec3(1.0/2.2)), 1.0);
         }`
     });

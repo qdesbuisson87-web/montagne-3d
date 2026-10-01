@@ -1,27 +1,27 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202609301947';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202609301947';
-import { SITE, SITE_LIST } from './sites.js?v=202609301947';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202609301947';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202609301947';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202609301947';
-import { searchPlaces } from './search.js?v=202609301947';
-import { TerrainShadows } from './shadows.js?v=202609301947';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202609301947';
-import { Forest } from './forest.js?v=202609301947';
-import { Lakes } from './water.js?v=202609301947';
-import { Buildings } from './buildings.js?v=202609301947';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202609301947';
-import { GpsTracker } from './gps.js?v=202609301947';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202609301947';
-import { walkingRoute } from './planner.js?v=202609301947';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202609301947';
-import { TrailsLayer } from './trails.js?v=202609301947';
-import { Weather3D } from './weather3d.js?v=202609301947';
-import { Sight } from './sight.js?v=202609301947';
-import { Photos360 } from './photos360.js?v=202609301947';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202609301947';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, SPOTS } from './live.js?v=202609301947';
+import { EarthControls } from './controls.js?v=202610011759';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610011759';
+import { SITE, SITE_LIST } from './sites.js?v=202610011759';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610011759';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610011759';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610011759';
+import { searchPlaces } from './search.js?v=202610011759';
+import { TerrainShadows } from './shadows.js?v=202610011759';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610011759';
+import { Forest } from './forest.js?v=202610011759';
+import { Lakes } from './water.js?v=202610011759';
+import { Buildings } from './buildings.js?v=202610011759';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610011759';
+import { GpsTracker } from './gps.js?v=202610011759';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610011759';
+import { walkingRoute } from './planner.js?v=202610011759';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610011759';
+import { TrailsLayer } from './trails.js?v=202610011759';
+import { Weather3D } from './weather3d.js?v=202610011759';
+import { Sight } from './sight.js?v=202610011759';
+import { Photos360 } from './photos360.js?v=202610011759';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610011759';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, SPOTS } from './live.js?v=202610011759';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -41,7 +41,9 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(50, 1, 1, 250000);
 // Google-Earth-like gestures (controls.js): the ground under the finger is grabbed; the point under a screen
 // position comes from pick() (the IGN relief or the Google surface), defined further down
-const controls = new EarthControls(camera, renderer.domElement, (nx, ny) => { const h = pick(nx, ny); return h ? new THREE.Vector3(h.x, h.h * state.exag, h.z) : null; });
+const controls = new EarthControls(camera, renderer.domElement,
+  (nx, ny, cam) => { const h = pick(nx, ny, cam); return h ? new THREE.Vector3(h.x, h.h * state.exag, h.z) : null; },
+  (x, z) => { const g = groundAt(x, z); return g == null ? null : g * state.exag; });
 
 // ---------- quality ----------
 const touch = matchMedia('(pointer: coarse)').matches;
@@ -451,18 +453,26 @@ const google = new GoogleTiles({ scene, camera, renderer, origin: ORIGIN, geoidN
 const rayG = new THREE.Raycaster();
 // aerial perspective for the Google tiles (their materials take three.js fog), same horizon colour as the sky
 const gFog = new THREE.FogExp2(0xc8d2dc, 2.3e-5);
-function pick(ndcX, ndcY) {
+// cam: the camera to cast from (the controls measure gestures in the view they are heading to)
+function pick(ndcX, ndcY, cam = camera) {
   if (google.on) { // Google view: the surface actually on screen (buildings, trees and snow included)
-    rayG.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
+    rayG.setFromCamera(new THREE.Vector2(ndcX, ndcY), cam);
     const p = google.raycast(rayG); return p ? { x: p.x, z: p.z, h: p.y, surface: 'google' } : null;
   }
-  const r = new THREE.Raycaster(); r.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
-  const o = r.ray.origin, d = r.ray.direction; let t = 0;
+  const r = new THREE.Raycaster(); r.setFromCamera(new THREE.Vector2(ndcX, ndcY), cam);
+  const o = r.ray.origin, d = r.ray.direction, gapAt = t => { const g = groundAt(o.x + d.x * t, o.z + d.z * t); return g == null ? null : o.y + d.y * t - g * state.exag; };
+  let t = 0, prev = 0;
   for (let i = 0; i < 1500 && t < 80000; i++) {
-    const x = o.x + d.x * t, y = o.y + d.y * t, z = o.z + d.z * t, g = groundAt(x, z);
-    if (g == null) { t += 50; continue; }
-    const gap = y - g * state.exag; if (gap < 0.5) return { x, z, h: g };
-    t += Math.max(gap * 0.5, 0.5);
+    const gap = gapAt(t);
+    if (gap == null) { prev = t; t += 50; continue; }
+    if (gap < 0.5) {
+      // the step may have gone through a steep face: narrow down to where the ray actually meets the relief,
+      // otherwise the point found lies tens of pixels away from the finger
+      let a = prev, b = t;
+      for (let k = 0; k < 24 && b - a > 0.05; k++) { const m = (a + b) / 2, gm = gapAt(m); if (gm != null && gm < 0.5) b = m; else a = m; }
+      const x = o.x + d.x * b, z = o.z + d.z * b; return { x, z, h: groundAt(x, z) };
+    }
+    prev = t; t += Math.max(gap * 0.5, 0.5);
   }
   return null;
 }
@@ -493,13 +503,8 @@ renderer.domElement.addEventListener('pointerup', e => {
     if (!pickAt(hit)) pointReport(hit);
   }
 });
-// When a gesture begins, the look-at point moves to the ground under the middle of the screen: it lies on the
-// line of sight, so the view does not move, and the automatic turn and the "3D" tilt then pivot on real ground.
-controls.addEventListener('start', () => {
-  fly = null; flyRoute = null; controls.autoRotate = false; $('c-spin').checked = false;
-  const hit = pick(0, 0);
-  if (hit) controls.target.set(hit.x, hit.h * state.exag, hit.z);
-});
+// a gesture interrupts flights and the automatic turn (the controls put the look-at point on the ground themselves)
+controls.addEventListener('start', () => { fly = null; flyRoute = null; controls.autoRotate = false; $('c-spin').checked = false; });
 
 // ---------- sun, sky, weather-driven look ----------
 let overcast = 0, skyAlt = 0;

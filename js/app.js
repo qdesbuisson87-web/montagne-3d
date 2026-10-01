@@ -1,29 +1,31 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610011821';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610011821';
-import { SITE, SITE_LIST } from './sites.js?v=202610011821';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610011821';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610011821';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610011821';
-import { searchPlaces } from './search.js?v=202610011821';
-import { TerrainShadows } from './shadows.js?v=202610011821';
-import { PostFX } from './post.js?v=202610011821';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610011821';
-import { Forest } from './forest.js?v=202610011821';
-import { Lakes } from './water.js?v=202610011821';
-import { Buildings } from './buildings.js?v=202610011821';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610011821';
-import { GpsTracker } from './gps.js?v=202610011821';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610011821';
-import { walkingRoute } from './planner.js?v=202610011821';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610011821';
-import { TrailsLayer } from './trails.js?v=202610011821';
-import { Weather3D } from './weather3d.js?v=202610011821';
-import { Sight } from './sight.js?v=202610011821';
-import { Photos360 } from './photos360.js?v=202610011821';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610011821';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610011821';
-import { VolumeClouds } from './clouds.js?v=202610011821';
+import { EarthControls } from './controls.js?v=202610011842';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610011842';
+import { SITE, SITE_LIST } from './sites.js?v=202610011842';
+import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610011842';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610011842';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610011842';
+import { searchPlaces } from './search.js?v=202610011842';
+import { TerrainShadows } from './shadows.js?v=202610011842';
+import { PostFX } from './post.js?v=202610011842';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610011842';
+import { Forest } from './forest.js?v=202610011842';
+import { Lakes } from './water.js?v=202610011842';
+import { Glaciers } from './glaciers.js?v=202610011842';
+import { NightLights } from './lights.js?v=202610011842';
+import { Buildings } from './buildings.js?v=202610011842';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610011842';
+import { GpsTracker } from './gps.js?v=202610011842';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610011842';
+import { walkingRoute } from './planner.js?v=202610011842';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610011842';
+import { TrailsLayer } from './trails.js?v=202610011842';
+import { Weather3D } from './weather3d.js?v=202610011842';
+import { Sight } from './sight.js?v=202610011842';
+import { Photos360 } from './photos360.js?v=202610011842';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610011842';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610011842';
+import { VolumeClouds } from './clouds.js?v=202610011842';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -71,7 +73,9 @@ const U = {
   shF: { value: null }, shC: { value: null }, srF: { value: new THREE.Vector4() }, srC: { value: new THREE.Vector4() }, shOn: { value: 0 },
   aoF: { value: null }, aoC: { value: null }, aoOn: { value: 0 }, // sky visibility (ambient occlusion), same squares
   // shadows of the clouds in volume (clouds.js): their noise, the densest layer's altitude and cover, the wind
+  glF: { value: null }, glC: { value: null }, // glacier outlines painted from above (glaciers.js), same squares
   clNoise: { value: null }, clOn: { value: 0 }, clAlt: { value: 2500 }, clCover: { value: 0 }, clWind: { value: null },
+  night: { value: 0 }, // 0 by day, 1 at night under the real-sun light: lit windows, village lights
   light: { value: 0 }, vivid: { value: 0.2 }, snowToday: { value: 1 }, visToday: { value: 0 }, slopes: { value: state.slopes ? 1 : 0 }, fogDensity: { value: 0.000016 }, haze: { value: 0 }, time: { value: 0 }
 };
 U.clTime = U.time; // the clouds' clock under its own name (several shaders already declare "time")
@@ -92,11 +96,12 @@ void main(){
 const SCENE_GLSL = `
 uniform float exag, light, fogDensity, haze, shOn;
 uniform vec3 sunDir, sunCol, skyCol, horizonCol, glowCol;
-uniform sampler2D shF, shC, aoF, aoC; uniform vec4 srF, srC; uniform float aoOn;
-// a light map of the relief at a point: fine map near the view centre, fading into the coarse one at its edges
-float reliefMap(sampler2D f, sampler2D c, vec3 w){
+uniform sampler2D shF, shC, aoF, aoC, glF, glC; uniform vec4 srF, srC; uniform float aoOn;
+// a light map of the relief at a point: fine map near the view centre, fading into the coarse one at its edges;
+// beyond both, the value given for "outside"
+float reliefMap(sampler2D f, sampler2D c, vec3 w, float outside){
   vec2 uf = vec2((w.x - srF.x) / srF.z, (srF.y - w.z) / srF.z), uc = vec2((w.x - srC.x) / srC.z, (srC.y - w.z) / srC.z);
-  float vc = (uc.x > 0.0 && uc.y > 0.0 && uc.x < 1.0 && uc.y < 1.0) ? texture2D(c, uc).r : 1.0;
+  float vc = (uc.x > 0.0 && uc.y > 0.0 && uc.x < 1.0 && uc.y < 1.0) ? texture2D(c, uc).r : outside;
   float edge = min(min(uf.x, uf.y), min(1.0 - uf.x, 1.0 - uf.y));
   return mix(vc, texture2D(f, clamp(uf, 0.0, 1.0)).r, smoothstep(0.0, 0.06, edge));
 }
@@ -105,7 +110,7 @@ uniform sampler3D clNoise; uniform float clOn, clAlt, clCover, clTime; uniform v
 // share of the sun reaching a point: cast shadows of the relief, and of the clouds (where the sun's ray crosses
 // the densest cloud layer, the same noise as the clouds drawn, moving with them)
 float sunShadow(vec3 w){
-  float s = reliefMap(shF, shC, w);
+  float s = reliefMap(shF, shC, w, 1.0);
   if (clOn > 0.5 && sunDir.y > 0.03 && w.y < clAlt * exag) {
     vec3 p = w + sunDir * ((clAlt * exag - w.y) / sunDir.y);
     float n = texture(clNoise, vec3(p.x + clWind.x * clTime, clAlt, p.z + clWind.y * clTime) / vec3(7000.0, 2600.0, 7000.0)).r;
@@ -114,7 +119,9 @@ float sunShadow(vec3 w){
   return s;
 }
 // share of the sky seen from a point (1 on open ground, less in gullies, at the foot of cliffs, in deep valleys)
-float skyVis(vec3 w){ return aoOn > 0.5 ? reliefMap(aoF, aoC, w) : 1.0; }
+float skyVis(vec3 w){ return aoOn > 0.5 ? reliefMap(aoF, aoC, w, 1.0) : 1.0; }
+// inside a glacier outline (0–1, soft at the edges)
+float glacierAt(vec3 w){ return aoOn > 0.5 ? reliefMap(glF, glC, w, 0.0) : 0.0; }
 // aerial perspective: the air thins with altitude (haze scale height 2.5 km), so valleys are hazier than
 // summits; blue light is scattered more, so distant relief turns blue-grey (horizon and glow colours come
 // from the same scattering model as the sky). col is linear; returns linear.
@@ -133,6 +140,8 @@ ${SCENE_GLSL}
 varying vec2 vUv; varying vec3 vN, vW; varying float vAlt;
 const vec3 LUM = vec3(0.2126, 0.7152, 0.0722);
 float hash(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
+// integer hash for whole-number cells (the one above repeats in rows on integers)
+float hashCell(vec2 p){ uvec2 q = uvec2(ivec2(p) + 1048576); uint h = (q.x * 1597334677u) ^ (q.y * 3812015801u); h = (h ^ (h >> 16)) * 2246822519u; h ^= h >> 13; return float(h) * (1.0 / 4294967295.0); }
 float vnoise(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f*f*(3.0-2.0*f);
   return mix(mix(hash(i), hash(i+vec2(1,0)), u.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), u.x), u.y); }
 // cubic B-spline filtering (4 bilinear taps): a 10 m satellite pixel becomes a smooth gradient, never a square
@@ -187,13 +196,14 @@ void main(){
   vec3 nb = abs(det)*n - sign(det)*(dFdx(bump)*r1 + dFdy(bump)*r2);
   vec3 nl = dot(nb, nb) > 1e-20 ? normalize(nb) : n; // lit normal
   // today's snow: continuous snow index, refined at metre scale with the LiDAR slope and the photo
+  float todaySnow = 0.0;
   if (snowToday > 0.5 && hasNdsi > 0.5) {
     vec4 nd = cubic(ndsiMap, ou);
     float valid = smoothstep(0.6, 0.95, nd.a) * (1.0 - cloud);
     float fsc = clamp(1.45*(nd.r*2.0 - 1.0) - 0.01, 0.0, 1.0);
     float nz = vnoise(vW.xz/2.3)*0.5 + vnoise(vW.xz/8.0)*0.35 + vnoise(vW.xz/0.7)*0.15;
     float s = fsc + (nz - 0.5)*0.4 - smoothstep(0.42, 0.8, slope)*0.85 + smoothstep(0.3, 0.7, plum)*0.12;
-    float cover = smoothstep(0.4, 0.6, s) * valid;
+    float cover = smoothstep(0.4, 0.6, s) * valid; todaySnow = cover;
     // the aerial photo may be years old and show snow that is not there today: where the clear satellite pass
     // sees no snow, the photo's white (bright and colourless) becomes the ground as that pass sees it
     // decided on the photo blurred to the satellite's 10 m (decided pixel by pixel it followed the sheen of the
@@ -211,6 +221,18 @@ void main(){
     float detail = clamp(plum / max(llum, 0.02), 0.6, 1.4);
     vec3 snowC = vec3(0.86, 0.9, 0.97) * mix(1.0, detail, 0.35);
     alb = mix(alb, snowC, cover * (1.0 - smoothstep(0.5, 0.8, plum)));
+  }
+  // glaciers (BD TOPO outlines), where neither the photo nor today's satellite shows snow: the grey of the photo
+  // becomes ice, blue-grey, and what is darker than its surroundings (crevasses, séracs) a deep blue. Rubble on
+  // the ice (brownish: red above blue) is left as it is.
+  float iceK = 0.0;
+  float gl = glacierAt(vW);
+  if (gl > 0.01) {
+    float iceLike = smoothstep(0.08, 0.22, plum) * (1.0 - smoothstep(0.55, 0.8, plum)) * (1.0 - smoothstep(0.01, 0.06, photo.r - photo.b));
+    iceK = gl * iceLike * (1.0 - todaySnow);
+    float crevasse = (1.0 - smoothstep(0.45, 0.8, plum / max(llum, 0.03))) * smoothstep(0.2, 0.4, llum);
+    vec3 ice = alb * vec3(0.8, 0.96, 1.14);
+    alb = mix(alb, mix(ice, vec3(0.025, 0.11, 0.19), crevasse * 0.75), iceK);
   }
   float lum = dot(alb, LUM);
   alb = max(mix(vec3(lum), alb, 1.0 + vivid), 0.0) * (1.0 + vivid*0.15);
@@ -232,6 +254,14 @@ void main(){
     col = a * (sunCol*ndl*mix(1.0, sv, 0.25) + skyCol*0.5*(0.6 + 0.4*n.y)*sv);
     vec3 V = normalize(cameraPosition - vW), H = normalize(sunDir + V);
     col += sunCol * pow(max(dot(nl, H), 0.0), 60.0) * smoothstep(0.5, 0.8, lum) * 0.35 * sh;
+    col += sunCol * pow(max(dot(nl, H), 0.0), 30.0) * 0.25 * iceK * sh; // wet sheen of bare ice
+    // snow in the sun glitters: a few 40 cm cells catch the sun at this angle (they change as the eye moves),
+    // only near the eye, where they are at least a pixel; the final pass gives them a small glow
+    float dEye = length(cameraPosition - vW);
+    if (dEye < 400.0 && lum > 0.55) {
+      float h = hashCell(floor(vW.xz * 2.5) + floor(V.xz * 6.0) * 7919.0);
+      col += sunCol * step(0.996, h) * pow(max(dot(nl, H), 0.0), 6.0) * (1.0 - smoothstep(120.0, 400.0, dEye)) * sh * 2.5;
+    }
   }
   // slope map: the ground gradient is interpolated per pixel from the tile's grid (true metres, not exaggerated),
   // and each class boundary is blended over about one pixel so it never shows stair steps
@@ -251,7 +281,8 @@ void main(){
 
 const BOUNDS = SITE.bounds; // lon/lat of the streamed area
 const engine = new TerrainEngine({ renderer, scene, uniforms: U, vertexShader: terrainVS, fragmentShader: terrainFS, bounds: BOUNDS });
-const shadows = new TerrainShadows(renderer, engine, U);
+const glaciers = new Glaciers();
+const shadows = new TerrainShadows(renderer, engine, U, { glaciers });
 const forest = new Forest({ scene, engine, uniforms: U, sceneGLSL: SCENE_GLSL });
 
 // ---------- sky: physical scattering baked into a panorama (atmosphere.js), grey veil when overcast ----------
@@ -295,6 +326,8 @@ function showPhoto(p) {
     <p class="cline"><a href="https://api.panoramax.xyz/#focus=pic&pic=${encodeURIComponent(p.id)}" target="_blank" rel="noopener">${p.pano ? 'Voir la photo à 360° et se promener' : 'Voir la photo'} sur Panoramax</a></p>`;
 }
 const trails = new TrailsLayer({ scene, groundAt: (x, z) => engine.heightAt(x, z), onHuts: huts => addHuts(huts) });
+const nightLights = new NightLights({ scene, groundAt: (x, z) => engine.heightAt(x, z), renderer });
+const hutSpots = []; // every hut seen, for the night lights
 
 // ---------- sea of clouds (driven by the forecast) ----------
 // The cloud noise is baked once into a tileable texture (same fractal as before, 6 octaves of value noise):
@@ -430,6 +463,7 @@ function addHuts(huts) {
   for (const hut of huts) {
     if (hutIds.has(hut.id)) continue; hutIds.add(hut.id);
     const [x, z] = lonLatToWorld(hut.lon, hut.lat);
+    hutSpots.push({ x, z }); nightLights.setHuts(hutSpots);
     if (PLACES.some(p => Math.hypot(p.x - x, p.z - z) < 200)) continue;
     const p = { name: hut.name, alt: hut.alt, x, z, h: hut.alt ?? 2000, small: true, hut: true, url: hut.url };
     const el = document.createElement('button'); el.type = 'button'; el.className = 'label small hut hidden';
@@ -569,6 +603,19 @@ function updateSky() {
   const g = 0.35 + 0.45 * day; skyU.overcast.value = ov; skyU.ovGrey.value.set(g * 0.97, g * 0.98, g);
   if (ov > 0) { skyC = mixv(skyC, [g * 0.9, g * 0.93, g], ov); hor = mixv(hor, [g, g, g * 1.02], ov); glow = mixv(glow, [g, g, g], ov); sun = sun.map(v => v * (1 - 0.7 * ov)); }
   U.skyCol.value.set(...skyC); U.horizonCol.value.set(...hor); U.glowCol.value.set(...glow); U.sunCol.value.set(...sun);
+  // night: once the sun is well down, the Moon (real position and phase for the date shown) becomes the light:
+  // it lights the relief, casts its shadows, lights the clouds, and its disk is drawn where the sun's would be
+  const nightK = 1 - sstep(-0.12, -0.03, s); state.night = nightK;
+  U.night.value = state.light === 'sun' ? nightK : 0;
+  const moon = moonPosition(date, ORIGIN.lat, ORIGIN.lon), mUp = sstep(-0.02, 0.06, Math.sin(moon.el));
+  state.moon = moon;
+  if (nightK > 0.5 && mUp > 0) {
+    U.sunDir.value.set(Math.sin(moon.az) * Math.cos(moon.el), Math.sin(moon.el), -Math.cos(moon.az) * Math.cos(moon.el)).normalize();
+    const k = (0.2 + 0.8 * moon.illum) * mUp * (nightK - 0.5) * 2 * (1 - 0.8 * ov);
+    U.sunCol.value.set(0.17 * k, 0.21 * k, 0.34 * k);
+    // moonlight brightens the night sky a little (bluish)
+    U.skyCol.value.set(skyC[0] + 0.02 * k, skyC[1] + 0.03 * k, skyC[2] + 0.06 * k);
+  }
   gFog.color.setRGB(...hor); gFog.density = 2.3e-5 * (1 + overcast * 1.1);
   const hh = date.getHours(), mm = date.getMinutes();
   const live = state.hourOffset === 0 && state.dayOffset === 0;
@@ -1064,7 +1111,8 @@ const seg = (group, key, fn) => document.querySelectorAll(`[data-${group}]`).for
 }));
 const markSeg = (group, val) => document.querySelectorAll(`[data-${group}]`).forEach(x => x.setAttribute('aria-pressed', x.dataset[group] === val));
 seg('render', 'render', v => { U.visToday.value = v === 'sat' ? 1 : 0; engine.setOverlay('vis', v === 'sat'); });
-seg('light', 'light', v => { U.light.value = v === 'sun' ? 1 : 0; $('f-time').classList.toggle('dim', v !== 'sun'); });
+// the real sun lights the snow far brighter than the photo's own exposure: the final image is exposed a little lower
+seg('light', 'light', v => { U.light.value = v === 'sun' ? 1 : 0; U.night.value = v === 'sun' ? state.night ?? 0 : 0; post.final.uniforms.exposure.value = v === 'sun' ? 0.82 : 1; $('f-time').classList.toggle('dim', v !== 'sun'); });
 seg('quality', 'quality', applyQuality);
 seg('precip', 'precip', applyPrecip);
 $('time').addEventListener('input', e => { state.hourOffset = +e.target.value; updateSky(); });
@@ -1449,6 +1497,7 @@ function drawFrame() {
   if (frameN % 20 === 0 && Math.abs(c.y / state.exag - skyAlt) > 400) updateSky();
   if (frameN % 60 === 0) {
     engine.ensureRoots(T.x, T.z, 45000);
+    if (!google.on) glaciers.ensure(T.x, T.z);
     const far = Math.hypot(T.x, T.z) > 30000; // the weather stations only describe the massif
     if (far !== state.far) { state.far = far; updateCloudProfile(); updatePrecipForView(); }
   }
@@ -1466,6 +1515,9 @@ function drawFrame() {
   forest.update(camera, google.on || !state.trees, byPoints);
   lakes.update(camera, frameN, state.exag, google.on, controls.target);
   buildings.update(camera, controls.target, frameN, google.on, byPoints);
+  nightLights.update(controls.target, frameN, U.night.value, state.exag, google.on);
+  // at night the red paths would outshine everything: dimmed (still there to follow)
+  for (const mat of Object.values(trails.mats)) mat.opacity = 0.95 * (1 - 0.7 * U.night.value);
   gps.update(camera, groundAt, state.exag); if (gps.on && frameN % 60 === 0) renderGps();
   route.update(frameN, state.exag, engine.busy);
   trails.update(camera, controls.target, frameN, state.exag, google.on);

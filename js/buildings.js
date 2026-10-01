@@ -3,8 +3,8 @@
 // the long side for rectangular footprints (most chalets), a hip towards the middle otherwise.
 // Fetched by cells of ≈ 1 km around the view, one merged mesh per cell.
 import * as THREE from 'three';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610011821';
-import { cachedFetch } from './net.js?v=202610011821';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610011842';
+import { cachedFetch } from './net.js?v=202610011842';
 
 const CELL = 0.01, RANGE = 2600, SHOW = 5000; // degrees; metres around the view to fetch; metres to draw
 const WFS = (s, w, n, e) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=BDTOPO_V3:batiment&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=5000&BBOX=${s},${w},${n},${e},urn:ogc:def:crs:EPSG::4326`;
@@ -35,11 +35,23 @@ export class Buildings {
     this.material = new THREE.ShaderMaterial({
       uniforms, vertexShader: VS, side: THREE.DoubleSide, // footprints come in either winding
       fragmentShader: `${sceneGLSL}
+        uniform float night;
         varying vec3 vW, vN, vC;
+        float hashCell(vec2 p){ uvec2 q = uvec2(ivec2(p) + 1048576); uint h = (q.x * 1597334677u) ^ (q.y * 3812015801u); h = (h ^ (h >> 16)) * 2246822519u; h ^= h >> 13; return float(h) * (1.0 / 4294967295.0); }
         void main(){
           vec3 n = normalize(vN) * (gl_FrontFacing ? 1.0 : -1.0), alb = pow(vC, vec3(2.2)), col;
           if (light < 0.5) { const vec3 PL = vec3(0.196, 0.819, 0.539); col = alb * (0.5 + 0.65 * max(dot(n, PL), 0.0)); }
           else { float sh = shOn > 0.5 ? sunShadow(vW) : 1.0; col = alb * 1.2 * (sunCol * max(dot(n, sunDir), 0.0) * sh + skyCol * 0.5 * (0.6 + 0.4 * n.y) * skyVis(vW)); }
+          // at night, windows: on the walls, one every 2.6 m along the wall and every 2.9 m up (a storey), about a
+          // third of them lit, in warm light of slightly varying colour
+          if (night > 0.01 && abs(n.y) < 0.3) {
+            float along = dot(vW.xz, normalize(vec2(-n.z, n.x))), up = vW.y / exag;
+            vec2 cell = floor(vec2(along / 2.6, up / 2.9)), f = fract(vec2(along / 2.6, up / 2.9));
+            float win = step(0.3, f.x) * step(f.x, 0.72) * step(0.32, f.y) * step(f.y, 0.78);
+            float h = hashCell(cell + floor(vW.xz / 40.0) * 131.0);
+            vec3 lamp = mix(vec3(1.0, 0.62, 0.3), vec3(1.0, 0.82, 0.55), fract(h * 7.3));
+            col += lamp * win * step(0.66, h) * night * 1.6;
+          }
           gl_FragColor = vec4(pow(max(aerial(col, vW), 0.0), vec3(1.0/2.2)), 1.0);
         }`
     });

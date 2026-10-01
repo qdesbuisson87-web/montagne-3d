@@ -5,7 +5,8 @@
 //   2. a sky-visibility map (ambient occlusion): from every texel the horizon is searched in 8–16 directions up
 //      to 10 km, measured from the ground's own slope, so a plain slope stays fully lit and only hollows (gullies,
 //      foot of cliffs, deep valleys) see less sky. Used in both lights;
-//   3. for the "real sun" light, a shadow map: from every texel a ray is marched towards the sun through the
+//   3. a glacier mask: the BD TOPO glacier outlines (glaciers.js) painted from above, for the ice in the terrain;
+//   4. for the "real sun" light, a shadow map: from every texel a ray is marched towards the sun through the
 //      height maps, keeping how close it passes to the relief, which gives soft penumbras.
 // Recomputed only when the view centre, the loaded tiles or the sun change, never every frame.
 import * as THREE from 'three';
@@ -114,6 +115,7 @@ class Cascade {
     this.height = new THREE.WebGLRenderTarget(res, res, { ...opts, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, depthBuffer: true });
     this.shadow = new THREE.WebGLRenderTarget(res, res, { ...opts, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: false });
     this.ao = new THREE.WebGLRenderTarget(res, res, { ...opts, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: false });
+    this.mask = new THREE.WebGLRenderTarget(res, res, { ...opts, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: false });
     this.rect = new THREE.Vector4(0, 0, size, size / res); // xmin, zmax, size, texel
     this.cam = new THREE.OrthographicCamera(-size / 2, size / 2, size / 2, -size / 2, 1, 30000);
     this.cam.up.set(0, 0, -1); // screen up = north (-z): texture v grows northwards
@@ -125,14 +127,16 @@ class Cascade {
     this.center = [x, z]; this.rect.set(x - this.size / 2, z + this.size / 2, this.size, s);
     this.cam.position.set(x, 15000, z); this.cam.lookAt(x, 0, z); this.cam.updateMatrixWorld();
   }
-  dispose() { this.height.dispose(); this.shadow.dispose(); this.ao.dispose(); }
+  dispose() { this.height.dispose(); this.shadow.dispose(); this.ao.dispose(); this.mask.dispose(); }
 }
 
 export class TerrainShadows {
-  // uniforms: the terrain's shared uniform object, which already holds shF, shC, srF, srC, shOn, aoF, aoC and aoOn
+  // uniforms: the terrain's shared uniform object, which already holds shF, shC, srF, srC, shOn, aoF, aoC, aoOn, glF and glC.
+  // glaciers: a Glaciers (its group of outlines and a version that changes when outlines arrive), or null
   // (materials copy the uniform references when tiles are built, so the keys must exist from the start)
-  constructor(renderer, engine, uniforms, { fineSize = 6000, coarseSize = 48000, res = 1024 } = {}) {
-    this.renderer = renderer; this.engine = engine; this.uniforms = uniforms;
+  constructor(renderer, engine, uniforms, { fineSize = 6000, coarseSize = 48000, res = 1024, glaciers = null } = {}) {
+    this.renderer = renderer; this.engine = engine; this.uniforms = uniforms; this.glaciers = glaciers; this.maskVersion = -1;
+    this.maskScene = new THREE.Scene();
     this.fine = new Cascade(fineSize, res); this.coarse = new Cascade(coarseSize, res);
     this.tmpScene = new THREE.Scene(); this.tmpScene.overrideMaterial = heightMat;
     this.quadScene = new THREE.Scene(); this.quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
@@ -164,6 +168,7 @@ export class TerrainShadows {
     p.hF.value = this.fine.height.texture; p.hC.value = this.coarse.height.texture; p.rF.value = this.fine.rect; p.rC.value = this.coarse.rect;
     u.shF.value = this.fine.shadow.texture; u.shC.value = this.coarse.shadow.texture; u.srF.value = this.fine.rect; u.srC.value = this.coarse.rect;
     u.aoF.value = this.fine.ao.texture; u.aoC.value = this.coarse.ao.texture;
+    u.glF.value = this.fine.mask.texture; u.glC.value = this.coarse.mask.texture; this.maskVersion = -1;
   }
   // stop everything (Google view); the maps are kept for a quick return
   off() { this.uniforms.shOn.value = 0; this.uniforms.aoOn.value = 0; }
@@ -179,15 +184,20 @@ export class TerrainShadows {
     const redoFine = redoCoarse || !this.fine.valid || moved(this.fine) || tilesChanged;
     const sunChanged = sunOn && (!this.sunValid || sunDir.angleTo(this.lastSun) > 0.0015);
     this.uniforms.aoOn.value = this.coarse.valid ? 1 : 0; this.uniforms.shOn.value = sunOn && this.sunValid ? 1 : 0;
+    // new glacier outlines: repaint both masks (the cascades keep their squares)
+    const gv = this.glaciers?.version ?? 0;
+    if (gv !== this.maskVersion && this.coarse.valid && !redoFine) { this.renderMask(this.coarse); this.renderMask(this.fine); this.maskVersion = gv; }
     if (!redoFine && !sunChanged) return false;
     this.pass.uniforms.sun.value.copy(sunDir); this.pass.uniforms.exag.value = exag;
     if (redoCoarse) {
       if (moved(this.coarse) || !this.coarse.valid) this.coarse.place(center.x, center.z);
-      this.renderHeights(this.coarse); this.renderPass(this.aoPass, this.coarse.ao, 0); this.coarse.valid = true;
+      this.renderHeights(this.coarse); this.renderPass(this.aoPass, this.coarse.ao, 0); this.renderMask(this.coarse); this.coarse.valid = true;
     }
     if (redoFine) {
       if (moved(this.fine) || !this.fine.valid) this.fine.place(center.x, center.z);
-      this.renderHeights(this.fine); this.renderPass(this.aoPass, this.fine.ao, 1); this.fine.valid = true;
+      this.renderHeights(this.fine); this.renderPass(this.aoPass, this.fine.ao, 1); this.renderMask(this.fine); this.fine.valid = true;
+      if (gv !== this.maskVersion && !redoCoarse) this.renderMask(this.coarse);
+      this.maskVersion = gv;
       this.tilesAt = tiles; this.lastRun = now;
     }
     if (sunOn) {
@@ -218,6 +228,13 @@ export class TerrainShadows {
     this.renderer.render(this.tmpScene, c.cam);
     this.renderer.setRenderTarget(rt); this.renderer.setClearColor(cc, clear);
     parent.add(e.group); e.group.children.forEach((m, i) => { m.visible = was[i]; });
+  }
+  // glacier outlines seen from above, white on black
+  renderMask(c) {
+    const r = this.renderer, rt = r.getRenderTarget(), cc = r.getClearColor(new THREE.Color()), ca = r.getClearAlpha(), g = this.glaciers?.group;
+    r.setRenderTarget(c.mask); r.setClearColor(0x000000, 1); r.clear();
+    if (g?.children.length) { this.maskScene.add(g); r.render(this.maskScene, c.cam); this.maskScene.remove(g); }
+    r.setRenderTarget(rt); r.setClearColor(cc, ca);
   }
   renderPass(mat, target, fine) {
     mat.uniforms.fine.value = fine; this.quad.material = mat;

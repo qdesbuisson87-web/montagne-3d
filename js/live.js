@@ -1,7 +1,7 @@
 // Live data, fetched every time the app opens: Météo-France forecasts (via Open-Meteo),
 // the latest Sentinel-2 pass and the latest clear one (Microsoft Planetary Computer), snow by altitude.
-import { lonLatToMerc, RE } from './geo.js?v=202610011821';
-import { SITE } from './sites.js?v=202610011821';
+import { lonLatToMerc, RE } from './geo.js?v=202610011842';
+import { SITE } from './sites.js?v=202610011842';
 
 export const SPOTS = SITE.spots; // top, peak2, mid, valley
 // pressure levels (hPa) of the cloud profile: ≈ 1 500, 2 000, 3 000, 4 200, 5 600, 7 200 and 9 200 m
@@ -147,4 +147,25 @@ export function sunPosition(date, lat, lon) {
   const el = Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(H));
   const az = Math.atan2(-Math.sin(H), Math.tan(dec) * Math.cos(phi) - Math.sin(phi) * Math.cos(H));
   return { az: (az + 2 * Math.PI) % (2 * Math.PI), el };
+}
+
+// Position and lit fraction of the Moon (low-precision lunar theory, as in SunCalc: about 0.2° on the sky),
+// same conventions as sunPosition (azimuth from north, clockwise). illum: 0 new moon … 1 full moon.
+export function moonPosition(date, lat, lon) {
+  const rad = Math.PI / 180, d = date / 864e5 - 10957.5, e = 23.4397 * rad;
+  const L = (218.316 + 13.176396 * d) * rad, M = (134.963 + 13.064993 * d) * rad, F = (93.272 + 13.22935 * d) * rad;
+  const l = L + 6.289 * rad * Math.sin(M), b = 5.128 * rad * Math.sin(F), dist = 385001 - 20905 * Math.cos(M); // km
+  const ra = Math.atan2(Math.sin(l) * Math.cos(e) - Math.tan(b) * Math.sin(e), Math.cos(l));
+  const dec = Math.asin(Math.sin(b) * Math.cos(e) + Math.cos(b) * Math.sin(e) * Math.sin(l));
+  const gmst = (18.697374558 + 24.06570982441908 * d) % 24, H = (gmst * 15 + lon) * rad - ra, phi = lat * rad;
+  let el = Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(H));
+  el += 0.0002967 / Math.tan(el + 0.00312536 / (el + 0.08901179)); // refraction near the horizon
+  const az = Math.atan2(-Math.sin(H), Math.tan(dec) * Math.cos(phi) - Math.sin(phi) * Math.cos(H));
+  // lit fraction from the Sun–Earth–Moon angle
+  const g = (357.529 + 0.98560028 * d) * rad, q = 280.459 + 0.98564736 * d;
+  const Ls = (q + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * rad;
+  const raS = Math.atan2(Math.cos(e) * Math.sin(Ls), Math.cos(Ls)), decS = Math.asin(Math.sin(e) * Math.sin(Ls)), sdist = 149598000;
+  const psi = Math.acos(Math.sin(decS) * Math.sin(dec) + Math.cos(decS) * Math.cos(dec) * Math.cos(raS - ra));
+  const inc = Math.atan2(sdist * Math.sin(psi), dist - sdist * Math.cos(psi));
+  return { az: (az + 2 * Math.PI) % (2 * Math.PI), el, illum: (1 + Math.cos(inc)) / 2 };
 }

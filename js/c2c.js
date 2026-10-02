@@ -3,7 +3,7 @@
 // massif's routes and the outings of the last 45 days into data/c2c-<site>.json; the app reads that copy
 // (kept for offline use) and always shows its date. Nothing here is rewritten: titles, ratings and the
 // conditions are the climbers' own words, with a link to every page.
-import { lonLatToWorld } from './geo.js?v=202610030109';
+import { lonLatToWorld } from './geo.js?v=202610030113';
 
 export const ACTIVITIES = {
   hiking: 'Randonnée', snow_ice_mixed: 'Neige, glace, mixte', mountain_climbing: 'Alpinisme rocheux', rock_climbing: 'Escalade',

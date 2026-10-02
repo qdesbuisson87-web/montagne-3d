@@ -161,7 +161,8 @@ Ordre suivi : camptocamp, forêts et saisons, remonter le temps, suivi en sortie
   - chaque toucher pose une étape visible : D vert, points blancs, A rouge. Le point « pousse » et le téléphone vibre (pas sur iPhone), un point en attente pulse ;
   - toucher un nom (refuge, sommet) pose l'étape à cet endroit ;
   - « Suivre les sentiers » (activé par défaut, mémorisé) : chaque tronçon est calculé par le service d'itinéraire IGN. Un toucher à moins de ~28 px d'un sentier se pose dessus ; plus loin, une ligne droite le rejoint, avec un message. Un détour de plus de 3× la distance (et 1,5 km) est signalé. Hors ligne ou sans chemin : ligne droite, avec un message ;
-  - × = abandonner (deux touchers si le tracé a au moins 2 points ; l'itinéraire d'avant revient). « Modifier le tracé » continue un itinéraire existant, même un GPX.
+  - × = abandonner (deux touchers si le tracé a au moins 2 points ; l'itinéraire d'avant revient). « Modifier le tracé » continue un itinéraire existant, même un GPX : « Annuler le point » ne reprend que les étapes ajoutées, jamais la trace d'origine (`route.keep`, gardé avec l'itinéraire) ;
+  - un toucher = un seul doigt posé et levé sur place : un toucher à deux doigts (dézoom) n'ajoute plus de point (bug trouvé en relisant : il en ajoutait un, et ouvrait la fiche d'un point hors tracé).
 - **Choisir un point sur la carte** (`startPick`) : départ / arrivée de « Aller à un lieu », ligne de vue, altitude de la prévision. Un bandeau dit quoi toucher, avec « Annuler » ; un nom touché compte aussi.
 - « Aller à un lieu » calcule tout seul dès que le départ et l'arrivée sont connus (il attend le GPS si le départ est « ma position »).
 - Nouvel itinéraire (rando du catalogue, idée, GPX, A → B, tracé) : sur téléphone le panneau se ferme pour montrer la ligne, et un message donne km / D+ / temps ; sur grand écran la fiche clignote en haut de Rando.

@@ -1,37 +1,37 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610030109';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610030109';
-import { SITE, SITE_LIST } from './sites.js?v=202610030109';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610030109';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610030109';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610030109';
-import { searchPlaces } from './search.js?v=202610030109';
-import { TerrainShadows } from './shadows.js?v=202610030109';
-import { PostFX } from './post.js?v=202610030109';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610030109';
-import { Forest } from './forest.js?v=202610030109';
-import { Lakes } from './water.js?v=202610030109';
-import { Glaciers } from './glaciers.js?v=202610030109';
-import { makeSite, removeSite } from './custom.js?v=202610030109';
-import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610030109';
-import { Streams } from './streams.js?v=202610030109';
-import { Refuges } from './refuges.js?v=202610030109';
-import { NightLights } from './lights.js?v=202610030109';
-import { Buildings } from './buildings.js?v=202610030109';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610030109';
-import { TrackRecorder, progressOn } from './track.js?v=202610030109';
-import { GpsTracker } from './gps.js?v=202610030109';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610030109';
-import { walkingRoute } from './planner.js?v=202610030109';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610030109';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610030109';
-import { TrailsLayer } from './trails.js?v=202610030109';
-import { Weather3D } from './weather3d.js?v=202610030109';
-import { Sight } from './sight.js?v=202610030109';
-import { Photos360 } from './photos360.js?v=202610030109';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610030109';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610030109';
-import { VolumeClouds } from './clouds.js?v=202610030109';
+import { EarthControls } from './controls.js?v=202610030113';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610030113';
+import { SITE, SITE_LIST } from './sites.js?v=202610030113';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610030113';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610030113';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610030113';
+import { searchPlaces } from './search.js?v=202610030113';
+import { TerrainShadows } from './shadows.js?v=202610030113';
+import { PostFX } from './post.js?v=202610030113';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610030113';
+import { Forest } from './forest.js?v=202610030113';
+import { Lakes } from './water.js?v=202610030113';
+import { Glaciers } from './glaciers.js?v=202610030113';
+import { makeSite, removeSite } from './custom.js?v=202610030113';
+import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610030113';
+import { Streams } from './streams.js?v=202610030113';
+import { Refuges } from './refuges.js?v=202610030113';
+import { NightLights } from './lights.js?v=202610030113';
+import { Buildings } from './buildings.js?v=202610030113';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610030113';
+import { TrackRecorder, progressOn } from './track.js?v=202610030113';
+import { GpsTracker } from './gps.js?v=202610030113';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610030113';
+import { walkingRoute } from './planner.js?v=202610030113';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610030113';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610030113';
+import { TrailsLayer } from './trails.js?v=202610030113';
+import { Weather3D } from './weather3d.js?v=202610030113';
+import { Sight } from './sight.js?v=202610030113';
+import { Photos360 } from './photos360.js?v=202610030113';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610030113';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610030113';
+import { VolumeClouds } from './clouds.js?v=202610030113';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -683,9 +683,15 @@ function showPoint(hit) {
 }
 let hoverNDC = null, downAt = null;
 renderer.domElement.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') { const r = renderer.domElement.getBoundingClientRect(); hoverNDC = [(e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1]; } });
-renderer.domElement.addEventListener('pointerdown', e => { downAt = [e.clientX, e.clientY, performance.now()]; });
+// a tap is one finger put down and lifted in place: a second finger (pinch, two-finger tap to zoom out) makes the
+// whole gesture a map gesture, never a point chosen
+const fingers = new Set();
+renderer.domElement.addEventListener('pointerdown', e => { fingers.add(e.pointerId); downAt = fingers.size === 1 ? [e.clientX, e.clientY, performance.now(), e.pointerId] : null; });
+// fingers lifted anywhere (even off the map) are forgotten, so that a later tap is seen as one
+addEventListener('pointerup', e => fingers.delete(e.pointerId), true);
+addEventListener('pointercancel', e => { fingers.delete(e.pointerId); downAt = null; }, true);
 renderer.domElement.addEventListener('pointerup', e => {
-  if (!downAt) return;
+  if (!downAt || downAt[3] !== e.pointerId) return;
   if (Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) < 8 && performance.now() - downAt[2] < 400) {
     const r = renderer.domElement.getBoundingClientRect();
     const photo = !draw.on && !pickMode && photos.pick(e.clientX - r.left, e.clientY - r.top, camera, r.width, r.height);
@@ -1236,7 +1242,7 @@ function renderDraw() {
     : 'Touche l\'étape suivante, ou « Terminer ».';
   $('drawStats').innerHTML = st ? `<span>${km(st.dist)} km</span><span>+${fmt(st.up)} m</span><span>−${fmt(st.down)} m</span><span>${hm(st.hours)}</span>${draw.note ? `<span class="warn">${esc(draw.note)}</span>` : ''}`
     : n === 1 && !busy ? '<span>1 point</span>' : '';
-  $('drawUndo').disabled = n === 0 && !busy;
+  $('drawUndo').disabled = n <= route.keep && !busy;
   $('drawDone').disabled = n < 2 || busy;
   $('drawMe').hidden = n > 0 || busy;
   measureBars();

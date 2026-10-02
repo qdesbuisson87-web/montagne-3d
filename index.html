@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202610021701">
+<link rel="stylesheet" href="css/app.css?v=202610021708">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -26,7 +26,7 @@
 </script>
 </head>
 <body>
-<div id="stage"></div>
+<div id="stage"><video id="camFeed" playsinline muted autoplay hidden></video></div>
 <div id="labels"></div>
 
 <div class="tl">
@@ -34,6 +34,7 @@
   <div class="eyebrow" id="siteRegion">Massif du Mont-Blanc</div>
   <h1><span id="siteName">Aiguille du Midi</span> <span class="alt" id="siteAlt"></span></h1>
   <button id="epochBadge" type="button" class="epochb" hidden>Photos 1950–1965 · revenir à aujourd'hui</button>
+  <div id="tripCard" class="trip" hidden aria-live="polite"></div>
   <div id="status" class="status" hidden><i></i>Chargement · <span id="statusN">0</span></div>
 </header>
 <aside id="slopeLegend" class="legend glass" hidden aria-label="Légende des pentes">
@@ -168,6 +169,10 @@
   <h3>Ma position</h3>
   <div class="row"><button id="gpsGo" type="button" class="btn">Me localiser</button></div>
   <p class="cline small" id="gpsInfo">Ta position GPS en direct sur la carte (il faut autoriser la localisation).</p>
+  <h3>Suivi de sortie</h3>
+  <p class="cline small">Enregistre ta trace (distance, dénivelé, vitesse). Avec un itinéraire chargé : ce qui reste, l'heure d'arrivée à ton rythme, une alerte si tu t'en écartes et si tu arrives après le coucher du soleil.</p>
+  <div class="btns"><button id="trkGo" type="button" class="btn">Démarrer l'enregistrement</button><button id="trkGpx" type="button" class="mini">Exporter ma trace (GPX)</button><button id="trkClear" type="button" class="mini">Effacer ma trace</button></div>
+  <p class="cline small" id="trkInfo">L'écran reste allumé pendant l'enregistrement : verrouillé, le téléphone met l'appli en pause et la trace s'interrompt.</p>
   <h3>Proposer un itinéraire</h3>
   <p class="cline small">Chemin à pied calculé par l'IGN sur ses sentiers et chemins, avec temps, dénivelé et profil.</p>
   <div class="plrow"><span>Départ</span><b id="plFrom">ma position</b></div>
@@ -216,6 +221,10 @@
 
 <div id="sightBar" class="sightbar glass" hidden>
   <span id="sightInfo">Viseur</span>
+  <button id="camBtn" type="button" class="mini" aria-pressed="false">Caméra</button>
+  <button id="reliefBtn" type="button" class="mini" aria-pressed="false" hidden>Relief</button>
+  <button id="fovMinus" type="button" class="mini" hidden aria-label="Noms plus serrés (champ plus étroit)">−</button>
+  <button id="fovPlus" type="button" class="mini" hidden aria-label="Noms plus écartés (champ plus large)">+</button>
   <button id="sightOff" type="button" class="mini">Quitter</button>
 </div>
 
@@ -237,6 +246,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202610021701"></script>
+<script type="module" src="js/app.js?v=202610021708"></script>
 </body>
 </html>

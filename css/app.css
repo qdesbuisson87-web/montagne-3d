@@ -14,7 +14,12 @@
 html, body { height: 100%; margin: 0; }
 body { overflow: hidden; background: #0b1018; color: var(--ink); font: 14px/1.4 "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
 #stage { position: fixed; inset: 0; }
-#stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+#stage canvas { display: block; width: 100%; height: 100%; touch-action: none; position: relative; z-index: 1; }
+#camFeed { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; background: #000; }
+#camFeed[hidden] { display: none; }
+/* augmented reality: the camera's image under the names; the relief hidden, or faint to check the alignment */
+body.cam #stage canvas { opacity: 0; }
+body.cam.relief #stage canvas { opacity: .35; }
 .glass { background: var(--glass); border: 1px solid var(--line); -webkit-backdrop-filter: blur(16px) saturate(1.2); backdrop-filter: blur(16px) saturate(1.2); border-radius: 10px; }
 button { font: inherit; color: inherit; }
 button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; }
@@ -35,6 +40,11 @@ button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid 
 .eyebrow { font: 500 10px/1.2 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
 h1 { margin: 3px 0 0; font: 700 24px/1 "Barlow Condensed", "Arial Narrow", sans-serif; text-transform: uppercase; letter-spacing: .01em; }
 h1 .alt { font-weight: 600; font-size: 17px; color: var(--ice); margin-left: 4px; }
+.trip:empty { display: none; }
+.trip { margin-top: 6px; font: 400 12px/1.45 "IBM Plex Mono", ui-monospace, monospace; max-width: 300px; }
+.trip .rec { color: #ff5a4f; }
+.trip .warn { color: var(--amber); font-weight: 600; }
+.trip .bad { color: #ff5a4f; font-weight: 600; }
 .epochb { margin-top: 6px; appearance: none; border: 1px solid var(--amber); background: rgba(240,180,60,.15); color: inherit; border-radius: 6px; padding: 6px 8px; min-height: 32px; font: 500 12px/1.2 "IBM Plex Mono", ui-monospace, monospace; cursor: pointer; text-align: left; }
 .status { margin-top: 6px; display: flex; align-items: center; gap: 6px; font: 400 11px/1 "IBM Plex Mono", ui-monospace, monospace; color: var(--muted); }
 .status i { width: 8px; height: 8px; border-radius: 50%; background: var(--amber); animation: pulse 1s ease-in-out infinite; }

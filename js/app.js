@@ -1,32 +1,33 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610021701';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610021701';
-import { SITE, SITE_LIST } from './sites.js?v=202610021701';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610021701';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610021701';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610021701';
-import { searchPlaces } from './search.js?v=202610021701';
-import { TerrainShadows } from './shadows.js?v=202610021701';
-import { PostFX } from './post.js?v=202610021701';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610021701';
-import { Forest } from './forest.js?v=202610021701';
-import { Lakes } from './water.js?v=202610021701';
-import { Glaciers } from './glaciers.js?v=202610021701';
-import { NightLights } from './lights.js?v=202610021701';
-import { Buildings } from './buildings.js?v=202610021701';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610021701';
-import { GpsTracker } from './gps.js?v=202610021701';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610021701';
-import { walkingRoute } from './planner.js?v=202610021701';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610021701';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610021701';
-import { TrailsLayer } from './trails.js?v=202610021701';
-import { Weather3D } from './weather3d.js?v=202610021701';
-import { Sight } from './sight.js?v=202610021701';
-import { Photos360 } from './photos360.js?v=202610021701';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610021701';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610021701';
-import { VolumeClouds } from './clouds.js?v=202610021701';
+import { EarthControls } from './controls.js?v=202610021708';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610021708';
+import { SITE, SITE_LIST } from './sites.js?v=202610021708';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610021708';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610021708';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610021708';
+import { searchPlaces } from './search.js?v=202610021708';
+import { TerrainShadows } from './shadows.js?v=202610021708';
+import { PostFX } from './post.js?v=202610021708';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610021708';
+import { Forest } from './forest.js?v=202610021708';
+import { Lakes } from './water.js?v=202610021708';
+import { Glaciers } from './glaciers.js?v=202610021708';
+import { NightLights } from './lights.js?v=202610021708';
+import { Buildings } from './buildings.js?v=202610021708';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610021708';
+import { TrackRecorder, progressOn } from './track.js?v=202610021708';
+import { GpsTracker } from './gps.js?v=202610021708';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610021708';
+import { walkingRoute } from './planner.js?v=202610021708';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610021708';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610021708';
+import { TrailsLayer } from './trails.js?v=202610021708';
+import { Weather3D } from './weather3d.js?v=202610021708';
+import { Sight } from './sight.js?v=202610021708';
+import { Photos360 } from './photos360.js?v=202610021708';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610021708';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610021708';
+import { VolumeClouds } from './clouds.js?v=202610021708';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -916,6 +917,7 @@ sheets.forEach(s => { $('tab-' + s).addEventListener('click', () => openSheet(s)
 // ---------- "Sortie": my position, an itinerary (GPX or drawn), its profile and numbers, a flight along it ----------
 const gps = new GpsTracker({ scene, onChange: renderGps });
 const route = new RouteLayer({ scene, groundAt });
+const track = new TrackRecorder({ scene, groundAt });
 let gpsCentered = false, flyRoute = null;
 const ago2 = d => { const s = (Date.now() - d) / 1000; return s < 60 ? `il y a ${Math.round(s)} s` : `il y a ${Math.round(s / 60)} min`; };
 function centerOnGps() {
@@ -935,7 +937,68 @@ function renderGps() {
     if (!gpsCentered) { gpsCentered = true; centerOnGps(); }
   } else $('gpsInfo').textContent = 'Ta position GPS en direct sur la carte (il faut autoriser la localisation).';
   if (typeof renderPlan === 'function' && $('plFrom')) renderPlan();
+  tripFix();
 }
+
+// ---------- following an outing: recording, what remains, alerts ----------
+const trip = { off: 0, offAlert: false, sunAlert: false, sun: null, sunDay: '' };
+const hhmm = d => d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+const buzz = p => { try { navigator.vibrate?.(p); } catch { } };
+function tripFix() {
+  const p = gps.pos; if (!p) { renderTrip(); return; }
+  track.addFix(p);
+  const prog = route.samples.length > 1 ? progressOn(route.samples, p.x, p.z) : null;
+  // off the itinerary: farther than 60 m beyond the GPS uncertainty on three fixes in a row
+  if (prog && prog.off > 60 + p.acc) { if (++trip.off >= 3 && !trip.offAlert) { trip.offAlert = true; buzz([200, 100, 200]); } }
+  else { trip.off = 0; trip.offAlert = false; }
+  trip.prog = prog;
+  // the day's sunset where one stands (computed once a day)
+  const day = new Date().toDateString(); if (trip.sunDay !== day) { trip.sun = sunTimes(new Date(), p.lat, p.lon); trip.sunDay = day; }
+  renderTrip();
+}
+function renderTrip() {
+  const lines = [], st = track.stats(), prog = trip.prog, p = gps.pos;
+  if (track.recording && st) lines.push(`<span class="rec">● Enregistrement</span> · ${t1(st.dist / 1000)} km · +${fmt(st.up)} m · ${hm(st.hours)}${st.speed != null ? ` · ${t1(st.speed)} km/h` : ''}`);
+  if (prog && gps.on) {
+    // own pace: the time taken so far against the standard time of the part walked (once it means something)
+    let pace = 1;
+    if (track.recording && st && prog.doneHours > 0.25 && st.hours > 0.25) pace = Math.min(2.5, Math.max(0.5, st.hours / prog.doneHours));
+    const hoursLeft = prog.hours * pace, eta = new Date(Date.now() + hoursLeft * 3600e3);
+    lines.push(prog.left < 30 ? "Arrivé au bout de l'itinéraire." : `Reste ${t1(prog.left / 1000)} km · +${fmt(prog.up)} m · −${fmt(prog.down)} m · ${hm(hoursLeft)}${pace !== 1 ? ' à ton rythme' : ''} → arrivée vers ${hhmm(eta)}`);
+    if (trip.offAlert) lines.push(`<span class="bad">Tu t'écartes de l'itinéraire : à ${fmt(prog.off)} m de la ligne.</span>`);
+    const ss = trip.sun?.sunset;
+    if (ss && eta > ss - 15 * 60e3 && prog.left >= 30) {
+      if (!trip.sunAlert) { trip.sunAlert = true; buzz([300]); }
+      lines.push(`<span class="warn">Arrivée prévue ${eta > ss ? 'après' : 'juste avant'} le coucher du soleil (${hhmm(ss)}${trip.sun.dusk ? `, nuit noire vers ${hhmm(trip.sun.dusk)}` : ''}) : lampe frontale, ou faire demi-tour.</span>`);
+    }
+  }
+  if (p && gps.on && trip.sun?.sunset && !lines.some(l => l.includes('coucher'))) {
+    const left = (trip.sun.sunset - Date.now()) / 3600e3;
+    if (left > 0 && left < 4) lines.push(`Coucher du soleil ${hhmm(trip.sun.sunset)} (dans ${hm(left)})`);
+  }
+  $('tripCard').innerHTML = lines.map(l => `<div>${l}</div>`).join('');
+  $('tripCard').hidden = !lines.length;
+  $('trkGo').textContent = track.recording ? "Arrêter l'enregistrement" : track.pts.length ? "Reprendre l'enregistrement" : "Démarrer l'enregistrement";
+  if (st && !track.recording) $('trkInfo').textContent = `Trace gardée : ${t1(st.dist / 1000)} km, +${fmt(st.up)} m, ${fmt(st.count)} points. L'écran reste allumé pendant l'enregistrement : verrouillé, le téléphone met l'appli en pause et la trace s'interrompt.`;
+}
+$('trkGo').addEventListener('click', () => {
+  if (track.recording) track.stop();
+  else { track.start(); if (!gps.on) { gpsCentered = false; gps.start(); } }
+  renderTrip();
+});
+$('trkGpx').addEventListener('click', () => {
+  if (track.pts.length < 2) { $('trkInfo').textContent = "Pas encore de trace à exporter."; return; }
+  const a = document.createElement('a'), d = new Date(track.started ?? Date.now());
+  a.href = URL.createObjectURL(new Blob([track.toGPX(`Sortie du ${d.toLocaleDateString('fr-FR')}`)], { type: 'application/gpx+xml' }));
+  a.download = `sortie-${d.toISOString().slice(0, 10)}.gpx`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+});
+$('trkClear').addEventListener('click', () => {
+  if ($('trkClear').dataset.armed !== '1') { $('trkClear').dataset.armed = '1'; $('trkClear').textContent = 'Confirmer : effacer'; setTimeout(() => { $('trkClear').dataset.armed = ''; $('trkClear').textContent = 'Effacer ma trace'; }, 4000); return; }
+  track.clear(); $('trkClear').dataset.armed = ''; $('trkClear').textContent = 'Effacer ma trace'; renderTrip();
+});
+// a recording left running when the app was closed carries on
+if (track.recording) setTimeout(() => { track.start(); gps.start(); }) ; // after the whole module has run
+setInterval(renderTrip, 30e3);
 $('gpsGo').addEventListener('click', () => { if (gps.on) gps.stop(); else { gpsCentered = false; gps.start(); } });
 $('gpsFab').addEventListener('click', () => { if (!gps.on) { gpsCentered = false; gps.start(); } else centerOnGps(); });
 const hm = h => { const m = Math.round(h * 60 / 5) * 5; return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`; };
@@ -1176,7 +1239,41 @@ async function sightOn() {
   controls.enabled = false; fly = null; flyRoute = null; closeSheets();
   document.body.classList.add('sight'); $('sightBar').hidden = false;
 }
+// ----- augmented reality: the back camera's picture behind the names of the summits -----
+// The 3D view's field of view is set to the camera's as it appears on screen (picture cropped to fill it):
+// phone main cameras see about 66° along the long side of the picture; a ± adjustment is kept on the device.
+let camStream = null, fovAdj = 1;
+try { fovAdj = +localStorage.getItem('midi3d-cam-fov') || 1; } catch { }
+function camFov() {
+  const v = $('camFeed'), vw = v.videoWidth, vh = v.videoHeight, W = stage.clientWidth, H = stage.clientHeight;
+  if (!vw || !vh) return;
+  const f = (Math.max(vw, vh) / 2) / Math.tan(66 * Math.PI / 360), s = Math.max(W / vw, H / vh);
+  camera.fov = 2 * Math.atan((H / s / 2) / f) * 180 / Math.PI * fovAdj; camera.updateProjectionMatrix();
+}
+async function camOn() {
+  if (!navigator.mediaDevices?.getUserMedia) { $('sightInfo').textContent = "Pas d'accès à la caméra sur cet appareil."; return; }
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 } }, audio: false });
+  } catch (e) { $('sightInfo').textContent = e.name === 'NotAllowedError' ? 'Caméra refusée : autorise-la pour ce site.' : `Caméra indisponible (${e.message}).`; return; }
+  const v = $('camFeed'); v.srcObject = camStream; v.hidden = false; await v.play().catch(() => { });
+  v.onloadedmetadata = camFov; camFov();
+  document.body.classList.add('cam'); $('camBtn').setAttribute('aria-pressed', 'true');
+  for (const id of ['reliefBtn', 'fovMinus', 'fovPlus']) $(id).hidden = false;
+}
+function camOff() {
+  camStream?.getTracks().forEach(t => t.stop()); camStream = null;
+  const v = $('camFeed'); v.srcObject = null; v.hidden = true;
+  document.body.classList.remove('cam', 'relief'); $('camBtn').setAttribute('aria-pressed', 'false');
+  for (const id of ['reliefBtn', 'fovMinus', 'fovPlus']) $(id).hidden = true;
+  camera.fov = 50; camera.updateProjectionMatrix();
+}
+$('camBtn').addEventListener('click', () => camStream ? camOff() : camOn());
+$('reliefBtn').addEventListener('click', () => { const on = document.body.classList.toggle('relief'); $('reliefBtn').setAttribute('aria-pressed', on); });
+const nudgeFov = k => { fovAdj = Math.min(1.4, Math.max(0.7, fovAdj * k)); try { localStorage.setItem('midi3d-cam-fov', fovAdj); } catch { } camFov(); };
+$('fovMinus').addEventListener('click', () => nudgeFov(1 / 1.03)); $('fovPlus').addEventListener('click', () => nudgeFov(1.03));
+addEventListener('resize', () => { if (camStream) setTimeout(camFov, 300); }); // turning the phone changes the crop
 function sightOffNow() {
+  if (camStream) camOff();
   sight.stop(); document.body.classList.remove('sight'); $('sightBar').hidden = true;
   // hand back to the map, looking where the phone looked
   const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
@@ -1581,7 +1678,7 @@ function updateLabels() {
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
   if (!w || !h) return; // hidden (background tab, app starting): keep the last good size, never divide by zero
-  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); route?.setResolution(w, h); trails?.setResolution(w, h);
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); route?.setResolution(w, h); trails?.setResolution(w, h); track?.setResolution(w, h);
   SU.proj.value = h * renderer.getPixelRatio() / (2 * Math.tan(camera.fov * Math.PI / 360));
 }
 addEventListener('resize', resize);
@@ -1642,6 +1739,7 @@ function drawFrame() {
   for (const mat of Object.values(trails.mats)) mat.opacity = 0.95 * (1 - 0.7 * U.night.value);
   gps.update(camera, groundAt, state.exag); if (gps.on && frameN % 60 === 0) renderGps();
   route.update(frameN, state.exag, engine.busy);
+  track.update(frameN, state.exag);
   trails.update(camera, controls.target, frameN, state.exag, google.on);
   weather3d.update(state.exag, state.far);
   photos.update(controls.target, frameN, state.exag, google.on);

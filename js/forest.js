@@ -8,9 +8,9 @@
 // no crown), flat roofs (no peak), and anything above 50 m.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { tileMerc, mercToLonLat, lonLatToL93, l93ToLonLat, lonLatToWorld } from './geo.js?v=202610021701';
-import { cachedFetch, TransientError } from './net.js?v=202610021701';
-import { FOREST_WMS, decodeForest } from './foresttypes.js?v=202610021701';
+import { tileMerc, mercToLonLat, lonLatToL93, l93ToLonLat, lonLatToWorld } from './geo.js?v=202610021708';
+import { cachedFetch, TransientError } from './net.js?v=202610021708';
+import { FOREST_WMS, decodeForest } from './foresttypes.js?v=202610021708';
 
 const MNH = 'IGNF_LIDAR-HD_MNH_ELEVATION.ELEVATIONGRIDCOVERAGE.LAMB93';
 const Z = 16, RES = 256, NEAR = 700; // metres: beyond, the simple tree
@@ -53,7 +53,7 @@ void main(){
   vec3 w = base + vec3(p.x * aSize.y, p.y * aSize.x, p.z * aSize.y) * g;
   vW = w; vN = n; vPart = part; vUp = p.y; vRnd = aRnd; vKind = aKind; vAlt = aPos.y;
   vCol = textureLod(map, aUv, 1.0).rgb;
-  gl_Position = projectionMatrix * viewMatrix * w;
+  gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.0);
 }`;
 
 export class Forest {

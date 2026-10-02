@@ -1,7 +1,7 @@
 // Live data, fetched every time the app opens: Météo-France forecasts (via Open-Meteo),
 // the latest Sentinel-2 pass and the latest clear one (Microsoft Planetary Computer), snow by altitude.
-import { lonLatToMerc, RE } from './geo.js?v=202610021701';
-import { SITE } from './sites.js?v=202610021701';
+import { lonLatToMerc, RE } from './geo.js?v=202610021708';
+import { SITE } from './sites.js?v=202610021708';
 
 export const SPOTS = SITE.spots; // top, peak2, mid, valley
 // pressure levels (hPa) of the cloud profile: ≈ 1 500, 2 000, 3 000, 4 200, 5 600, 7 200 and 9 200 m
@@ -168,4 +168,20 @@ export function moonPosition(date, lat, lon) {
   const psi = Math.acos(Math.sin(decS) * Math.sin(dec) + Math.cos(decS) * Math.cos(dec) * Math.cos(raS - ra));
   const inc = Math.atan2(sdist * Math.sin(psi), dist - sdist * Math.cos(psi));
   return { az: (az + 2 * Math.PI) % (2 * Math.PI), el, illum: (1 + Math.cos(inc)) / 2 };
+}
+
+// Sunset (upper limb at the horizon, refraction included: −0.833°) and end of civil twilight (−6°) on the day
+// of `date` at a place, as Dates (null when the sun does not cross that height that day). Found by stepping
+// through the afternoon, then halving the step (to the minute).
+export function sunTimes(date, lat, lon) {
+  const noon = new Date(date); noon.setHours(12, 0, 0, 0);
+  const when = h0 => {
+    const el = t => sunPosition(new Date(t), lat, lon).el * 180 / Math.PI - h0;
+    let a = +noon, b = a; if (el(a) < 0) return null;
+    for (let i = 0; i < 48; i++) { b = a + 15 * 60e3; if (el(b) < 0) break; a = b; }
+    if (el(b) >= 0) return null;
+    while (b - a > 60e3) { const m = (a + b) / 2; if (el(m) >= 0) a = m; else b = m; }
+    return new Date(b);
+  };
+  return { sunset: when(-0.833), dusk: when(-6) };
 }

@@ -103,7 +103,9 @@ body.sight .tl, body.sight .tabs, body.sight .fab, body.sight .readout { display
 .profile .area { fill: rgba(255, 59, 48, .18); }
 .profile .ln.n { stroke: #ff5b50; }
 .profile .cur { stroke: #fff; stroke-width: 1; }
-.tabs button.wx .off { display: none; }
+.tabs button.wx .off, .tabs button#linesBtn .off { display: none; }
+.tabs button#linesBtn[aria-pressed="false"] .off { display: inline; }
+.tabs button#linesBtn[aria-pressed="false"] { opacity: .6; }
 .tabs button.wx[aria-pressed="false"] .off { display: inline; }
 .tabs button.wx[aria-pressed="false"] { opacity: .6; }
 .tabs button.tilt { justify-content: center; font: 700 17px/1 "Barlow Condensed", "Arial Narrow", sans-serif; letter-spacing: .02em; }

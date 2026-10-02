@@ -161,7 +161,9 @@ export class VolumeClouds {
   // into a half-resolution buffer: rgb = light scattered towards the eye (linear), a = transmittance
   render(camera, depthTexture, w, h) {
     if (!this.noise) { this.noise = cloudNoise(); this.mat.uniforms.noise.value = this.noise; this.U.clNoise.value = this.noise; this.syncShadows(); }
-    const W = Math.max(1, Math.round(w * this.scale)), H = Math.max(1, Math.round(h * this.scale));
+    // half resolution, and never more than ~0.45 million pixels (large phone and tablet screens)
+    const sc = Math.min(this.scale, Math.sqrt(4.5e5 / (w * h)));
+    const W = Math.max(1, Math.round(w * sc)), H = Math.max(1, Math.round(h * sc));
     if (!this.rt || this.rt.width !== W || this.rt.height !== H) {
       this.rt?.dispose();
       this.rt = new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType, format: THREE.RGBAFormat, depthBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, colorSpace: THREE.NoColorSpace });

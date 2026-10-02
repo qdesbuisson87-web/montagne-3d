@@ -2,7 +2,7 @@
 // relief with the accuracy as a disc around it. The altitude shown is the relief's under the position (LiDAR),
 // far more reliable than a phone's GPS altitude, which is given alongside for information.
 import * as THREE from 'three';
-import { lonLatToWorld } from './geo.js?v=202610021825';
+import { lonLatToWorld } from './geo.js?v=202610021836';
 
 export class GpsTracker {
   constructor({ scene, onChange }) {

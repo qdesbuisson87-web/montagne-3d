@@ -109,12 +109,13 @@ void main(){
 }`;
 
 class Cascade {
-  constructor(size, res) {
+  // aoRes: the sky-visibility map can be coarser than the shadow map (its pass is the heaviest one)
+  constructor(size, res, aoRes = res) {
     this.size = size; this.res = res;
     const opts = { type: THREE.UnsignedByteType, format: THREE.RGBAFormat, generateMipmaps: false, colorSpace: THREE.NoColorSpace };
     this.height = new THREE.WebGLRenderTarget(res, res, { ...opts, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, depthBuffer: true });
     this.shadow = new THREE.WebGLRenderTarget(res, res, { ...opts, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: false });
-    this.ao = new THREE.WebGLRenderTarget(res, res, { ...opts, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: false });
+    this.ao = new THREE.WebGLRenderTarget(aoRes, aoRes, { ...opts, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: false });
     this.mask = new THREE.WebGLRenderTarget(res, res, { ...opts, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: false });
     this.rect = new THREE.Vector4(0, 0, size, size / res); // xmin, zmax, size, texel
     this.cam = new THREE.OrthographicCamera(-size / 2, size / 2, size / 2, -size / 2, 1, 30000);
@@ -156,9 +157,9 @@ export class TerrainShadows {
     this.bind();
     this.lastSun = new THREE.Vector3(); this.lastExag = 1; this.tilesAt = -1; this.lastRun = 0; this.sunValid = false;
   }
-  setQuality(res, steps, aoDirs = 12) {
-    if (res !== this.fine.res) {
-      for (const k of ['fine', 'coarse']) { const c = this[k], n = new Cascade(c.size, res); c.dispose(); this[k] = n; }
+  setQuality(res, steps, aoDirs = 12, aoRes = res) {
+    if (res !== this.fine.res || aoRes !== this.fine.ao.width) {
+      for (const k of ['fine', 'coarse']) { const c = this[k], n = new Cascade(c.size, res, aoRes); c.dispose(); this[k] = n; }
       this.bind();
     }
     this.pass.uniforms.steps.value = steps; this.aoPass.uniforms.dirs.value = aoDirs; this.invalidate();
@@ -179,7 +180,8 @@ export class TerrainShadows {
   update(center, sunDir, exag, now, sunOn = true) {
     const moved = c => !c.center || Math.hypot(center.x - c.center[0], center.z - c.center[1]) > c.size * 0.18;
     // new tiles arriving make the height maps better: refresh, but at most every 1.5 s
-    const tiles = this.engine.tileCount ?? 0, tilesChanged = tiles !== this.tilesAt && now - this.lastRun > 1500;
+    // (every 3 s at most: on a phone each refresh is a heavy pass, felt as a jolt while moving)
+    const tiles = this.engine.tileCount ?? 0, tilesChanged = tiles !== this.tilesAt && now - this.lastRun > 3000;
     const redoCoarse = !this.coarse.valid || moved(this.coarse) || exag !== this.lastExag || (tilesChanged && now - this.lastRun > 6000);
     const redoFine = redoCoarse || !this.fine.valid || moved(this.fine) || tilesChanged;
     const sunChanged = sunOn && (!this.sunValid || sunDir.angleTo(this.lastSun) > 0.0015);

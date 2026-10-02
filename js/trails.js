@@ -6,10 +6,10 @@ import * as THREE from 'three';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
 import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610021825';
-import { cachedFetch } from './net.js?v=202610021825';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610021836';
+import { cachedFetch } from './net.js?v=202610021836';
 
-const CELL = 0.04, RANGE = 5000, SHOW = 9000;
+const CELL = 0.04, RANGE = 5000, SHOW = 6500; // metres: fat lines cost on phones, the far ones were barely visible
 const WFS = (layer, cql, [s, w, n, e]) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=${layer}&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=5000`
   // in a CQL filter the box is lon/lat ('EPSG:4326'); in the BBOX parameter with the URN it is lat/lon
   + (cql ? `&CQL_FILTER=${encodeURIComponent(`${cql} AND BBOX(geometrie,${w},${s},${e},${n},'EPSG:4326')`)}` : `&BBOX=${s},${w},${n},${e},urn:ogc:def:crs:EPSG::4326`);

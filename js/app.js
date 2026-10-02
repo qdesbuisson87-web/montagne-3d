@@ -1,37 +1,37 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610021825';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610021825';
-import { SITE, SITE_LIST } from './sites.js?v=202610021825';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610021825';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610021825';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610021825';
-import { searchPlaces } from './search.js?v=202610021825';
-import { TerrainShadows } from './shadows.js?v=202610021825';
-import { PostFX } from './post.js?v=202610021825';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610021825';
-import { Forest } from './forest.js?v=202610021825';
-import { Lakes } from './water.js?v=202610021825';
-import { Glaciers } from './glaciers.js?v=202610021825';
-import { makeSite, removeSite } from './custom.js?v=202610021825';
-import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610021825';
-import { Streams } from './streams.js?v=202610021825';
-import { Refuges } from './refuges.js?v=202610021825';
-import { NightLights } from './lights.js?v=202610021825';
-import { Buildings } from './buildings.js?v=202610021825';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610021825';
-import { TrackRecorder, progressOn } from './track.js?v=202610021825';
-import { GpsTracker } from './gps.js?v=202610021825';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610021825';
-import { walkingRoute } from './planner.js?v=202610021825';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610021825';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610021825';
-import { TrailsLayer } from './trails.js?v=202610021825';
-import { Weather3D } from './weather3d.js?v=202610021825';
-import { Sight } from './sight.js?v=202610021825';
-import { Photos360 } from './photos360.js?v=202610021825';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610021825';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610021825';
-import { VolumeClouds } from './clouds.js?v=202610021825';
+import { EarthControls } from './controls.js?v=202610021836';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610021836';
+import { SITE, SITE_LIST } from './sites.js?v=202610021836';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610021836';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610021836';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610021836';
+import { searchPlaces } from './search.js?v=202610021836';
+import { TerrainShadows } from './shadows.js?v=202610021836';
+import { PostFX } from './post.js?v=202610021836';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610021836';
+import { Forest } from './forest.js?v=202610021836';
+import { Lakes } from './water.js?v=202610021836';
+import { Glaciers } from './glaciers.js?v=202610021836';
+import { makeSite, removeSite } from './custom.js?v=202610021836';
+import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610021836';
+import { Streams } from './streams.js?v=202610021836';
+import { Refuges } from './refuges.js?v=202610021836';
+import { NightLights } from './lights.js?v=202610021836';
+import { Buildings } from './buildings.js?v=202610021836';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610021836';
+import { TrackRecorder, progressOn } from './track.js?v=202610021836';
+import { GpsTracker } from './gps.js?v=202610021836';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610021836';
+import { walkingRoute } from './planner.js?v=202610021836';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610021836';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610021836';
+import { TrailsLayer } from './trails.js?v=202610021836';
+import { Weather3D } from './weather3d.js?v=202610021836';
+import { Sight } from './sight.js?v=202610021836';
+import { Photos360 } from './photos360.js?v=202610021836';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610021836';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610021836';
+import { VolumeClouds } from './clouds.js?v=202610021836';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -62,9 +62,9 @@ const beefy = (navigator.deviceMemory || 8) >= 6 && (navigator.hardwareConcurren
 // k: tile split distance (detail), pr: highest pixel ratio, fps: frame rate the automatic adjustment defends,
 // fx: share of the snow/rain particles, clouds: layers of the sea of clouds
 const QUAL = {
-  standard: { k: 1.6, pr: 1.25, tiles: 450, loads: 6, fps: 50, fx: 0.3, clouds: 2, gErr: 24, shRes: 512, shSteps: 80, ao: 8, trees: 12000, vSteps: 0, pts: 6e5, ptPx: 2.2 },
-  haute: { k: 2.2, pr: 2, tiles: 800, loads: 8, fps: 55, fx: 0.6, clouds: 3, gErr: 12, shRes: 1024, shSteps: 112, ao: 10, trees: 40000, vSteps: 28, pts: 1.5e6, ptPx: 1.7 },
-  extreme: { k: 3.2, pr: 3, tiles: 1300, loads: 12, fps: 30, fx: 1, clouds: 4, gErr: 6, shRes: 2048, shSteps: 160, ao: 16, trees: 120000, vSteps: 48, pts: 4e6, ptPx: 1.3 } // gErr: Google 3D screen error (px); sh*: shadow maps; ao: directions searched for the sky visibility; vSteps: steps through the clouds in volume (0 = flat layers); pts: LiDAR point budget, ptPx: their spacing on screen (CSS px)
+  standard: { k: 1.6, pr: 1.25, tiles: 450, loads: 6, fps: 50, fx: 0.3, clouds: 2, gErr: 24, shRes: 512, shSteps: 80, ao: 8, trees: 12000, vSteps: 0, aoRes: 256, px: 1.2e6, pts: 6e5, ptPx: 2.2 },
+  haute: { k: 2.2, pr: 2, tiles: 800, loads: 8, fps: 55, fx: 0.6, clouds: 3, gErr: 12, shRes: 1024, shSteps: 112, ao: 8, trees: 40000, vSteps: 20, aoRes: 512, px: 2.4e6, pts: 1.5e6, ptPx: 1.7 },
+  extreme: { k: 3.2, pr: 3, tiles: 1300, loads: 12, fps: 30, fx: 1, clouds: 4, gErr: 6, shRes: 2048, shSteps: 160, ao: 16, trees: 120000, vSteps: 40, aoRes: 1024, px: 4.5e6, pts: 4e6, ptPx: 1.3 } // gErr: Google 3D screen error (px); sh*: shadow maps; ao: directions searched for the sky visibility; vSteps: steps through the clouds in volume (0 = flat layers); aoRes: sky-visibility map; px: most pixels drawn (large screens); pts: LiDAR point budget, ptPx: their spacing on screen (CSS px)
 };
 // phones start in "Haute" (the promise: 60 i/s on a high-end phone); "Extrême" is a deliberate choice there
 let savedQuality = null; try { savedQuality = localStorage.getItem('midi3d-quality'); } catch { }
@@ -1545,36 +1545,55 @@ $('refresh').addEventListener('click', refreshLive);
 // Automatic adjustment: the chosen quality sets the ceiling; when the measured frame rate stays under the
 // quality's target, the resolution goes down first (down to half), then the terrain detail (down to 60 %).
 // Both come back, detail first, after several seconds of comfortable frame rate.
-const adapt = { res: 1, detail: 1, good: 0, since: 0 };
+const adapt = { res: 1, detail: 1, good: 0, since: 0, level: 0, noClouds: false, noPost: false };
 function applyScale() {
   const Q = QUAL[state.quality]; engine.splitK = Q.k * adapt.detail; google.setErrorTarget(Q.gErr / adapt.detail);
   lidar.setQuality(Q.pts * adapt.detail * adapt.detail, Q.ptPx); // fewer LiDAR points along with the terrain detail
-  const pr = Math.max(0.6, Math.min(window.devicePixelRatio || 1, Q.pr) * adapt.res);
+  // pixel budget: a foldable's or a tablet's large screen at full density is several times a phone's pixels
+  const css = Math.max(1, stage.clientWidth * stage.clientHeight), cap = Math.sqrt(Q.px / css);
+  const pr = Math.max(0.6, Math.min(window.devicePixelRatio || 1, Q.pr, cap) * adapt.res);
+  // the heavy effects go first when the frame rate is short; sharpness (resolution) last
+  vclouds.on = Q.vSteps > 0 && !adapt.noClouds; post.setOptions({ enabled: state.quality !== 'standard' && !adapt.noPost, samples: (window.devicePixelRatio || 1) < 2 ? 4 : 0 }); showCloudLayers();
   if (Math.abs(pr - renderer.getPixelRatio()) > 0.01) { renderer.setPixelRatio(pr); resize(); }
+}
+// Steps of the automatic adjustment, mildest first: the clouds in volume become flat layers, the distant detail
+// drops, then the resolution a little, the final image pass, and only then the resolution further down.
+const ADAPT_STEPS = [
+  { },
+  { noClouds: true },
+  { noClouds: true, detail: 0.85 },
+  { noClouds: true, detail: 0.7 },
+  { noClouds: true, detail: 0.7, res: 0.85 },
+  { noClouds: true, detail: 0.7, res: 0.85, noPost: true },
+  { noClouds: true, detail: 0.6, res: 0.72, noPost: true },
+  { noClouds: true, detail: 0.6, res: 0.6, noPost: true },
+  { noClouds: true, detail: 0.6, res: 0.5, noPost: true }
+];
+function setAdaptLevel(l) {
+  adapt.level = l; const s = ADAPT_STEPS[l];
+  adapt.res = s.res ?? 1; adapt.detail = s.detail ?? 1; adapt.noClouds = !!s.noClouds; adapt.noPost = !!s.noPost;
 }
 function adaptTo(fps) {
   const Q = QUAL[state.quality], now = performance.now();
   if (!started || document.hidden || now - adapt.since < 3000) return; // let a change settle before judging it
   if (fps < Q.fps * 0.9) {
     adapt.good = 0;
-    if (adapt.res > 0.55) adapt.res = Math.max(0.5, adapt.res * 0.85);
-    else if (adapt.detail > 0.65) adapt.detail = Math.max(0.6, adapt.detail - 0.1);
-    else return;
-  } else if (fps >= Math.min(Q.fps + 12, 57) && (adapt.res < 1 || adapt.detail < 1)) {
+    if (adapt.level >= ADAPT_STEPS.length - 1) return;
+    setAdaptLevel(adapt.level + 1);
+  } else if (fps >= Math.min(Q.fps + 12, 57) && adapt.level > 0) {
     if (++adapt.good < 4) return;
-    adapt.good = 0;
-    if (adapt.detail < 1) adapt.detail = Math.min(1, adapt.detail + 0.1); else adapt.res = Math.min(1, adapt.res / 0.85);
+    adapt.good = 0; setAdaptLevel(adapt.level - 1);
   } else { adapt.good = 0; return; }
   adapt.since = now; applyScale();
 }
 function applyQuality(q) {
   const Q = QUAL[q]; engine.maxTiles = Q.tiles; engine.maxLoads = Q.loads;
-  Object.assign(adapt, { res: 1, detail: 1, good: 0, since: performance.now() });
+  Object.assign(adapt, { good: 0, since: performance.now() }); setAdaptLevel(0);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.pr)); resize(); applyScale();
   // final pass from "Haute" up; the scene buffer multisampled where the renderer would have been (screens below 2×)
   post.setOptions({ enabled: q !== 'standard', samples: (window.devicePixelRatio || 1) < 2 ? 4 : 0 });
   vclouds.on = Q.vSteps > 0; vclouds.setQuality(Q.vSteps, q === 'extreme' ? 4 : 3);
-  showCloudLayers(); applyPrecip(); shadows.setQuality(Q.shRes, Q.shSteps, Q.ao); forest.maxTrees = Q.trees; lakes.mirrorOn = q !== 'standard'; lakes.mirrorEvery = q === 'extreme' ? 2 : 3;
+  showCloudLayers(); applyPrecip(); shadows.setQuality(Q.shRes, Q.shSteps, Q.ao, Q.aoRes); forest.maxTrees = Q.trees; lakes.mirrorOn = q !== 'standard'; lakes.mirrorEvery = q === 'extreme' ? 2 : 3;
   try { localStorage.setItem('midi3d-quality', q); } catch { }
 }
 markSeg('quality', state.quality);
@@ -1916,7 +1935,11 @@ function frame() {
   try { drawFrame(); } catch (e) { if (String(e) !== frameError) { frameError = String(e); console.error(e); } }
   nextFrame(frame);
 }
+// ?prof: time spent per part of the frame (ms, summed), and draw calls, to find what costs (window.midi3d.prof)
+const prof = location.search.includes('prof') ? { n: 0 } : null;
+let profT = 0; const lap = k => { if (!prof) return; const n = performance.now(); prof[k] = (prof[k] || 0) + n - profT; profT = n; };
 function drawFrame() {
+  if (prof) { prof.n++; profT = performance.now(); renderer.info.autoReset = false; renderer.info.reset(); } // all the passes of the frame counted
   const dt = clock.getDelta(), t = clock.elapsedTime;
   U.time.value = t;
   if (fly) {
@@ -1951,33 +1974,37 @@ function drawFrame() {
   sky.position.copy(c); clouds.position.set(c.x, 0, c.z); SU.camPos.value.copy(c);
   SU.boxSize.value = Math.min(Math.max(td * 0.9, 40), 9000);
   if (cabins.visible) { const a = cabinGeo.attributes.position.array, ph = (t * 0.02) % 2, f = ph < 1 ? ph : 2 - ph; a.set(cablePoint(0, f), 0); a.set(cablePoint(1, 1 - f), 3); cabinGeo.attributes.position.needsUpdate = true; }
+  lap('debut');
   if (google.on) google.update(); else engine.update(camera);
+  lap('relief');
   lidar.update(camera, controls.target, state.exag, google.on);
   const byPoints = (x, z) => lidar.covers(x, z);
-  forest.update(camera, google.on || !state.trees, byPoints);
-  lakes.update(camera, frameN, state.exag, google.on, controls.target);
-  buildings.update(camera, controls.target, frameN, google.on, byPoints);
-  nightLights.update(controls.target, frameN, U.night.value, state.exag, google.on);
+  forest.update(camera, google.on || !state.trees, byPoints); lap('forets');
+  lakes.update(camera, frameN, state.exag, google.on, controls.target); lap('lacs');
+  buildings.update(camera, controls.target, frameN, google.on, byPoints); lap('batiments');
+  nightLights.update(controls.target, frameN, U.night.value, state.exag, google.on); lap('nuit');
   // at night the red paths would outshine everything: dimmed (still there to follow)
   for (const mat of Object.values(trails.mats)) mat.opacity = 0.95 * (1 - 0.7 * U.night.value);
   gps.update(camera, groundAt, state.exag); if (gps.on && frameN % 60 === 0) renderGps();
   route.update(frameN, state.exag, engine.busy);
-  track.update(frameN, state.exag);
-  trails.update(camera, controls.target, frameN, state.exag, google.on);
-  streams.update(camera, controls.target, frameN, state.exag, google.on, dt);
-  pistes.update(camera, state.exag, google.on);
+  track.update(frameN, state.exag); lap('itineraire');
+  trails.update(camera, controls.target, frameN, state.exag, google.on); lap('sentiers');
+  streams.update(camera, controls.target, frameN, state.exag, google.on, dt); lap('torrents');
+  pistes.update(camera, state.exag, google.on); lap('pistes');
   weather3d.update(state.exag, state.far);
   photos.update(controls.target, frameN, state.exag, google.on);
   if (flyRoute) flyAlongRoute(dt);
   if (hoverNDC && frameN % (google.on ? 10 : 3) === 0) showPoint(pick(...hoverNDC));
-  updateLabels(); frameN++;
+  lap('divers'); updateLabels(); lap('etiquettes'); frameN++;
   if (frameN % 600 === 0 && state.hourOffset === 0) updateSky();
   if (frameN % 45 === 0) updatePrecipForView();
   // cast shadows only with the real sun on the IGN terrain (photos and Google tiles carry their own)
   // light maps of the relief (sky visibility always, cast shadows with the real sun); Google tiles carry their own
   if (!google.on && started) shadows.update(controls.target, U.sunDir.value, state.exag, performance.now(), state.light === 'sun');
   else shadows.off();
+  lap('ombres');
   post.render(scene, camera, t);
+  lap('rendu'); if (prof) { prof.calls = renderer.info.render.calls; prof.tris = renderer.info.render.triangles; }
   // start when the IGN relief is there, or when the Google view was chosen during loading (IGN then paused)
   if (!started && (engine.roots.filter(r => r.state === 'ready').length >= engine.roots.length * 0.6 || (google.on && t > 3))) {
     started = true; $('loader').classList.add('done'); if (!sharedView()) home();
@@ -1987,7 +2014,7 @@ function drawFrame() {
   fpsAcc += dt; fpsN++; adAcc += dt; adN++;
   if (adAcc > 1.5) { adaptTo(adN / adAcc); adAcc = 0; adN = 0; }
   if (fpsAcc > 0.5) {
-    const auto = adapt.res < 1 || adapt.detail < 1 ? ` · auto ${Math.round(adapt.res * adapt.detail * 100)} %` : '';
+    const auto = adapt.level > 0 ? ` · allégé ${adapt.level}/${ADAPT_STEPS.length - 1}` : '';
     $('rFps').textContent = `${Math.round(fpsN / fpsAcc)} i/s · ${google.on ? 'Google 3D' : `${engine.tileCount ?? 0} tuiles`}${auto}`;
     const busy = google.on ? google.loading : engine.busy;
     $('status').hidden = busy === 0; $('statusN').textContent = busy;
@@ -1996,7 +2023,26 @@ function drawFrame() {
     fpsAcc = 0; fpsN = 0;
   }
 }
-window.midi3d = { engine, google, camera, controls, adapt, applyScale, forest, lakes, shadows, gps, route, sight, lidar, post, U, state,
+// the Affichage choices are kept on the device: what was hidden stays hidden at the next opening
+(() => {
+  const KEY = 'midi3d-layers', boxes = [...document.querySelectorAll('#sheet-layers input[type=checkbox][id]')];
+  let saved = {}; try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch { }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(boxes.map(b => [b.id, b.checked])))); } catch { } };
+  for (const b of boxes) {
+    if (b.id in saved && saved[b.id] !== b.checked && !b.disabled) { b.checked = saved[b.id]; b.dispatchEvent(new Event('change')); }
+    b.addEventListener('change', save);
+  }
+})();
+// quick switch in the bottom bar: paths, huts, lifts and torrents together
+function syncLinesBtn() { const on = $('c-trails').checked || $('c-streams').checked; $('linesBtn').setAttribute('aria-pressed', on); $('linesBtn').setAttribute('aria-label', on ? 'Sentiers et torrents affichés (toucher pour les masquer)' : 'Sentiers et torrents masqués (toucher pour les afficher)'); }
+$('linesBtn').addEventListener('click', () => {
+  const on = !($('c-trails').checked || $('c-streams').checked);
+  for (const id of ['c-trails', 'c-streams']) if ($(id).checked !== on) { $(id).checked = on; $(id).dispatchEvent(new Event('change')); }
+  syncLinesBtn();
+});
+for (const id of ['c-trails', 'c-streams']) $(id).addEventListener('change', syncLinesBtn);
+syncLinesBtn();
+window.midi3d = { engine, google, camera, controls, adapt, applyScale, forest, lakes, shadows, gps, route, sight, lidar, post, U, state, prof,
   set overcast(v) { overcast = v; U.haze.value = v; updateSky(); } }; // handy for debugging from the console
 updateSky(); frame(); refreshLive();
 setInterval(() => { if (document.visibilityState === 'visible') refreshLive(); }, 15 * 60e3);

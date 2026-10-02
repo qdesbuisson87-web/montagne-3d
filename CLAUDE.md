@@ -146,6 +146,42 @@ Ordre suivi : camptocamp, forêts et saisons, remonter le temps, suivi en sortie
 - **Fluidité sur Galaxy Z Fold (02/10/2026)** : « pas fluide du tout », « mieux sans les sentiers », « qualité visuelle moins bonne » (= le réglage auto baissait la résolution). `?prof` mesure chaque partie de l'image (`window.midi3d.prof`) : processeur < 1,5 ms/image (étiquettes ~1 ms) → la carte graphique sature. Corrigé : budget de pixels (Standard 1,2 / Haute 2,4 / Extrême 4,5 millions : un grand écran plié à pleine densité en faisait bien plus), carte d'ombrage des creux à 512 en Haute (8 directions) et recalcul au plus toutes les 3 s (à-coups en se déplaçant), nuages en volume 20 pas et ≤ 0,45 Mpx, sentiers affichés à < 6,5 km et torrents à < 5 km. Réglage auto par paliers (`ADAPT_STEPS`) : d'abord nuages plats, puis détail lointain, puis un peu de résolution, l'image finale, et la résolution en dernier ; compteur « allégé n/8 ». Cases d'Affichage mémorisées (`midi3d-layers`), bouton « chemins » dans la barre du bas (sentiers + torrents). PAS mesuré sur le Fold lui-même.
 - Tâche quotidienne : le 1er essai a tout récupéré mais l'envoi a été refusé (publication entre-temps) → `git pull --rebase` + 3 essais.
 
+### Interface refaite pour tous les téléphones (03/10/2026, retour iPhone : « on peut pas choisir dans la barre Affichage, Météo… », « on sait pas si le tracé a accepté »)
+- Cause : la barre du bas avait 9 boutons et débordait des deux côtés sur un iPhone (Lieux et le retour au sommet hors de l'écran).
+- Vocabulaire : l'onglet « Sortie » des notes plus haut s'appelle désormais **Rando** ; les boutons dits « dans la barre du bas » (météo, chemins, tourner autour, 3D) sont dans la colonne de droite.
+- **Barre du bas** : 4 onglets égaux toujours visibles (Lieux, Conditions, Rando, Affichage). **Colonne de boutons à droite**, au-dessus de la barre, à portée du pouce : météo réelle, chemins, 3D, tourner autour, retour au sommet (icône montagne), puis « Me localiser ». Chaque bouton répond par un court message (`toast()`).
+- **Mises en page** (css/app.css, marges `--st/--sb/--sl/--sr` = zones sûres : encoche, coins, barre d'accueil) :
+  - téléphone en portrait : panneau en bas, qu'on ferme en le tirant vers le bas par sa barre de titre ;
+  - téléphone en paysage (hauteur ≤ 520) : panneau à droite sur toute la hauteur, onglets en bas à gauche, colonne en haut à droite ;
+  - grands écrans ≥ 700 × 521 (Fold ouvert, tablette, ordinateur) : panneau latéral (`--shw`), colonne à sa gauche ;
+  - pliants en deux moitiés (Viewport Segments) : panneaux sur une moitié, carte sur l'autre.
+- Panneaux réorganisés : sections repliables (`details.sec`). Affichage = interrupteurs, puis lumière, vue, qualité (avec ce que le réglage automatique a allégé, en clair), le reste replié. Lieux : recherche en premier. Rando : secours, fiche de l'itinéraire en cours, 4 grands boutons (Tracer une rando, Aller à un lieu, Ouvrir un GPX, Enregistrer ma sortie), puis sections repliées.
+- **Tracer une rando** (mode tracé, app.js `draw*`, route.js `beginDraw/addStep/undo/cancelDraw/endDraw`, étapes `ends`) :
+  - un bandeau en haut dit quoi faire et donne km / D+ / D− / temps en direct ; « Annuler le point » et « Terminer » sont en bas, sous le pouce ;
+  - chaque toucher pose une étape visible : D vert, points blancs, A rouge. Le point « pousse » et le téléphone vibre (pas sur iPhone), un point en attente pulse ;
+  - toucher un nom (refuge, sommet) pose l'étape à cet endroit ;
+  - « Suivre les sentiers » (activé par défaut, mémorisé) : chaque tronçon est calculé par le service d'itinéraire IGN. Un toucher à moins de ~28 px d'un sentier se pose dessus ; plus loin, une ligne droite le rejoint, avec un message. Un détour de plus de 3× la distance (et 1,5 km) est signalé. Hors ligne ou sans chemin : ligne droite, avec un message ;
+  - × = abandonner (deux touchers si le tracé a au moins 2 points ; l'itinéraire d'avant revient). « Modifier le tracé » continue un itinéraire existant, même un GPX.
+- **Choisir un point sur la carte** (`startPick`) : départ / arrivée de « Aller à un lieu », ligne de vue, altitude de la prévision. Un bandeau dit quoi toucher, avec « Annuler » ; un nom touché compte aussi.
+- « Aller à un lieu » calcule tout seul dès que le départ et l'arrivée sont connus (il attend le GPS si le départ est « ma position »).
+- Nouvel itinéraire (rando du catalogue, idée, GPX, A → B, tracé) : sur téléphone le panneau se ferme pour montrer la ligne, et un message donne km / D+ / temps ; sur grand écran la fiche clignote en haut de Rando.
+- Fiche d'un point : moins haute, et la vue glisse pour que le point touché reste visible au-dessus (`keepInSight`).
+- Mot d'accueil à la première ouverture (gestes). Échap sur ordinateur : annule le choix, le tracé, puis ferme le panneau.
+- **iPhone et autres** :
+  - champs de saisie en 16 px (sinon iOS zoome toute la page) ; pincement de page bloqué (`gesturestart`) ;
+  - `color-scheme: dark` (Samsung Internet et Chrome n'assombrissent pas la page eux-mêmes) ; `dvh` avec repli en `vh` ;
+  - sur écran tactile, plus de flou derrière les panneaux : il était recalculé à chaque image de la 3D ;
+  - un pliant ouvert ou fermé, ou un écran tourné, recalcule le budget de pixels (`onResize` → `applyScale`) ;
+  - mémoire graphique perdue : message puis rechargement.
+- **Rythme d'affichage** (`paceOk`) :
+  - au plus 60 images/s : un écran 120 Hz (Fold, iPhone Pro) dessinait deux fois plus pour rien, chaleur et batterie ; à 90 Hz, tout est dessiné ;
+  - 30 images/s au repos (rien ne bouge depuis 3 s, pas de chargement ni de neige qui tombe), « (au repos) » dans le compteur, ignoré par le réglage automatique ;
+  - étiquettes non recalculées quand la vue est immobile, étiquettes masquées retirées de l'affichage (`visibility`).
+- **Bug réseau** : les requêtes BD TOPO (WFS : sentiers, torrents, lacs, glaciers, bâtiments, lumières) n'avaient pas de file polie. Mesuré : 51 refus (429) sur 101 en déplaçant la vue, d'où des centaines d'erreurs et des sentiers lents à venir. Ajout de files dans net.js : `wfs` (4→12/s, 4 en vol), `navigation` (à part, pour qu'un tronçon tracé n'attende pas derrière la carte), reste de la Géoplateforme. Remesuré : 105 requêtes, 0 refus.
+- `THREE.Clock` (obsolète) → `THREE.Timer`, relié à la visibilité de la page (sauf `?debugloop`).
+- Testé dans le navigateur intégré (sans erreur dans la console), en vérifiant automatiquement qu'aucun élément ne sort de l'écran ni n'en chevauche un autre (fermé, panneau ouvert, tracé, choix d'un point), aux tailles 320×568, 344×882 (Fold fermé), 375×812, 390×844, 667×375 et 844×390 (paysage), 690×829, 884×1104 (Fold ouvert), 1280×800. Également testé : tracé réel Lac Blanc → La Flégère (3,35 km, −533 m, 1 h 35, sur le sentier), annuler / terminer / abandonner, A → B automatique, ligne de vue, altitude choisie, catalogue, topos.
+- PAS testé : vrais doigts sur iPhone / Samsung / Fold, vibreur, zones sûres réelles (encoche), pliant en deux moitiés, i/s réels.
+
 ### Plus beau (01/10/2026, « fais tout ça » : creux, lumière, nuages, glaciers, nuit, couleurs)
 1. Ombrage des creux (`shadows.js`, passe `aoFS`) : sur les cartes de hauteur des deux cascades (6 et 48 km), visibilité du ciel = moyenne sur 8/10/16 directions de cos²(horizon au-dessus du plan tangent), recherche jusqu'à 10 km (pas ×1,3). Plan tangent sur ±3 texels et hauteur de départ = max sur ±1 texel (`hTop`) : sinon les jointures de tuiles (sillon d'un texel où la jupe apparaît) faisaient des lignes sombres ; même correction pour les ombres portées. `skyVis(w)` dans SCENE_GLSL : mode Photo ×mix(1, V, 0,45) ; Soleil réel : lumière du ciel ×V, soleil ×mix(1, V, 0,25). Arbres, bâtiments, points LiDAR aussi. Calculé dans les deux lumières, seulement quand la vue bouge ou que des tuiles arrivent.
 2. Image finale (`js/post.js`, qualité Haute et Extrême) : scène dans un tampon demi-flottant (MSAA 4 si écran < 2×), épaule des hautes lumières à 0,72 (teinte gardée, désaturation des très fortes), halo (filtre « dual Kawase » 5 niveaux, seuil 0,95), courbe en S légère, vignettage, tramage anti-bandes. Les matériaux écrivent toujours des valeurs d'affichage : la passe décode/réencode, rien d'autre à changer. Disque du soleil écrit ×3 pour le halo.

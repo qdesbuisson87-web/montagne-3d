@@ -2,8 +2,8 @@
 // the relief around the view; touching one opens its preview with author, date and licence (mostly CC BY-SA),
 // and a link to the Panoramax viewer. Photos come in sequences every few metres: one dot per ~150 m is kept.
 import * as THREE from 'three';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610021836';
-import { cachedFetch } from './net.js?v=202610021836';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610030109';
+import { cachedFetch } from './net.js?v=202610030109';
 
 const CELL = 0.03, KEEP = 150;
 const API = (w, s, e, n) => `https://api.panoramax.xyz/api/search?bbox=${w},${s},${e},${n}&limit=1000`;

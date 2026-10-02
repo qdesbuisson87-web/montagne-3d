@@ -6,17 +6,20 @@
 <title>Montagne 3D</title>
 <meta name="description" content="Le massif du Mont-Blanc en 3D : relief LiDAR IGN, photos aériennes 20 cm, météo Météo-France et neige vue par Sentinel-2, en direct.">
 <meta name="theme-color" content="#0b1018">
+<!-- the page is dark by design: browsers that darken pages on their own (Samsung Internet, Chrome) leave it as it is -->
+<meta name="color-scheme" content="dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Midi 3D">
+<meta name="format-detection" content="telephone=no">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202610021836">
+<link rel="stylesheet" href="css/app.css?v=202610030109">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -28,6 +31,7 @@
 <body>
 <div id="stage"><video id="camFeed" playsinline muted autoplay hidden></video></div>
 <div id="labels"></div>
+<div id="routeMarks" aria-hidden="true"></div>
 
 <div class="tl">
 <header class="brand glass">
@@ -44,22 +48,47 @@
 </aside>
 </div>
 
+<!-- map buttons, where the thumb is: quick switches, then "locate me" -->
+<div id="tools" class="tools" role="toolbar" aria-label="Outils de la carte" aria-orientation="vertical">
+  <div class="tgroup glass">
+    <button id="wxToggle" type="button" class="wx" aria-pressed="true" aria-label="Météo réelle affichée : nuages, pluie et neige (toucher pour les masquer)" title="Nuages, pluie et neige réels : afficher / masquer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 15a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1.5A3.5 3.5 0 1 1 17 15z"/><path d="M9 18.5l-1 2M13 18.5l-1 2M17 18.5l-1 2"/><path class="off" d="M4 3l16 18"/></svg></button>
+    <button id="linesBtn" type="button" aria-pressed="true" aria-label="Sentiers et torrents affichés (toucher pour les masquer)" title="Sentiers, refuges, remontées et torrents : afficher / masquer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20c3-2 4-6 8-7s5-5 8-8"/><path d="M4 20l2-.5M20 5l-.5 2"/><path class="off" d="M4 3l16 18"/></svg></button>
+    <button id="tilt" type="button" class="tilt" aria-label="Incliner la vue (de face ou du dessus)" title="Vue de face / vue du dessus (ou clic droit + glisser, Ctrl + glisser)">3D</button>
+    <button id="orbitBtn" type="button" aria-pressed="false" aria-label="Tourner autour du centre de l'écran" title="Tourner autour : un doigt fait tourner et incliner la vue autour du centre"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v4h-4"/><circle cx="12" cy="12" r="2"/></svg></button>
+    <button id="home" type="button" aria-label="Revenir au sommet" title="Revenir au sommet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 19.5 9 8.5l3.6 5.6 2.2-3.2 6.7 8.6z"/><path d="M9 8.5V4.5l3 1.2-3 1.2"/></svg></button>
+  </div>
+  <button id="gpsFab" type="button" class="fab glass" aria-label="Me localiser" aria-pressed="false" title="Me localiser"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.5"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg></button>
+</div>
+
 <nav class="tabs glass" aria-label="Menus">
-  <button id="tab-places" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20 10 6l4 7 2-3 5 10z"/></svg>Lieux</button>
-  <button id="tab-cond" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1.5A3.5 3.5 0 1 1 17 18z"/></svg>Conditions</button>
-  <button id="tab-route" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c3-1 3-5 7-6s4-5 7-7"/><circle cx="5" cy="19" r="1.8"/><circle cx="19" cy="6" r="1.8"/></svg>Sortie</button>
-  <button id="tab-layers" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg>Affichage</button>
-  <button id="wxToggle" type="button" class="ico wx" aria-pressed="true" aria-label="Météo réelle affichée : nuages, pluie et neige (toucher pour les masquer)" title="Nuages, pluie et neige réels : afficher / masquer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1.5A3.5 3.5 0 1 1 17 18z"/><path class="off" d="M4 4l16 16"/></svg></button>
-  <button id="linesBtn" type="button" class="ico" aria-pressed="true" aria-label="Sentiers et torrents affichés (toucher pour les masquer)" title="Sentiers, refuges, remontées et torrents : afficher / masquer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20c3-2 4-6 8-7s5-5 8-8"/><path d="M4 20l2-.5M20 5l-.5 2"/><path class="off" d="M4 4l16 16"/></svg></button>
-  <button id="orbitBtn" type="button" class="ico" aria-pressed="false" aria-label="Tourner autour du centre de l'écran" title="Tourner autour : un doigt fait tourner et incliner la vue autour du centre"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v4h-4"/><circle cx="12" cy="12" r="2"/></svg></button>
-  <button id="tilt" type="button" class="ico tilt" aria-label="Incliner la vue (de face ou du dessus)" title="Vue de face / vue du dessus (ou clic droit + glisser, Ctrl + glisser)">3D</button>
-  <button id="home" type="button" class="ico" aria-label="Revenir à l'Aiguille du Midi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4m0 10v4M3 12h4m10 0h4"/><circle cx="12" cy="12" r="4"/></svg></button>
+  <button id="tab-places" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.2"/><path d="m15.2 15.2 5.3 5.3"/></svg><span>Lieux</span></button>
+  <button id="tab-cond" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 2.2v1.4M2.2 8h1.4M3.9 3.9l1 1M12.1 3.9l-1 1"/><path d="M9.5 20a3.6 3.6 0 0 1-.2-7.2 4.6 4.6 0 0 1 8.7-1.1A3.3 3.3 0 1 1 18.3 20z"/></svg><span>Conditions</span></button>
+  <button id="tab-route" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c3-1 3-5 7-6s4-5 7-7"/><circle cx="5" cy="19" r="1.8"/><circle cx="19" cy="6" r="1.8"/></svg><span>Rando</span></button>
+  <button id="tab-layers" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg><span>Affichage</span></button>
 </nav>
+
+<!-- drawing an itinerary on the map: what to do, the numbers so far, and the actions under the thumb -->
+<div id="drawTop" class="drawtop glass" hidden>
+  <div class="dt-h"><b id="drawTitle">Tracer une rando</b><button id="drawQuit" type="button" class="close" aria-label="Quitter sans garder ce tracé">×</button></div>
+  <p id="drawMsg" class="dt-m" aria-live="polite">Touche la carte à l'endroit du départ.</p>
+  <div id="drawStats" class="dt-s" aria-live="polite"></div>
+</div>
+<div id="drawBar" class="drawbar glass" hidden>
+  <div class="db-r">
+    <label class="sw" for="drawSnap"><input id="drawSnap" type="checkbox" checked><span>Suivre les sentiers</span></label>
+    <button id="drawMe" type="button" class="mini">Partir de ma position</button>
+  </div>
+  <div class="db-b">
+    <button id="drawUndo" type="button" class="mini big"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Annuler le point</button>
+    <button id="drawDone" type="button" class="mini big go"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Terminer</button>
+  </div>
+</div>
+<!-- choosing one point on the map (start, destination, line of sight, altitude) -->
+<div id="pickBar" class="pickbar glass" hidden><p id="pickMsg" aria-live="polite"></p><button id="pickCancel" type="button" class="mini">Annuler</button></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
 <section id="sheet-places" class="sheet glass" hidden aria-label="Lieux">
   <div class="sh"><h2>Lieux</h2><button class="close" type="button" aria-label="Fermer">×</button></div>
-  <button id="shareView" type="button" class="mini wide">Partager cette vue (lien)</button>
-  <p class="cline small" id="shareNote"></p>
   <form id="searchForm" class="row search" role="search">
     <label class="sr" for="q">Chercher un lieu</label>
     <input id="q" type="search" placeholder="Sommet, refuge, lac, village…" enterkeyhint="search" autocomplete="off">
@@ -67,16 +96,21 @@
   </form>
   <div id="results" class="places results"></div>
   <p class="cline small" id="searchNote"></p>
-  <h3>Massif</h3>
-  <div id="sites" class="sites"></div>
-  <button id="makeSite" type="button" class="mini wide">Faire un massif de l'endroit regardé</button>
-  <p class="cline small" id="makeNote">N'importe où en France : météo à quatre altitudes, sommets nommés, neige du jour, bulletin d'avalanche (avec ta clé Météo-France), randos à construire. Gardé sur cet appareil.</p>
   <h3>Sommets et repères</h3>
   <div id="placeList" class="places"></div>
+  <h3>Massif</h3>
+  <div id="sites" class="sites"></div>
+  <details class="sec">
+    <summary>Faire un massif de l'endroit regardé</summary>
+    <p class="cline small" id="makeNote">N'importe où en France : météo à quatre altitudes, sommets nommés, neige du jour, bulletin d'avalanche (avec ta clé Météo-France), randos à construire. Gardé sur cet appareil.</p>
+    <button id="makeSite" type="button" class="mini wide">Faire un massif ici</button>
+  </details>
+  <button id="shareView" type="button" class="mini wide">Partager cette vue (lien)</button>
+  <p class="cline small" id="shareNote"></p>
 </section>
 
 <section id="sheet-cond" class="sheet glass" hidden aria-label="Conditions">
-  <div class="sh"><h2>Conditions en direct</h2><button class="close" type="button" aria-label="Fermer">×</button></div>
+  <div class="sh"><h2>Conditions</h2><button class="close" type="button" aria-label="Fermer">×</button></div>
   <h3>Risque d'avalanche — bulletin Météo-France</h3>
   <div id="bera"></div>
   <div id="beraKeyBlock" class="gkey" hidden>
@@ -85,23 +119,25 @@
   </div>
   <h3>Météo</h3>
   <div id="wx"></div>
-  <div id="altBlock">
-    <h3>À ton altitude</h3>
+  <details class="sec" id="altBlock">
+    <summary>Neige et pluie à ton altitude</summary>
     <div class="row"><label class="sr" for="altIn">Altitude en mètres</label><input id="altIn" type="number" inputmode="numeric" min="500" max="4810" step="10" value="2500"><span class="unit">m</span><button id="altGo" type="button" class="mini go">Voir</button></div>
-    <button id="altPick" type="button" class="mini wide">Choisir sur le relief</button>
+    <button id="altPick" type="button" class="mini wide">Choisir un point sur le relief</button>
     <div id="altOut"></div>
-  </div>
+  </details>
   <h3>Neige vue par satellite (Sentinel-2)</h3>
   <div id="sat"></div>
   <p class="cline small" id="cloudNote"></p>
-  <h3>Film de l'enneigement (12 derniers mois)</h3>
-  <p class="cline small">La neige vue par Sentinel-2 à chaque passage peu nuageux de l'année, posée sur le relief.</p>
-  <button id="filmLoad" type="button" class="mini wide">Charger les images de l'année</button>
-  <div id="film" hidden>
-    <div class="field"><label for="filmRange">Date <output id="filmDate">—</output></label><input id="filmRange" type="range" min="0" max="0" step="1" value="0"></div>
-    <div class="btns"><button id="filmPlay" type="button" class="mini">Lecture</button><button id="filmBack" type="button" class="mini">Revenir à la dernière image nette</button></div>
-    <p class="cline small" id="filmNote"></p>
-  </div>
+  <details class="sec">
+    <summary>Film de l'enneigement (12 derniers mois)</summary>
+    <p class="cline small">La neige vue par Sentinel-2 à chaque passage peu nuageux de l'année, posée sur le relief.</p>
+    <button id="filmLoad" type="button" class="mini wide">Charger les images de l'année</button>
+    <div id="film" hidden>
+      <div class="field"><label for="filmRange">Date <output id="filmDate">—</output></label><input id="filmRange" type="range" min="0" max="0" step="1" value="0"></div>
+      <div class="btns"><button id="filmPlay" type="button" class="mini">Lecture</button><button id="filmBack" type="button" class="mini">Revenir à la dernière image nette</button></div>
+      <p class="cline small" id="filmNote"></p>
+    </div>
+  </details>
   <button id="refresh" type="button" class="btn">Actualiser</button>
   <h3>À vérifier avant de partir</h3>
   <ul class="links" id="links"></ul>
@@ -110,6 +146,37 @@
 
 <section id="sheet-layers" class="sheet glass" hidden aria-label="Affichage">
   <div class="sh"><h2>Affichage</h2><button class="close" type="button" aria-label="Fermer">×</button></div>
+  <h3>Sur la carte</h3>
+  <div class="checks">
+    <label for="c-clouds"><input id="c-clouds" type="checkbox" checked><span>Météo réelle<small>nuages, pluie, neige</small></span></label>
+    <label for="c-trails"><input id="c-trails" type="checkbox" checked><span>Sentiers<small>refuges, remontées</small></span></label>
+    <label for="c-streams"><input id="c-streams" type="checkbox" checked><span>Torrents<small>et cascades</small></span></label>
+    <label for="c-labels"><input id="c-labels" type="checkbox" checked><span>Noms<small>sommets, lieux</small></span></label>
+    <label for="c-slopes"><input id="c-slopes" type="checkbox"><span>Pentes<small>27° et plus</small></span></label>
+    <label for="c-snowtoday"><input id="c-snowtoday" type="checkbox" checked><span>Neige du jour<small>satellite</small></span></label>
+    <label for="c-trees"><input id="c-trees" type="checkbox" checked><span>Forêts 3D<small>LiDAR IGN</small></span></label>
+    <label for="c-buildings"><input id="c-buildings" type="checkbox" checked><span>Bâtiments 3D<small>BD TOPO IGN</small></span></label>
+    <label for="c-pistes"><input id="c-pistes" type="checkbox"><span>Pistes de ski<small>OpenStreetMap</small></span></label>
+    <label for="c-clpa"><input id="c-clpa" type="checkbox"><span>Avalanches passées<small>carte CLPA</small></span></label>
+    <label for="c-photos"><input id="c-photos" type="checkbox"><span>Photos 360°<small>Panoramax</small></span></label>
+    <label for="c-freeze"><input id="c-freeze" type="checkbox"><span>Isotherme 0 °C<small>altitude du gel</small></span></label>
+    <label for="c-wind"><input id="c-wind" type="checkbox"><span>Vent en altitude<small>vers 3 000 m</small></span></label>
+    <label for="c-cable"><input id="c-cable" type="checkbox" checked><span>Téléphérique</span></label>
+    <label for="c-lidar"><input id="c-lidar" type="checkbox"><span>Points LiDAR<small>de près</small></span></label>
+    <label for="c-spin"><input id="c-spin" type="checkbox"><span>Rotation auto</span></label>
+  </div>
+  <p class="cline small" id="clpaLegend" hidden><b style="color:#e070e0">Magenta</b> : avalanches repérées sur photos aériennes et sur le terrain · <b style="color:#f0a040">orange</b> : témoignages. Carte des phénomènes connus depuis plus d'un siècle (INRAE, IGN, via Géorisques) : elle ne dit rien du risque d'aujourd'hui, qui est dans le bulletin d'avalanche. Hors des zones enquêtées, aucune information.</p>
+  <p class="cline small" id="pisteInfo" hidden></p>
+  <div class="field" id="f-lidar" hidden><label>Points LiDAR : couleurs</label>
+    <div class="seg"><button type="button" data-ptcolor="photo" aria-pressed="true">Photo</button><button type="button" data-ptcolor="classes" aria-pressed="false">Classes</button></div>
+    <ul class="ptlegend" id="ptLegend" hidden></ul>
+    <p class="cline small" id="ptInfo"></p></div>
+  <div class="field"><label>Lumière</label>
+    <div class="seg"><button type="button" data-light="photo" aria-pressed="true">Photo</button><button type="button" data-light="sun" aria-pressed="false">Soleil réel</button></div></div>
+  <div class="field dim" id="f-time"><label for="time">Heure du soleil <output id="timeOut">—</output></label>
+    <div class="row"><input id="time" type="range" min="-12" max="12" step="0.25" value="0"><button id="now" type="button" class="mini">Maintenant</button></div>
+    <div class="row sundate"><label for="sunDate">Jour</label><input id="sunDate" type="date"></div>
+    <p class="cline small">Ombres portées par le relief calculées pour ce jour et cette heure (vue IGN).</p></div>
   <div class="field"><label>Vue 3D</label>
     <div class="seg"><button type="button" data-view="ign" aria-pressed="true">IGN (LiDAR)</button><button type="button" data-view="google" aria-pressed="false">Google 3D</button></div>
     <div id="gKeyBlock" class="gkey" hidden>
@@ -119,125 +186,130 @@
     </div>
     <p class="cline small" id="gNote"></p>
   </div>
-  <div class="field"><label for="epoch">Photos aériennes (remonter le temps)</label>
-    <select id="epoch" class="sel"></select>
-    <p class="cline small" id="epochNote"></p></div>
-  <div class="field"><label>Lumière</label>
-    <div class="seg"><button type="button" data-light="photo" aria-pressed="true">Photo</button><button type="button" data-light="sun" aria-pressed="false">Soleil réel</button></div></div>
-  <div class="field dim" id="f-time"><label for="time">Heure du soleil <output id="timeOut">—</output></label>
-    <div class="row"><input id="time" type="range" min="-12" max="12" step="0.25" value="0"><button id="now" type="button" class="mini">Maintenant</button></div>
-    <div class="row sundate"><label for="sunDate">Jour</label><input id="sunDate" type="date"></div>
-    <p class="cline small">Ombres portées par le relief calculées pour ce jour et cette heure (vue IGN).</p></div>
-  <div class="field"><label>Pluie et neige qui tombent</label>
-    <div class="seg"><button type="button" data-precip="auto" aria-pressed="true">Météo réelle</button><button type="button" data-precip="snow" aria-pressed="false">Neige</button><button type="button" data-precip="rain" aria-pressed="false">Pluie</button><button type="button" data-precip="off" aria-pressed="false">Aucune</button></div>
-    <p class="cline small" id="precipNow"></p></div>
-  <div class="checks">
-    <label for="c-slopes"><input id="c-slopes" type="checkbox"> Pentes (27° et plus)</label>
-    <label for="c-photos"><input id="c-photos" type="checkbox"> Photos 360° (Panoramax)</label>
-    <label for="c-clpa"><input id="c-clpa" type="checkbox"> Avalanches passées (carte CLPA)</label>
-    <p class="cline small" id="clpaLegend" hidden><b style="color:#e070e0">Magenta</b> : avalanches repérées sur photos aériennes et sur le terrain · <b style="color:#f0a040">orange</b> : témoignages. Carte des phénomènes connus depuis plus d'un siècle (INRAE, IGN, via Géorisques) : elle ne dit rien du risque d'aujourd'hui, qui est dans le bulletin d'avalanche. Hors des zones enquêtées, aucune information.</p>
-    <label for="c-freeze"><input id="c-freeze" type="checkbox"> Isotherme 0 °C (plan à l'altitude du gel)</label>
-    <label for="c-wind"><input id="c-wind" type="checkbox"> Vent en altitude (≈ 3 000 m)</label>
-    <label for="c-trails"><input id="c-trails" type="checkbox" checked> Sentiers, refuges et remontées (IGN)</label>
-    <label for="c-streams"><input id="c-streams" type="checkbox" checked> Torrents et cascades (IGN)</label>
-    <label for="c-pistes"><input id="c-pistes" type="checkbox"> Pistes de ski (OpenStreetMap)</label>
-    <p class="cline small" id="pisteInfo" hidden></p>
-    <label for="c-buildings"><input id="c-buildings" type="checkbox" checked> Bâtiments en 3D (BD TOPO IGN)</label>
-    <label for="c-trees"><input id="c-trees" type="checkbox" checked> Forêts en 3D (LiDAR IGN)</label>
-    <label for="c-lidar"><input id="c-lidar" type="checkbox"> Nuage de points LiDAR (de près)</label>
-    <label for="c-snowtoday"><input id="c-snowtoday" type="checkbox" checked> Neige du jour (satellite)</label>
-    <label for="c-clouds"><input id="c-clouds" type="checkbox" checked> Nuages réels</label>
-    <label for="c-labels"><input id="c-labels" type="checkbox" checked> Noms des sommets</label>
-    <label for="c-cable"><input id="c-cable" type="checkbox" checked> Téléphérique</label>
-    <label for="c-spin"><input id="c-spin" type="checkbox"> Rotation auto</label>
-  </div>
-  <div class="field" id="f-lidar" hidden><label>Points LiDAR : couleurs</label>
-    <div class="seg"><button type="button" data-ptcolor="photo" aria-pressed="true">Photo</button><button type="button" data-ptcolor="classes" aria-pressed="false">Classes</button></div>
-    <ul class="ptlegend" id="ptLegend" hidden></ul>
-    <p class="cline small" id="ptInfo"></p></div>
-  <div class="field"><label for="vivid">Couleurs <output id="vividOut">+20 %</output></label><input id="vivid" type="range" min="0" max="1" step="0.01" value="0.2"></div>
-  <div class="field"><label for="exag">Relief <output id="exagOut">×1.0</output></label><input id="exag" type="range" min="1" max="1.8" step="0.05" value="1"></div>
   <div class="field"><label>Qualité</label>
-    <div class="seg"><button type="button" data-quality="standard" aria-pressed="false">Standard</button><button type="button" data-quality="haute" aria-pressed="false">Haute</button><button type="button" data-quality="extreme" aria-pressed="false">Extrême</button></div></div>
-  <h3>Hors ligne</h3>
-  <p class="cline small">Télécharge le massif sur l'appareil pour l'avoir sans réseau en montagne. Tout ce que tu as déjà regardé est aussi gardé.</p>
-  <div class="seg"><button type="button" data-pack="essentiel" aria-pressed="false">Essentiel</button><button type="button" data-pack="detaille" aria-pressed="true">Détaillé</button><button type="button" data-pack="maximum" aria-pressed="false">Maximum</button></div>
-  <p class="cline small" id="packInfo"></p>
-  <div class="pbar"><i id="packBar"></i></div>
-  <div class="row"><button id="packGo" type="button" class="btn">Télécharger</button><button id="packStop" type="button" class="mini" hidden>Arrêter</button></div>
-  <p class="cline small" id="storageInfo"></p>
-  <button id="cacheClear" type="button" class="mini">Vider le stockage</button>
-  <h3>Points LiDAR gardés</h3>
-  <p class="cline small">Chaque endroit vu de près est gardé pour s'ouvrir tout de suite et sans réseau. Au-delà de la limite, les endroits vus il y a le plus longtemps sont effacés.</p>
-  <div class="seg"><button type="button" data-ptlimit="0" aria-pressed="false">500 Mo</button><button type="button" data-ptlimit="1" aria-pressed="true">2 Go</button><button type="button" data-ptlimit="2" aria-pressed="false">5 Go</button></div>
-  <p class="cline small" id="ptStore"></p>
-  <button id="ptClear" type="button" class="mini">Vider les points LiDAR</button>
-  <p class="cnote">Sources : relief © IGN (LiDAR HD, RGE ALTI), photos © IGN (BD ORTHO), hors France Sentinel-2 cloudless © EOX (CC BY-NC-SA 4.0) et relief Mapzen/AWS Terrain Tiles · Satellite du jour : Copernicus Sentinel-2 via Microsoft Planetary Computer · Météo : Météo-France via Open-Meteo · Sentiers, refuges, remontées, bâtiments et lacs : IGN BD TOPO · Pistes de ski : © contributeurs OpenStreetMap (ODbL) · Avalanches passées : CLPA (INRAE, IGN), Géorisques · Refuges, points d'eau, passages délicats : refuges.info (CC BY-SA 2.0) · Topos : camptocamp.org (CC BY-SA 4.0) · Forêts : IGN BD Forêt V2 · Nuage de points : IGN LiDAR HD (Licence ouverte Etalab 2.0), décodé avec laz-perf (Hobu, Apache 2.0) · Vue Google 3D : Google Photorealistic 3D Tiles (© Google et fournisseurs affichés en bas de l'écran).</p>
+    <div class="seg"><button type="button" data-quality="standard" aria-pressed="false">Standard</button><button type="button" data-quality="haute" aria-pressed="false">Haute</button><button type="button" data-quality="extreme" aria-pressed="false">Extrême</button></div>
+    <p class="cline small" id="qualNote"></p></div>
+  <details class="sec">
+    <summary>Pluie et neige qui tombent</summary>
+    <div class="seg"><button type="button" data-precip="auto" aria-pressed="true">Météo réelle</button><button type="button" data-precip="snow" aria-pressed="false">Neige</button><button type="button" data-precip="rain" aria-pressed="false">Pluie</button><button type="button" data-precip="off" aria-pressed="false">Aucune</button></div>
+    <p class="cline small" id="precipNow"></p>
+  </details>
+  <details class="sec">
+    <summary>Photos anciennes (remonter le temps)</summary>
+    <label class="sr" for="epoch">Époque des photos aériennes</label>
+    <select id="epoch" class="sel"></select>
+    <p class="cline small" id="epochNote"></p>
+  </details>
+  <details class="sec">
+    <summary>Couleurs et relief</summary>
+    <div class="field"><label for="vivid">Couleurs <output id="vividOut">+20 %</output></label><input id="vivid" type="range" min="0" max="1" step="0.01" value="0.2"></div>
+    <div class="field"><label for="exag">Relief <output id="exagOut">×1.0</output></label><input id="exag" type="range" min="1" max="1.8" step="0.05" value="1"></div>
+  </details>
+  <details class="sec">
+    <summary>Hors ligne (télécharger le massif)</summary>
+    <p class="cline small">Télécharge le massif sur l'appareil pour l'avoir sans réseau en montagne. Tout ce que tu as déjà regardé est aussi gardé.</p>
+    <div class="seg"><button type="button" data-pack="essentiel" aria-pressed="false">Essentiel</button><button type="button" data-pack="detaille" aria-pressed="true">Détaillé</button><button type="button" data-pack="maximum" aria-pressed="false">Maximum</button></div>
+    <p class="cline small" id="packInfo"></p>
+    <div class="pbar"><i id="packBar"></i></div>
+    <div class="row"><button id="packGo" type="button" class="btn">Télécharger</button><button id="packStop" type="button" class="mini" hidden>Arrêter</button></div>
+    <p class="cline small" id="storageInfo"></p>
+    <button id="cacheClear" type="button" class="mini">Vider le stockage</button>
+    <h3>Points LiDAR gardés</h3>
+    <p class="cline small">Chaque endroit vu de près est gardé pour s'ouvrir tout de suite et sans réseau. Au-delà de la limite, les endroits vus il y a le plus longtemps sont effacés.</p>
+    <div class="seg"><button type="button" data-ptlimit="0" aria-pressed="false">500 Mo</button><button type="button" data-ptlimit="1" aria-pressed="true">2 Go</button><button type="button" data-ptlimit="2" aria-pressed="false">5 Go</button></div>
+    <p class="cline small" id="ptStore"></p>
+    <button id="ptClear" type="button" class="mini">Vider les points LiDAR</button>
+  </details>
+  <p class="cnote">Sources : relief © IGN (LiDAR HD, RGE ALTI), photos © IGN (BD ORTHO), hors France Sentinel-2 cloudless © EOX (CC BY-NC-SA 4.0) et relief Mapzen/AWS Terrain Tiles · Satellite du jour : Copernicus Sentinel-2 via Microsoft Planetary Computer · Météo : Météo-France via Open-Meteo · Sentiers, refuges, remontées, bâtiments et lacs : IGN BD TOPO · Itinéraires : service d'itinéraire IGN Géoplateforme · Pistes de ski : © contributeurs OpenStreetMap (ODbL) · Avalanches passées : CLPA (INRAE, IGN), Géorisques · Refuges, points d'eau, passages délicats : refuges.info (CC BY-SA 2.0) · Topos : camptocamp.org (CC BY-SA 4.0) · Forêts : IGN BD Forêt V2 · Nuage de points : IGN LiDAR HD (Licence ouverte Etalab 2.0), décodé avec laz-perf (Hobu, Apache 2.0) · Vue Google 3D : Google Photorealistic 3D Tiles (© Google et fournisseurs affichés en bas de l'écran).</p>
 </section>
 
-<section id="sheet-route" class="sheet glass" hidden aria-label="Sortie">
-  <div class="sh"><h2>Sortie</h2><button class="close" type="button" aria-label="Fermer">×</button></div>
-  <h3>Secours</h3>
-  <div class="btns"><a id="sos112" class="btn sos" href="tel:112">Appeler le 112</a><button id="sosCopy" type="button" class="mini">Copier ma position</button><a id="sosSms" class="mini btnlink" href="sms:">Envoyer ma position par SMS</a></div>
-  <p class="cline small" id="sosInfo">Le 112 marche sur tous les réseaux, même sans carte SIM ; il oriente vers le secours en montagne (PGHM, CRS). Ta position s'affiche ici pour la dicter.</p>
-  <h3>Ma position</h3>
-  <div class="row"><button id="gpsGo" type="button" class="btn">Me localiser</button></div>
-  <p class="cline small" id="gpsInfo">Ta position GPS en direct sur la carte (il faut autoriser la localisation).</p>
-  <h3>Suivi de sortie</h3>
-  <p class="cline small">Enregistre ta trace (distance, dénivelé, vitesse). Avec un itinéraire chargé : ce qui reste, l'heure d'arrivée à ton rythme, une alerte si tu t'en écartes et si tu arrives après le coucher du soleil.</p>
-  <div class="btns"><button id="trkGo" type="button" class="btn">Démarrer l'enregistrement</button><button id="trkGpx" type="button" class="mini">Exporter ma trace (GPX)</button><button id="trkClear" type="button" class="mini">Effacer ma trace</button></div>
-  <p class="cline small" id="trkInfo">L'écran reste allumé pendant l'enregistrement : verrouillé, le téléphone met l'appli en pause et la trace s'interrompt.</p>
-  <h3>Proposer un itinéraire</h3>
-  <p class="cline small">Chemin à pied calculé par l'IGN sur ses sentiers et chemins, avec temps, dénivelé et profil.</p>
-  <div class="plrow"><span>Départ</span><b id="plFrom">ma position</b></div>
-  <div class="btns"><button id="plFromGps" type="button" class="mini">Ma position</button><button id="plFromTap" type="button" class="mini">Toucher la carte</button><button id="plFromCenter" type="button" class="mini">Centre de l'écran</button></div>
-  <div class="plrow"><span>Arrivée</span><b id="plTo">à choisir</b></div>
-  <form id="plSearch" class="row search"><label class="sr" for="plQ">Chercher l'arrivée</label><input id="plQ" type="search" placeholder="Refuge, lac, sommet, village…" enterkeyhint="search" autocomplete="off"><button type="submit" class="mini go">Chercher</button></form>
-  <div id="plResults" class="places results"></div>
-  <div class="btns"><button id="plToTap" type="button" class="mini">Toucher la carte</button><button id="plGo" type="button" class="mini go">Tracer l'itinéraire</button></div>
-  <button id="plIdeas" type="button" class="mini wide">Idées de sorties autour du départ</button>
-  <div id="plIdeasOut"></div>
-  <p class="cline small" id="plNote"></p>
-  <h3>Randonnées du massif</h3>
-  <p class="cline small" id="hkInfo">Tous les sommets, cols, refuges et lacs nommés par l'IGN, depuis le départ le plus proche (parking ou remontée), avec temps, dénivelé et point haut.</p>
-  <button id="hkBuild" type="button" hidden class="mini wide">Construire la liste (quelques minutes)</button>
-  <div class="hkf" role="group" aria-label="Filtrer par difficulté">
-    <button type="button" data-hk="all" aria-pressed="true">Toutes</button><button type="button" data-hk="easy" aria-pressed="false">Facile</button><button type="button" data-hk="medium" aria-pressed="false">Moyenne</button><button type="button" data-hk="hard" aria-pressed="false">Difficile</button><button type="button" data-hk="long" aria-pressed="false">Très longue</button><button type="button" data-hk="alpine" aria-pressed="false">Haute montagne</button>
+<section id="sheet-route" class="sheet glass" hidden aria-label="Rando">
+  <div class="sh"><h2>Rando</h2><button class="close" type="button" aria-label="Fermer">×</button></div>
+  <div class="sos">
+    <a id="sos112" class="btn sos" href="tel:112">Urgence : 112</a>
+    <button id="sosCopy" type="button" class="mini">Copier ma position</button>
+    <a id="sosSms" class="mini btnlink" href="sms:">Position par SMS</a>
   </div>
-  <div id="hkList" class="places results ideas hklist"></div>
-  <p class="cnote">Facile : moins de 3 h et 500 m de montée · Moyenne : moins de 5 h et 1 000 m · Difficile : moins de 8 h · Très longue : 8 h et plus · Haute montagne : au-dessus de 3 000 m ou au-delà des sentiers (glacier, rocher : matériel, expérience d'alpinisme, guide conseillé). Temps de marche sans pauses (norme DIN 33466), altitudes IGN RGE ALTI. Itinéraires calculés sur les chemins IGN, pas des topos vérifiés : consulte le bulletin et l'état des sentiers avant de partir.</p>
-  <h3>Topos et conditions récentes (camptocamp)</h3>
-  <p class="cline small" id="c2cInfo">Chargement des topos…</p>
-  <div class="hkf" id="c2cFilters" role="group" aria-label="Filtrer par activité"></div>
-  <label class="tgl" for="c2cRecent"><input id="c2cRecent" type="checkbox" checked> Itinéraires parcourus récemment d'abord</label>
-  <div id="c2cList" class="places results ideas hklist"></div>
-  <button id="c2cMore" type="button" class="mini wide" hidden>Plus d'itinéraires</button>
-  <div id="c2cDetail" class="c2cd"></div>
-  <p class="cnote" id="c2cNote">Topos et comptes rendus © contributeurs de camptocamp.org, licence CC BY-SA 4.0, copiés chaque matin. Les conditions sont celles qu'ont vues des pratiquants à une date donnée : elles changent vite. À recouper avec le bulletin d'avalanche, la météo et le refuge.</p>
-  <h3>Itinéraire</h3>
-  <p class="cline small" id="routeHelp">Importe une trace GPX, ou touche « Tracer » puis touche le relief point par point (aussi pour mesurer une distance).</p>
-  <div class="btns">
-    <label class="mini filebtn" for="gpxIn">Importer un GPX<input id="gpxIn" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml"></label>
-    <button id="drawGo" type="button" class="mini" aria-pressed="false">Tracer / mesurer</button>
-    <button id="drawUndo" type="button" class="mini">Annuler le dernier point</button>
+  <p class="cline small" id="sosInfo">Le 112 marche sur tous les réseaux, même sans carte SIM ; il oriente vers le secours en montagne (PGHM, CRS).</p>
+
+  <div id="routeCard" class="rcard" hidden>
+    <div id="routeOut"></div>
+    <div class="btns">
+      <button id="flyGo" type="button" class="mini">Survoler</button>
+      <button id="drawEdit" type="button" class="mini">Modifier le tracé</button>
+      <button id="routePack" type="button" class="mini">Garder hors ligne</button>
+      <button id="gpxOut" type="button" class="mini">Exporter (GPX)</button>
+      <button id="flyRec" type="button" class="mini">Survol en vidéo</button>
+      <button id="routeClear" type="button" class="mini">Effacer</button>
+    </div>
+    <p class="cline small" id="routePackInfo"></p>
   </div>
-  <div id="routeOut"></div>
-  <p class="cline small" id="routePackInfo"></p>
-  <div class="btns">
-    <button id="flyGo" type="button" class="mini">Survoler l'itinéraire</button>
-    <button id="routePack" type="button" class="mini">Télécharger pour le hors ligne</button>
-    <button id="flyRec" type="button" class="mini">Survol en vidéo</button>
-    <button id="gpxOut" type="button" class="mini">Exporter en GPX</button>
-    <button id="routeClear" type="button" class="mini">Effacer</button>
+
+  <div class="bigacts">
+    <button id="drawGo" type="button" class="bigact"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 20.5 4.6 16 15.8 4.8l3.4 3.4L8 19.4z"/><path d="m13.6 7 3.4 3.4"/></svg><b>Tracer une rando</b><span>Touche les étapes sur la carte : le tracé suit les sentiers</span></button>
+    <button id="planOpen" type="button" class="bigact"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.2-5.4-6.2-10.2a6.2 6.2 0 0 1 12.4 0C18.2 15.6 12 21 12 21z"/><circle cx="12" cy="10.8" r="2.3"/></svg><b>Aller à un lieu</b><span>Chemin IGN jusqu'à un refuge, un lac, un col…</span></button>
+    <label class="bigact filebtn" for="gpxIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2.8h8.2l4 4V21.2H6z"/><path d="M14 2.8v4.2h4.2"/><path d="M8.6 16.5c1.6-2.3 2.8-.4 4.2-2.8"/></svg><b>Ouvrir un GPX</b><span>Une trace reçue ou téléchargée</span><input id="gpxIn" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml"></label>
+    <button id="trkGo" type="button" class="bigact"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle class="dot" cx="12" cy="12" r="3.6"/></svg><b id="trkGoT">Enregistrer ma sortie</b><span id="trkGoS">Ma trace GPS, distance, dénivelé</span></button>
   </div>
-  <h3>Ligne de vue</h3>
-  <p class="cline small">Voit-on un point depuis un autre ? (réseau, point de vue, signal) Calcul sur le relief LiDAR, courbure de la Terre comprise, sans les arbres ni les bâtiments.</p>
-  <div class="btns"><button id="losFromGps" type="button" class="mini">Depuis ma position</button><button id="losFromTap" type="button" class="mini">Depuis : toucher la carte</button><button id="losToTap" type="button" class="mini">Vers : toucher la carte</button></div>
-  <p class="cline" id="losOut"></p>
-  <h3>Viseur</h3>
-  <p class="cline small">Lève le téléphone vers les montagnes : la vue se place à ta position GPS et suit la direction du téléphone, avec le nom des sommets visibles.</p>
-  <button id="sightGo" type="button" class="btn">Ouvrir le viseur</button>
-  <p class="cline small" id="sightNote"></p>
+  <p class="cline small" id="trkInfo"></p>
+
+  <details class="sec" id="d-plan">
+    <summary>Aller à un lieu</summary>
+    <p class="cline small">Chemin à pied calculé par l'IGN sur ses sentiers et chemins, avec temps, dénivelé et profil. Il se calcule dès que le départ et l'arrivée sont choisis.</p>
+    <div class="plrow"><span>Départ</span><b id="plFrom">ma position</b></div>
+    <div class="btns"><button id="plFromGps" type="button" class="mini">Ma position</button><button id="plFromTap" type="button" class="mini">Toucher la carte</button><button id="plFromCenter" type="button" class="mini">Centre de l'écran</button></div>
+    <div class="plrow"><span>Arrivée</span><b id="plTo">à choisir</b></div>
+    <form id="plSearch" class="row search"><label class="sr" for="plQ">Chercher l'arrivée</label><input id="plQ" type="search" placeholder="Refuge, lac, sommet, village…" enterkeyhint="search" autocomplete="off"><button type="submit" class="mini go">Chercher</button></form>
+    <div id="plResults" class="places results"></div>
+    <div class="btns"><button id="plToTap" type="button" class="mini">Toucher la carte</button><button id="plGo" type="button" class="mini go">Calculer l'itinéraire</button></div>
+    <p class="cline small" id="plNote"></p>
+    <button id="plIdeas" type="button" class="mini wide">Idées de sorties autour du départ</button>
+    <div id="plIdeasOut"></div>
+  </details>
+
+  <details class="sec" id="d-hikes">
+    <summary>Randonnées du massif <span class="cnt" id="hkCount"></span></summary>
+    <p class="cline small" id="hkInfo">Tous les sommets, cols, refuges et lacs nommés par l'IGN, depuis le départ le plus proche (parking ou remontée), avec temps, dénivelé et point haut.</p>
+    <button id="hkBuild" type="button" hidden class="mini wide">Construire la liste (quelques minutes)</button>
+    <div class="hkf" role="group" aria-label="Filtrer par difficulté">
+      <button type="button" data-hk="all" aria-pressed="true">Toutes</button><button type="button" data-hk="easy" aria-pressed="false">Facile</button><button type="button" data-hk="medium" aria-pressed="false">Moyenne</button><button type="button" data-hk="hard" aria-pressed="false">Difficile</button><button type="button" data-hk="long" aria-pressed="false">Très longue</button><button type="button" data-hk="alpine" aria-pressed="false">Haute montagne</button>
+    </div>
+    <div id="hkList" class="places results ideas hklist"></div>
+    <p class="cnote">Facile : moins de 3 h et 500 m de montée · Moyenne : moins de 5 h et 1 000 m · Difficile : moins de 8 h · Très longue : 8 h et plus · Haute montagne : au-dessus de 3 000 m ou au-delà des sentiers (glacier, rocher : matériel, expérience d'alpinisme, guide conseillé). Temps de marche sans pauses (norme DIN 33466), altitudes IGN RGE ALTI. Itinéraires calculés sur les chemins IGN, pas des topos vérifiés : consulte le bulletin et l'état des sentiers avant de partir.</p>
+  </details>
+
+  <details class="sec" id="d-c2c">
+    <summary>Topos et conditions récentes <span class="cnt">camptocamp</span></summary>
+    <p class="cline small" id="c2cInfo">Chargement des topos…</p>
+    <div class="hkf" id="c2cFilters" role="group" aria-label="Filtrer par activité"></div>
+    <label class="tgl" for="c2cRecent"><input id="c2cRecent" type="checkbox" checked> Itinéraires parcourus récemment d'abord</label>
+    <div id="c2cList" class="places results ideas hklist"></div>
+    <button id="c2cMore" type="button" class="mini wide" hidden>Plus d'itinéraires</button>
+    <div id="c2cDetail" class="c2cd"></div>
+    <p class="cnote" id="c2cNote">Topos et comptes rendus © contributeurs de camptocamp.org, licence CC BY-SA 4.0, copiés chaque matin. Les conditions sont celles qu'ont vues des pratiquants à une date donnée : elles changent vite. À recouper avec le bulletin d'avalanche, la météo et le refuge.</p>
+  </details>
+
+  <details class="sec" id="d-track">
+    <summary>Ma position et ma trace</summary>
+    <div class="row"><button id="gpsGo" type="button" class="btn">Me localiser</button></div>
+    <p class="cline small" id="gpsInfo">Ta position GPS en direct sur la carte (il faut autoriser la localisation).</p>
+    <p class="cline small">L'enregistrement garde ta trace (distance, dénivelé, vitesse). Avec un itinéraire chargé : ce qui reste, l'heure d'arrivée à ton rythme, une alerte si tu t'en écartes et si tu arrives après le coucher du soleil. L'écran reste allumé pendant l'enregistrement : verrouillé, le téléphone met l'appli en pause et la trace s'interrompt.</p>
+    <div class="btns"><button id="trkGpx" type="button" class="mini">Exporter ma trace (GPX)</button><button id="trkClear" type="button" class="mini">Effacer ma trace</button></div>
+  </details>
+
+  <details class="sec" id="d-los">
+    <summary>Ligne de vue</summary>
+    <p class="cline small">Voit-on un point depuis un autre ? (réseau, point de vue, signal) Calcul sur le relief LiDAR, courbure de la Terre comprise, sans les arbres ni les bâtiments.</p>
+    <div class="btns"><button id="losFromGps" type="button" class="mini">Depuis ma position</button><button id="losFromTap" type="button" class="mini">Depuis un point de la carte</button><button id="losToTap" type="button" class="mini">Changer le point visé</button></div>
+    <p class="cline" id="losOut"></p>
+  </details>
+
+  <details class="sec" id="d-sight">
+    <summary>Viseur : les noms des sommets</summary>
+    <p class="cline small">Lève le téléphone vers les montagnes : la vue se place à ta position GPS et suit la direction du téléphone, avec le nom des sommets visibles (aussi par-dessus la caméra).</p>
+    <button id="sightGo" type="button" class="btn">Ouvrir le viseur</button>
+    <p class="cline small" id="sightNote"></p>
+  </details>
 </section>
 
 <div id="sightBar" class="sightbar glass" hidden>
@@ -249,8 +321,6 @@
   <button id="sightOff" type="button" class="mini">Quitter</button>
 </div>
 
-<button id="gpsFab" type="button" class="fab glass" aria-label="Me localiser" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.5"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg></button>
-
 <section id="sheet-point" class="sheet glass" hidden aria-label="Point choisi">
   <div class="sh"><h2 id="ptTitle">Point</h2><button class="close" type="button" aria-label="Fermer">×</button></div>
   <div id="ptOut"></div>
@@ -260,13 +330,13 @@
 <div id="gAttrib" class="gattrib" hidden><img id="gLogo" src="icons/google-maps-logo.svg" alt="Google Maps"><span id="gAttribTxt"></span></div>
 
 <div class="readout glass" aria-live="polite">
-  <div class="a" id="rAlt">—</div>
-  <div id="rLL">Touchez un point du relief pour ses conditions</div>
+  <div class="a" id="rAlt"></div>
+  <div id="rLL">Touche le relief pour ses conditions</div>
   <div class="k" id="rFps">—</div>
 </div>
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202610021836"></script>
+<script type="module" src="js/app.js?v=202610030109"></script>
 </body>
 </html>

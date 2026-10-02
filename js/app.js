@@ -1,37 +1,37 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610021836';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610021836';
-import { SITE, SITE_LIST } from './sites.js?v=202610021836';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610021836';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610021836';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610021836';
-import { searchPlaces } from './search.js?v=202610021836';
-import { TerrainShadows } from './shadows.js?v=202610021836';
-import { PostFX } from './post.js?v=202610021836';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610021836';
-import { Forest } from './forest.js?v=202610021836';
-import { Lakes } from './water.js?v=202610021836';
-import { Glaciers } from './glaciers.js?v=202610021836';
-import { makeSite, removeSite } from './custom.js?v=202610021836';
-import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610021836';
-import { Streams } from './streams.js?v=202610021836';
-import { Refuges } from './refuges.js?v=202610021836';
-import { NightLights } from './lights.js?v=202610021836';
-import { Buildings } from './buildings.js?v=202610021836';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610021836';
-import { TrackRecorder, progressOn } from './track.js?v=202610021836';
-import { GpsTracker } from './gps.js?v=202610021836';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610021836';
-import { walkingRoute } from './planner.js?v=202610021836';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610021836';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610021836';
-import { TrailsLayer } from './trails.js?v=202610021836';
-import { Weather3D } from './weather3d.js?v=202610021836';
-import { Sight } from './sight.js?v=202610021836';
-import { Photos360 } from './photos360.js?v=202610021836';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610021836';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610021836';
-import { VolumeClouds } from './clouds.js?v=202610021836';
+import { EarthControls } from './controls.js?v=202610030109';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610030109';
+import { SITE, SITE_LIST } from './sites.js?v=202610030109';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610030109';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610030109';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610030109';
+import { searchPlaces } from './search.js?v=202610030109';
+import { TerrainShadows } from './shadows.js?v=202610030109';
+import { PostFX } from './post.js?v=202610030109';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610030109';
+import { Forest } from './forest.js?v=202610030109';
+import { Lakes } from './water.js?v=202610030109';
+import { Glaciers } from './glaciers.js?v=202610030109';
+import { makeSite, removeSite } from './custom.js?v=202610030109';
+import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610030109';
+import { Streams } from './streams.js?v=202610030109';
+import { Refuges } from './refuges.js?v=202610030109';
+import { NightLights } from './lights.js?v=202610030109';
+import { Buildings } from './buildings.js?v=202610030109';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610030109';
+import { TrackRecorder, progressOn } from './track.js?v=202610030109';
+import { GpsTracker } from './gps.js?v=202610030109';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610030109';
+import { walkingRoute } from './planner.js?v=202610030109';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610030109';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610030109';
+import { TrailsLayer } from './trails.js?v=202610030109';
+import { Weather3D } from './weather3d.js?v=202610030109';
+import { Sight } from './sight.js?v=202610030109';
+import { Photos360 } from './photos360.js?v=202610030109';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610030109';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610030109';
+import { VolumeClouds } from './clouds.js?v=202610030109';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -366,8 +366,7 @@ const weather3d = new Weather3D({ scene, uniforms: U });
 const photos = new Photos360({ scene, groundAt: (x, z) => engine.heightAt(x, z) });
 // a Panoramax photo: preview in the point sheet, with its author, date and licence (required by CC BY-SA)
 function showPhoto(p) {
-  sheets.forEach(s => { $('sheet-' + s).hidden = true; $('tab-' + s).setAttribute('aria-pressed', 'false'); });
-  $('sheet-point').hidden = false; pin = { x: p.x, z: p.z, h: p.h ?? 0 };
+  showPointSheet(); pin = { x: p.x, z: p.z, h: p.h ?? 0 };
   $('ptTitle').textContent = p.pano ? 'Photo 360°' : 'Photo';
   const lic = /by-sa/i.test(p.license) ? 'CC BY-SA 4.0' : /by/i.test(p.license) ? 'CC BY' : p.license || 'licence non indiquée';
   $('ptOut').innerHTML = `${p.sd || p.thumb ? `<img class="photo" src="${esc(p.sd || p.thumb)}" alt="Photo prise ici${p.date ? ' le ' + dayName(p.date) : ''}" loading="lazy">` : ''}
@@ -521,7 +520,7 @@ PLACES.forEach(p => {
   labelsEl.appendChild(el); p.el = el;
   const li = document.createElement('button'); li.type = 'button'; li.className = 'place';
   li.innerHTML = `<span>${esc(p.name)}</span><span class="pa">${p.alt ? fmt(p.alt) + ' m' : 'glacier'}</span>`;
-  li.addEventListener('click', () => { flyToPlace(p); if (touch) closeSheets(); });
+  li.addEventListener('click', () => { flyToPlace(p); closeIfCovering(); });
   $('placeList').appendChild(li);
 });
 // mountain huts from IGN BD TOPO (trails.js): small labels, unless the site already names that hut
@@ -539,8 +538,14 @@ function addHuts(huts) {
     labelsEl.appendChild(el); p.el = el; PLACES.push(p);
   }
 }
-// a label touched: fly there, and show what refuges.info knows about it
-function openPlace(p) { flyToPlace(p); if (p.rinfo) showRefuge(p.rinfo); }
+// a label touched: fly there, and show what refuges.info knows about it; while drawing an itinerary or
+// choosing a point, the place named is the point chosen
+function openPlace(p) {
+  const at = () => ({ x: p.x, z: p.z, h: groundAt(p.x, p.z) ?? p.h, name: p.name });
+  if (draw.on) { drawStep(p.x, p.z); return; }
+  if (pickMode) { picked(at()); return; }
+  flyToPlace(p); if (p.rinfo) showRefuge(p.rinfo);
+}
 // refuges.info: their sheet joins the label of the same hut (within 200 m), or gets its own label; water points
 // and tricky passages get small labels of their own
 const refuges = new Refuges(pts => {
@@ -561,8 +566,7 @@ const linkify = s => esc(s).replace(/\n/g, '<br>')
   .replace(/([\w.+-]+@[\w-]+\.[\w.]+)/g, '<a href="mailto:$1">$1</a>')
   .replace(/(\+?\d[\d .]{8,}\d)/g, m => `<a href="tel:${m.replace(/[ .]/g, '')}">${m}</a>`);
 function showRefuge(r) {
-  sheets.forEach(s => { $('sheet-' + s).hidden = true; $('tab-' + s).setAttribute('aria-pressed', 'false'); });
-  $('sheet-point').hidden = false; pin = { x: r.x, z: r.z, h: r.alt ?? groundAt(r.x, r.z) ?? 0 };
+  showPointSheet(); pin = { x: r.x, z: r.z, h: r.alt ?? groundAt(r.x, r.z) ?? 0 };
   $('ptTitle').textContent = r.name;
   const cut = (s, n) => s.length > n ? s.slice(0, n) + '…' : s;
   $('ptOut').innerHTML = `<p class="cmeta">${esc(r.type)}${r.alt ? ` · ${fmt(r.alt)} m` : ''}${r.places ? ` · ${r.places} places` : ''}${r.updated ? ` · fiche mise à jour le ${new Date(r.updated).toLocaleDateString('fr-FR')}` : ''}</p>
@@ -632,7 +636,7 @@ $('searchForm').addEventListener('submit', async e => {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'place';
       const dist = p.km < 10 ? `${t1(p.km)} km` : `${fmt(p.km)} km`;
       b.innerHTML = `<span>${esc(p.name)}</span><span class="pa">${esc(p.detail || p.src)} · à ${dist}</span>`;
-      b.addEventListener('click', () => { lastSearch = p; flyToLonLat(p.lon, p.lat); if (touch) closeSheets(); });
+      b.addEventListener('click', () => { lastSearch = p; flyToLonLat(p.lon, p.lat); closeIfCovering(); });
       $('results').appendChild(b);
     });
   } catch (err) { $('searchNote').textContent = `Recherche impossible : ${err.message}.`; }
@@ -684,15 +688,14 @@ renderer.domElement.addEventListener('pointerup', e => {
   if (!downAt) return;
   if (Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) < 8 && performance.now() - downAt[2] < 400) {
     const r = renderer.domElement.getBoundingClientRect();
-    const photo = !route.drawing && photos.pick(e.clientX - r.left, e.clientY - r.top, camera, r.width, r.height);
+    const photo = !draw.on && !pickMode && photos.pick(e.clientX - r.left, e.clientY - r.top, camera, r.width, r.height);
     if (photo) { showPhoto(photo); return; }
     const hit = pick((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
-    if (!hit) return;
+    if (!hit) { if (draw.on || pickMode) toast('Touche le relief (pas le ciel).', true); return; }
     showPoint(hit);
-    if (plan.tap) { planTap(hit); return; } // choosing an itinerary's start or destination
-    if (los.tap) { losPick(hit); return; } // choosing a point of the line of sight
-    if (route.drawing) { route.add(hit.x, hit.z); renderRoute(); return; } // drawing an itinerary: each tap is a point
-    if (!pickAt(hit)) pointReport(hit);
+    if (draw.on) { drawStep(hit.x, hit.z); return; } // drawing an itinerary: each touch is a step
+    if (pickMode) { picked(hit); return; } // choosing a start, a destination, a point of view…
+    pointReport(hit);
   }
 });
 // a gesture interrupts flights and the automatic turn (the controls put the look-at point on the ground themselves)
@@ -980,12 +983,80 @@ async function refreshLive() {
 
 // ---------- UI ----------
 const sheets = ['places', 'cond', 'route', 'layers'];
-function openSheet(name) {
+// the map buttons and the altitude make way for an open panel (on phones it covers them)
+function syncSheetOpen() { document.body.classList.toggle('sheet-open', [...sheets, 'point'].some(s => !$('sheet-' + s).hidden)); }
+// toggle: touching the open menu again closes it
+function openSheet(name, keep = false) {
   $('sheet-point').hidden = true;
-  sheets.forEach(s => { const on = s === name && $('sheet-' + s).hidden; $('sheet-' + s).hidden = !on; $('tab-' + s).setAttribute('aria-pressed', on); });
+  sheets.forEach(s => { const on = s === name && (keep || $('sheet-' + s).hidden); $('sheet-' + s).hidden = !on; $('tab-' + s).setAttribute('aria-pressed', on); });
+  syncSheetOpen();
 }
-function closeSheets() { sheets.forEach(s => { $('sheet-' + s).hidden = true; $('tab-' + s).setAttribute('aria-pressed', 'false'); }); }
+function closeSheets() { sheets.forEach(s => { $('sheet-' + s).hidden = true; $('tab-' + s).setAttribute('aria-pressed', 'false'); }); syncSheetOpen(); }
+// the panel about one point (relief, photo, refuge) in place of the menus
+function showPointSheet() { sheets.forEach(s => { $('sheet-' + s).hidden = true; $('tab-' + s).setAttribute('aria-pressed', 'false'); }); $('sheet-point').hidden = false; syncSheetOpen(); }
 sheets.forEach(s => { $('tab-' + s).addEventListener('click', () => openSheet(s)); $('sheet-' + s).querySelector('.close').addEventListener('click', closeSheets); });
+// large screens show the panel beside the map; elsewhere it covers most of it and is closed after a choice
+const sidePanel = () => matchMedia('(min-width: 700px) and (min-height: 521px)').matches;
+const closeIfCovering = () => { if (!sidePanel()) closeSheets(); };
+// phones: a panel pulled down by its title bar closes
+document.querySelectorAll('.sheet .sh').forEach(sh => {
+  const sheet = sh.parentElement; let drag = null;
+  sh.addEventListener('pointerdown', e => {
+    if (e.target.closest('button') || sheet.getBoundingClientRect().width < innerWidth * 0.7) return; // side panels stay put
+    drag = { y: e.clientY, t: performance.now(), id: e.pointerId, dy: 0 }; sh.setPointerCapture(e.pointerId); sheet.classList.add('dragging');
+  });
+  sh.addEventListener('pointermove', e => { if (!drag || e.pointerId !== drag.id) return; drag.dy = Math.max(0, e.clientY - drag.y); sheet.style.transform = `translateY(${drag.dy}px)`; });
+  const end = e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const fast = drag.dy / Math.max(1, performance.now() - drag.t) > 0.6, shut = drag.dy > 90 || (fast && drag.dy > 30);
+    drag = null; sheet.classList.remove('dragging'); sheet.classList.add('settle'); sheet.style.transform = '';
+    setTimeout(() => sheet.classList.remove('settle'), 220);
+    if (shut) { if (sheet.id === 'sheet-point') sheet.querySelector('.close').click(); else closeSheets(); }
+  };
+  sh.addEventListener('pointerup', end); sh.addEventListener('pointercancel', end);
+});
+// short messages saying what just happened (a point added, a layer hidden, a route computed…)
+let toastTimer = null;
+function toast(msg, warn = false, ms = 2800) {
+  const t = $('toast'); t.textContent = msg; t.classList.toggle('warn', warn); t.hidden = false;
+  t.style.animation = 'none'; void t.offsetWidth; t.style.animation = ''; // replay the entrance
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, ms);
+}
+// iOS Safari zooms the whole page on a pinch over the panels (it ignores user-scalable=no): the map has its own zoom
+document.addEventListener('gesturestart', e => e.preventDefault());
+
+// ---------- choosing one point on the map (start, destination, line of sight, altitude) ----------
+// A banner says what to touch; the next touch on the relief (or on a name) is the answer; "Annuler" gives up.
+let pickMode = null;
+function startPick(msg, onPick) {
+  if (draw.on) stopDraw(false);
+  pickMode = { onPick }; $('pickMsg').textContent = msg; $('pickBar').hidden = false; document.body.classList.add('picking');
+  closeSheets(); $('sheet-point').hidden = true; syncSheetOpen(); measureBars();
+}
+function endPick() { pickMode = null; $('pickBar').hidden = true; document.body.classList.remove('picking'); }
+function picked(hit) { const m = pickMode; endPick(); dropPin(hit); buzz(15); m.onPick(hit); }
+$('pickCancel').addEventListener('click', endPick);
+// Escape (computers): gives up the point being chosen, then the drawing (same confirmation), then closes the panel
+addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || e.target.closest?.('input, select, textarea')) return;
+  if (pickMode) endPick();
+  else if (draw.on) $('drawQuit').click();
+  else if (!$('sheet-point').hidden) $('sheet-point').querySelector('.close').click();
+  else closeSheets();
+});
+// a point touched that the panel now covers (phones): the view slides so that it shows above the panel,
+// halfway between the top of the screen and the panel (same distance, same angle)
+function keepInSight(p) {
+  if (sidePanel() || google.on) return;
+  const top = $('sheet-point').getBoundingClientRect().top, H = stage.clientHeight, P = new THREE.Vector3(p.x, p.h * state.exag, p.z);
+  const q = P.clone().project(camera), y = (-q.y * 0.5 + 0.5) * H;
+  if (y < top - 50) return;
+  const ndcY = 1 - top / H, fwd = new THREE.Vector3(); camera.getWorldDirection(fwd);
+  const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion), depth = P.clone().sub(camera.position).dot(fwd);
+  fly = null; controls.goal.t.copy(P).addScaledVector(up, -ndcY * depth * Math.tan(camera.fov * Math.PI / 360));
+}
+// the red pin falls where a point was chosen
+function dropPin(hit) { pin = { x: hit.x, z: hit.z, h: hit.h ?? groundAt(hit.x, hit.z) ?? 0 }; const el = $('pin'); el.classList.remove('drop'); void el.offsetWidth; el.classList.add('drop'); }
 
 // ---------- "Sortie": my position, an itinerary (GPX or drawn), its profile and numbers, a flight along it ----------
 const gps = new GpsTracker({ scene, onChange: renderGps });
@@ -1009,7 +1080,10 @@ function renderGps() {
     $('gpsInfo').textContent = `Position à ±${fmt(p.acc)} m (${ago2(p.time)})${g != null ? ` · altitude du relief ${fmt(g)} m` : ''}${p.gpsAlt != null ? ` (GPS : ${fmt(p.gpsAlt)} m)` : ''}.`;
     if (!gpsCentered) { gpsCentered = true; centerOnGps(); }
   } else $('gpsInfo').textContent = 'Ta position GPS en direct sur la carte (il faut autoriser la localisation).';
-  if (typeof renderPlan === 'function' && $('plFrom')) renderPlan();
+  if (gps.error && (draw.wantGps || plan.waitGps)) { draw.wantGps = plan.waitGps = false; toast(gps.error, true, 5000); }
+  if (p && draw.wantGps && draw.on) { draw.wantGps = false; drawStep(p.x, p.z); }
+  renderPlan();
+  if (p && plan.waitGps) { plan.waitGps = false; planMaybe(); }
   tripFix();
 }
 
@@ -1051,12 +1125,15 @@ function renderTrip() {
   }
   $('tripCard').innerHTML = lines.map(l => `<div>${l}</div>`).join('');
   $('tripCard').hidden = !lines.length;
-  $('trkGo').textContent = track.recording ? "Arrêter l'enregistrement" : track.pts.length ? "Reprendre l'enregistrement" : "Démarrer l'enregistrement";
-  if (st && !track.recording) $('trkInfo').textContent = `Trace gardée : ${t1(st.dist / 1000)} km, +${fmt(st.up)} m, ${fmt(st.count)} points. L'écran reste allumé pendant l'enregistrement : verrouillé, le téléphone met l'appli en pause et la trace s'interrompt.`;
+  $('trkGo').classList.toggle('rec', track.recording);
+  $('trkGoT').textContent = track.recording ? "Arrêter l'enregistrement" : track.pts.length ? "Reprendre l'enregistrement" : 'Enregistrer ma sortie';
+  $('trkGoS').textContent = track.recording && st ? `En cours : ${t1(st.dist / 1000)} km · +${fmt(st.up)} m · ${hm(st.hours)}` : 'Ma trace GPS, distance, dénivelé';
+  $('trkInfo').textContent = track.recording ? "L'écran reste allumé pendant l'enregistrement : verrouillé, le téléphone met l'appli en pause et la trace s'interrompt."
+    : st ? `Trace gardée : ${t1(st.dist / 1000)} km, +${fmt(st.up)} m, ${fmt(st.count)} points (export et effacement dans « Ma position et ma trace »).` : '';
 }
 $('trkGo').addEventListener('click', () => {
-  if (track.recording) track.stop();
-  else { track.start(); if (!gps.on) { gpsCentered = false; gps.start(); } }
+  if (track.recording) { track.stop(); toast('Enregistrement arrêté : ta trace est gardée.'); }
+  else { track.start(); if (!gps.on) { gpsCentered = false; gps.start(); } toast("Enregistrement démarré : garde l'écran allumé."); }
   renderTrip();
 });
 $('trkGpx').addEventListener('click', () => {
@@ -1075,16 +1152,22 @@ setInterval(renderTrip, 30e3);
 $('gpsGo').addEventListener('click', () => { if (gps.on) gps.stop(); else { gpsCentered = false; gps.start(); } });
 $('gpsFab').addEventListener('click', () => { if (!gps.on) { gpsCentered = false; gps.start(); } else centerOnGps(); });
 const hm = h => { const m = Math.round(h * 60 / 5) * 5; return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`; };
-function renderRoute() {
-  route.drape(state.exag);
-  const st = route.stats(), n = route.pts.length;
-  $('drawGo').setAttribute('aria-pressed', route.drawing); $('drawGo').textContent = route.drawing ? 'Terminer le tracé' : 'Tracer / mesurer';
-  for (const id of ['drawUndo', 'flyGo', 'gpxOut', 'routeClear']) $(id).disabled = n < (id === 'drawUndo' || id === 'routeClear' ? 1 : 2);
-  if (!st) { $('routeOut').innerHTML = route.drawing ? `<p class="cline small">${n ? `${n} point${n > 1 ? 's' : ''} : touche le point suivant.` : 'Touche le relief pour poser le premier point.'}</p>` : ''; return; }
-  $('routeOut').innerHTML = `${route.name ? `<p class="cline"><b>${esc(route.name)}</b></p>` : ''}
+const km = d => (d / 1000).toLocaleString('fr-FR', { maximumFractionDigits: d < 10000 ? 2 : 1 });
+// the itinerary laid on the relief again, and its card in "Rando"
+function renderRoute() { route.drape(state.exag); renderRouteCard(); }
+let routeSig = '';
+function renderRouteCard() {
+  const st = route.stats(), has = route.pts.length >= 2 && !route.drawing;
+  routeSig = st ? `${Math.round(st.dist)}|${Math.round(st.up)}|${st.complete}` : '';
+  $('routeCard').hidden = !has;
+  if (draw.on) renderDraw();
+  if (!has) { $('routeOut').innerHTML = ''; return; }
+  const name = `<p class="rname">${esc(route.name || 'Mon itinéraire')}</p>`;
+  if (!st) { $('routeOut').innerHTML = `${name}<p class="cline small">Relief en cours de chargement sous le tracé…</p>`; return; }
+  $('routeOut').innerHTML = `${name}
     <div class="kpis">
-      <div><span>Distance</span><b>${(st.dist / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} km</b></div>
-      <div><span>Temps estimé</span><b>${hm(st.hours)}</b></div>
+      <div><span>Distance</span><b>${km(st.dist)} km</b></div>
+      <div><span>Temps de marche</span><b>${hm(st.hours)}</b></div>
       <div><span>Dénivelé +</span><b>${fmt(st.up)} m</b></div>
       <div><span>Dénivelé −</span><b>${fmt(st.down)} m</b></div>
       <div><span>Point haut / bas</span><b>${fmt(st.max)} / ${fmt(st.min)} m</b></div>
@@ -1093,14 +1176,157 @@ function renderRoute() {
     ${route.profileSVG()}
     <p class="cnote">Altitudes du relief LiDAR IGN sous le tracé${st.complete ? '' : ' (partiel : une partie du relief n\'est pas encore chargée)'}. Temps selon la norme DIN 33466 (randonneur moyen, sans pauses) ; pente maxi mesurée sur 30 m.</p>`;
 }
-$('drawGo').addEventListener('click', () => { route.drawing = !route.drawing; renderRoute(); if (route.drawing && touch) closeSheets(); });
-$('drawUndo').addEventListener('click', () => { route.undo(); renderRoute(); });
-$('routeClear').addEventListener('click', () => { route.clear(); route.drawing = false; renderRoute(); });
+// a new itinerary is there: on phones the panel closes so the line is seen on the map, with its numbers in a
+// message; the card at the top of "Rando" holds the details
+function routeReady(what) {
+  renderRoute(); frameRoute();
+  const st = route.stats();
+  if (sidePanel()) { openSheet('route', true); $('sheet-route').scrollTop = 0; $('routeCard').classList.remove('flash'); void $('routeCard').offsetWidth; $('routeCard').classList.add('flash'); }
+  else closeSheets();
+  toast(`${what}${st ? ` : ${km(st.dist)} km · +${fmt(st.up)} m · ${hm(st.hours)}` : ''}. Détails dans « Rando ».`, false, 4500);
+}
+$('routeClear').addEventListener('click', () => {
+  const b = $('routeClear');
+  if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Confirmer'; setTimeout(() => { b.dataset.armed = ''; b.textContent = 'Effacer'; }, 4000); return; }
+  b.dataset.armed = ''; b.textContent = 'Effacer'; route.clear(); renderRoute(); toast('Itinéraire effacé.');
+});
 $('gpxIn').addEventListener('change', async e => {
   const f = e.target.files?.[0]; if (!f) return; e.target.value = '';
-  try { route.importGPX(await f.text(), f.name); route.drawing = false; renderRoute(); frameRoute(); }
-  catch (err) { $('routeOut').innerHTML = `<p class="cline">Import impossible : ${esc(err.message)}.</p>`; }
+  try { route.importGPX(await f.text(), f.name); routeReady(`« ${route.name} » ouvert`); }
+  catch (err) { toast(`Ce fichier ne s'ouvre pas : ${err.message}.`, true, 5000); }
 });
+
+// ---------- drawing an itinerary on the map, step by step ----------
+// Each touch on the relief (or on a name) is a step. "Suivre les sentiers": the stretch to the new step is asked
+// of the IGN route service, so the line follows the paths; a touch beside a path lands on it, a touch far from any
+// path (a summit, a glacier) is joined by a straight line, said in a message. Without paths (offline, nothing
+// found), a straight line, said too. Touches are handled one after the other.
+const draw = { on: false, gen: 0, q: Promise.resolve(), busy: 0, pending: [], snap: true, wantGps: false, note: '', quitArmed: 0 };
+try { draw.snap = localStorage.getItem('midi3d-snap') !== '0'; } catch { }
+$('drawSnap').checked = draw.snap;
+$('drawSnap').addEventListener('change', e => {
+  draw.snap = e.target.checked; try { localStorage.setItem('midi3d-snap', draw.snap ? '1' : '0'); } catch { }
+  toast(draw.snap ? 'Le tracé suit les sentiers IGN.' : 'Lignes droites entre les points touchés (hors sentier, ou pour mesurer).');
+});
+function startDraw(fresh) {
+  if (pickMode) endPick();
+  flyRoute = null; route.beginDraw(fresh);
+  Object.assign(draw, { on: true, gen: draw.gen + 1, busy: 0, pending: [], note: '', wantGps: false, quitArmed: 0 });
+  document.body.classList.add('drawing'); $('drawTop').hidden = $('drawBar').hidden = false;
+  closeSheets(); $('sheet-point').hidden = true; pin = null; $('pin').hidden = true; syncSheetOpen();
+  $('drawTitle').textContent = fresh ? 'Tracer une rando' : 'Modifier le tracé';
+  renderRoute();
+}
+function stopDraw(keep) {
+  if (!draw.on) return;
+  draw.on = false; draw.wantGps = false; draw.pending = [];
+  document.body.classList.remove('drawing'); $('drawTop').hidden = $('drawBar').hidden = true;
+  if (keep && route.pts.length >= 2) {
+    if (!route.name) route.name = `Tracé du ${new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`;
+    route.endDraw(); routeReady('Tracé gardé');
+  } else { route.cancelDraw(); renderRoute(); }
+}
+function renderDraw() {
+  const n = route.ends.length, st = n >= 2 ? route.stats() : null, busy = draw.busy > 0;
+  const msg = $('drawMsg');
+  msg.classList.toggle('busy', busy && draw.snap);
+  msg.textContent = busy && draw.snap ? 'Recherche du chemin par les sentiers…'
+    : n === 0 ? (draw.wantGps ? 'Recherche de ta position GPS…' : "Touche la carte à l'endroit du départ (ou le nom d'un lieu).")
+    : n === 1 ? 'Départ posé. Touche la prochaine étape.'
+    : 'Touche l\'étape suivante, ou « Terminer ».';
+  $('drawStats').innerHTML = st ? `<span>${km(st.dist)} km</span><span>+${fmt(st.up)} m</span><span>−${fmt(st.down)} m</span><span>${hm(st.hours)}</span>${draw.note ? `<span class="warn">${esc(draw.note)}</span>` : ''}`
+    : n === 1 && !busy ? '<span>1 point</span>' : '';
+  $('drawUndo').disabled = n === 0 && !busy;
+  $('drawDone').disabled = n < 2 || busy;
+  $('drawMe').hidden = n > 0 || busy;
+  measureBars();
+}
+// metres covered by one CSS pixel at a point of the relief (to judge a touch "beside" a path)
+function metresPerPixel(x, z) {
+  const d = camera.position.distanceTo(proj.set(x, (groundAt(x, z) ?? 0) * state.exag, z));
+  return 2 * d * Math.tan(camera.fov * Math.PI / 360) / Math.max(1, stage.clientHeight);
+}
+const pathLength = pts => pts.reduce((s, p, i) => i ? s + Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) : 0, 0);
+// the stretch from a to b along the IGN paths (see above); tol: how far from a path a touch still lands on it
+async function pathStretch(a, b, tol, firstLeg) {
+  const ll = p => { const [lon, lat] = worldToLonLat(p[0], p[1]); return { lon, lat }; }, straight = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  try {
+    const r = await walkingRoute(ll(a), ll(b));
+    const via = r.pts.slice(); let start = null, end = via[via.length - 1], note = '';
+    // the start touched beside a path is put on it; otherwise a straight line joins it to the path
+    if (r.offStart > 1) { if (firstLeg && r.offStart <= tol) start = via[0]; else via.unshift(a); }
+    if (r.offEnd > tol) { via.push(b); end = b; note = `Fin hors sentier : ligne droite sur ${fmt(r.offEnd)} m.`; }
+    const len = pathLength(via);
+    if (len > 3 * straight && len - straight > 1500) note = `Par les sentiers, ce passage fait ${km(len)} km (${km(straight)} km à vol d'oiseau). Annule le point et pose une étape avant, ou décoche « Suivre les sentiers ».`;
+    return { via, start, end, note };
+  } catch (e) {
+    const why = !navigator.onLine ? 'Hors ligne : ligne droite (les sentiers demandent du réseau).'
+      : /aucun chemin/.test(e.message) ? 'Pas de chemin IGN entre ces deux points : ligne droite.' : `Itinéraire IGN indisponible (${e.message}) : ligne droite.`;
+    return { via: [a, b], start: null, end: b, note: why };
+  }
+}
+function drawStep(x, z) {
+  const tol = Math.min(300, Math.max(25, 28 * metresPerPixel(x, z))), mark = { x, z }, gen = draw.gen;
+  const live = () => draw.on && draw.gen === gen; // the same drawing still going on
+  draw.busy++; draw.pending.push(mark); buzz(12); renderDraw();
+  draw.q = draw.q.then(async () => {
+    if (!live()) return;
+    if (!route.pts.length || !draw.snap) { route.addStep(x, z); draw.note = ''; return; }
+    const s = await pathStretch(route.last, [x, z], tol, route.ends.length === 1);
+    if (!live()) return; // abandoned meanwhile
+    if (s.start) route.moveStart(s.start[0], s.start[1]);
+    route.addStep(s.end[0], s.end[1], s.via);
+    draw.note = s.note; if (s.note) toast(s.note, true, 4500);
+  }).catch(e => console.error(e)).finally(() => {
+    draw.busy = Math.max(0, draw.busy - 1); draw.pending = draw.pending.filter(m => m !== mark);
+    if (live()) renderRoute();
+  });
+}
+// the map buttons and the messages sit clear of the drawing's banner and bar, whose height depends on the screen
+function measureBars() {
+  const s = document.body.style;
+  s.setProperty('--drawh', `${$('drawBar').offsetHeight}px`); s.setProperty('--toph', `${Math.max($('drawTop').offsetHeight, $('pickBar').offsetHeight)}px`);
+}
+{ const ro = new ResizeObserver(measureBars); for (const id of ['drawBar', 'drawTop', 'pickBar']) ro.observe($(id)); }
+$('drawGo').addEventListener('click', () => startDraw(true));
+$('drawEdit').addEventListener('click', () => startDraw(false));
+$('drawUndo').addEventListener('click', () => {
+  const gen = draw.gen;
+  draw.q = draw.q.then(() => { if (!draw.on || draw.gen !== gen) return; route.undo(); draw.note = ''; renderRoute(); buzz(12); });
+});
+$('drawDone').addEventListener('click', () => stopDraw(true));
+// giving up a drawing: a second touch confirms, so a slip of the finger loses nothing
+$('drawQuit').addEventListener('click', () => {
+  if (route.ends.length < 2 || performance.now() - draw.quitArmed < 3500) { stopDraw(false); toast('Tracé abandonné.'); return; }
+  draw.quitArmed = performance.now(); toast('Touche encore × pour abandonner ce tracé (ou « Terminer » pour le garder).', true, 3500);
+});
+$('drawMe').addEventListener('click', () => {
+  if (gps.pos) { drawStep(gps.pos.x, gps.pos.z); return; }
+  draw.wantGps = true; if (!gps.on) { gpsCentered = true; gps.start(); } renderDraw();
+});
+// the steps on screen: start (D), steps, end (A), and the touches still being worked out
+const marks = { els: [], n: 0 };
+function updateRouteMarks() {
+  const st = route.pts.length && !sight.on ? route.steps : [];
+  // while drawing every step is shown; otherwise only the start and the end
+  const list = (route.drawing ? st : st.length > 1 ? [st[0], st[st.length - 1]] : st).map((p, i, a) => ({ x: p[0], z: p[1], k: i === 0 ? 'start' : i === a.length - 1 ? 'end' : '' }));
+  const steps = list.length;
+  if (draw.on) for (const m of draw.pending) list.push({ x: m.x, z: m.z, k: 'pending' });
+  const w = stage.clientWidth, h = stage.clientHeight;
+  while (marks.els.length < list.length) { const el = document.createElement('i'); $('routeMarks').appendChild(el); marks.els.push(el); }
+  marks.els.forEach((el, i) => {
+    const m = list[i]; if (!m) { if (el.className !== 'rmark hidden') el.className = 'rmark hidden'; return; }
+    proj.set(m.x, (groundAt(m.x, m.z) ?? 0) * state.exag, m.z).project(camera);
+    const on = proj.z < 1 && Math.abs(proj.x) < 1.1 && Math.abs(proj.y) < 1.1;
+    const cls = ['rmark', m.k, on ? '' : 'hidden'].filter(Boolean).join(' ');
+    // the step just added pops up: the touch was taken
+    if (i === steps - 1 && steps > marks.n && route.drawing) { el.className = cls; void el.offsetWidth; el.className = cls + ' pop'; }
+    else if (el.className.replace(/ pop$/, '') !== cls) el.className = cls;
+    const txt = m.k === 'start' ? 'D' : m.k === 'end' ? 'A' : ''; if (el.textContent !== txt) el.textContent = txt;
+    if (on) el.style.transform = `translate(${(proj.x * 0.5 + 0.5) * w}px, ${(-proj.y * 0.5 + 0.5) * h}px)`;
+  });
+  marks.n = steps;
+}
 // fly to see the whole itinerary
 function frameRoute() {
   const xs = route.pts.map(p => p[0]), zs = route.pts.map(p => p[1]); if (!xs.length) return;
@@ -1112,26 +1338,40 @@ function frameRoute() {
 }
 
 // ---------- itinerary proposals (planner.js): from a start to a destination, or ideas around the start ----------
-const plan = { from: null, to: null, tap: null }; // from null = my position
+const plan = { from: null, to: null, waitGps: false }; // from null = my position
 const llName = p => p.name ?? `${p.lat.toFixed(4)}° N, ${p.lon.toFixed(4)}° E`;
 function planStart() { return plan.from ?? (gps.pos ? { lon: gps.pos.lon, lat: gps.pos.lat, name: 'ma position' } : null); }
 function renderPlan() {
-  $('plFrom').textContent = plan.from ? llName(plan.from) : gps.pos ? 'ma position' : 'ma position (localisation à activer, ou choisis un autre départ)';
+  $('plFrom').textContent = plan.from ? llName(plan.from) : gps.pos ? 'ma position' : gps.on ? 'ma position (recherche du GPS…)' : 'ma position (localisation à activer, ou choisis un autre départ)';
   $('plTo').textContent = plan.to ? llName(plan.to) : 'à choisir';
 }
-$('plFromGps').addEventListener('click', () => { plan.from = null; if (!gps.on) { gpsCentered = true; gps.start(); } renderPlan(); });
-$('plFromTap').addEventListener('click', () => { plan.tap = 'from'; $('plNote').textContent = 'Touche le relief à l\'endroit du départ.'; if (touch) closeSheets(); });
-$('plToTap').addEventListener('click', () => { plan.tap = 'to'; $('plNote').textContent = 'Touche le relief à l\'endroit de l\'arrivée.'; if (touch) closeSheets(); });
-$('plFromCenter').addEventListener('click', () => {
-  const h = pick(0, 0); if (!h) return;
-  const [lon, lat] = worldToLonLat(h.x, h.z); plan.from = { lon, lat, name: `centre de l'écran (${fmt(h.h)} m)` }; renderPlan();
-});
-// a tap on the relief while choosing a start or a destination (called from the tap handler)
-function planTap(hit) {
-  const [lon, lat] = worldToLonLat(hit.x, hit.z);
-  plan[plan.tap] = { lon, lat, name: `point touché (${fmt(hit.h)} m)` }; plan.tap = null; $('plNote').textContent = '';
-  renderPlan(); openSheet('route');
+// the chosen value blinks: the choice was taken
+const flashEl = id => { const el = $(id); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); };
+// back to the planner in "Rando", opened, after a point was chosen on the map
+function showPlanner() { openSheet('route', true); $('d-plan').open = true; $('d-plan').scrollIntoView({ block: 'nearest' }); }
+// as soon as both ends are known, the itinerary is computed: nothing more to press
+function planMaybe() {
+  if (!plan.to) return;
+  const from = planStart();
+  if (from) { planGo(from, plan.to); return; }
+  // the start is "my position", not known yet: computed when the GPS answers
+  plan.waitGps = true; if (!gps.on) { gpsCentered = true; gps.start(); }
+  $('plNote').textContent = 'En attente de ta position GPS pour partir de là… (ou choisis un autre départ)';
 }
+const hitPlace = (hit, what) => { const [lon, lat] = worldToLonLat(hit.x, hit.z); return { lon, lat, name: hit.name ?? `${what} (${fmt(hit.h)} m)` }; };
+$('plFromGps').addEventListener('click', () => { plan.from = null; if (!gps.on) { gpsCentered = true; gps.start(); } renderPlan(); flashEl('plFrom'); planMaybe(); });
+$('plFromTap').addEventListener('click', () => startPick('Touche le départ sur la carte (ou le nom d\'un lieu).', hit => {
+  plan.from = hitPlace(hit, 'point touché'); renderPlan(); showPlanner(); flashEl('plFrom');
+  if (plan.to) planMaybe(); else toast('Départ choisi. Choisis maintenant l\'arrivée.');
+}));
+$('plToTap').addEventListener('click', () => startPick("Touche l'arrivée sur la carte (ou le nom d'un refuge, d'un lac…).", hit => {
+  plan.to = hitPlace(hit, 'point touché'); renderPlan(); showPlanner(); flashEl('plTo'); planMaybe();
+}));
+$('plFromCenter').addEventListener('click', () => {
+  const h = pick(0, 0); if (!h) { toast('Le centre de l\'écran ne montre pas le relief.', true); return; }
+  const [lon, lat] = worldToLonLat(h.x, h.z); plan.from = { lon, lat, name: `centre de l'écran (${fmt(h.h)} m)` }; renderPlan(); flashEl('plFrom'); planMaybe();
+});
+$('planOpen').addEventListener('click', () => { $('d-plan').open = true; $('d-plan').scrollIntoView({ block: 'start', behavior: 'smooth' }); });
 $('plSearch').addEventListener('submit', async e => {
   e.preventDefault(); const q = $('plQ').value.trim(); if (q.length < 2) return;
   $('plQ').blur(); $('plResults').innerHTML = ''; $('plNote').textContent = 'Recherche…';
@@ -1141,7 +1381,7 @@ $('plSearch').addEventListener('submit', async e => {
     list.forEach(p => {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'place';
       b.innerHTML = `<span>${esc(p.name)}</span><span class="pa">${esc(p.detail || p.src)}</span>`;
-      b.addEventListener('click', () => { plan.to = { lon: p.lon, lat: p.lat, name: p.name }; $('plResults').innerHTML = ''; renderPlan(); });
+      b.addEventListener('click', () => { plan.to = { lon: p.lon, lat: p.lat, name: p.name }; $('plResults').innerHTML = ''; renderPlan(); flashEl('plTo'); planMaybe(); });
       $('plResults').appendChild(b);
     });
   } catch (err) { $('plNote').textContent = `Recherche impossible : ${err.message}.`; }
@@ -1153,12 +1393,14 @@ function offPathNote(r, toName) {
   return bits.length ? bits.join(' ; ') + '.' : '';
 }
 async function planGo(from, to) {
-  $('plNote').textContent = "Calcul de l'itinéraire par l'IGN…";
+  $('plNote').textContent = "Calcul de l'itinéraire par l'IGN…"; $('plGo').disabled = true;
   try {
     const r = await walkingRoute(from, to);
-    route.setPath(r.pts, `${from.name ?? 'Départ'} → ${to.name ?? 'Arrivée'}`); renderRoute(); frameRoute();
+    route.setPath(r.pts, `${from.name ?? 'Départ'} → ${to.name ?? 'Arrivée'}`);
     $('plNote').textContent = ['Itinéraire IGN sur sentiers et chemins : vérifie l\'état (neige, fermetures, difficulté) avant de partir.', offPathNote(r, to.name)].filter(Boolean).join(' ');
-  } catch (err) { $('plNote').textContent = `Itinéraire impossible : ${err.message}.`; }
+    routeReady('Itinéraire tracé');
+  } catch (err) { $('plNote').textContent = `Itinéraire impossible : ${err.message}.`; toast(`Itinéraire impossible : ${err.message}.`, true, 4500); }
+  $('plGo').disabled = false;
 }
 $('plGo').addEventListener('click', () => {
   const from = planStart();
@@ -1191,7 +1433,7 @@ $('plIdeas').addEventListener('click', async () => {
   for (const o of out) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'place';
     b.innerHTML = `<span>${esc(o.name)}</span><span class="pa"><span class="cls ${o.cls}">${CLASS_NAMES[o.cls]}</span>${o.kind} · ${hm(o.st.hours)} · ${(o.st.dist / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km · +${fmt(o.st.up)} m${o.r.offEnd > 60 ? ` · sentier jusqu'à ${fmt(o.r.offEnd)} m du but` : ''}</span>`;
-    b.addEventListener('click', () => { route.setPath(o.r.pts, `${from.name ?? 'Départ'} → ${o.name}`); renderRoute(); frameRoute(); $('plNote').textContent = offPathNote(o.r, o.name); if (touch) closeSheets(); });
+    b.addEventListener('click', () => { route.setPath(o.r.pts, `${from.name ?? 'Départ'} → ${o.name}`); $('plNote').textContent = offPathNote(o.r, o.name); routeReady(o.name); });
     $('plIdeasOut').firstChild.appendChild(b);
   }
 });
@@ -1205,14 +1447,14 @@ function renderHikes(done, total) {
   if (hkBuilding) $('hkInfo').textContent = `Construction de la liste… ${done} / ${total} (les itinéraires arrivent au fur et à mesure)`;
   else if (hkList.length) $('hkInfo').textContent = `${hkList.length} itinéraires pour ce massif · ${shown.length} affichés, du plus court au plus long.`;
   $('hkBuild').hidden = !!hkBuilding || hkList.length > 0;
+  $('hkCount').textContent = hkList.length ? fmt(hkList.length) : '';
   const box = $('hkList'); box.innerHTML = '';
   for (const h of shown) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'place';
     b.innerHTML = `<span>${esc(h.name)}${h.alt ? ` · ${fmt(h.alt)} m` : ''}</span><span class="pa"><span class="cls ${h.cls}">${CLASS_NAMES[h.cls]}</span>${h.kind} · depuis ${h.start === 'parking' ? `un parking à ${fmt(h.startAlt ?? 0)} m` : esc(h.start)} · ${hm(h.hours)} · ${(h.dist / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km · +${fmt(h.up)} m · point haut ${fmt(h.max)} m${h.offEnd > 150 ? ` · les sentiers s'arrêtent à ${fmt(h.offEnd)} m du but, la fin est hors sentier` : ''}</span>`;
     b.addEventListener('click', () => {
-      route.setPath(hikePath(h), `${h.name} depuis ${h.start}`); renderRoute(); frameRoute();
-      $('plNote').textContent = h.cls === 'alpine' ? "Haute montagne : glacier ou rocher, crevasses et chutes de pierres possibles. Matériel d'alpinisme, expérience et encordement nécessaires ; guide conseillé. Le tracé s'arrête au bout des sentiers." : '';
-      if (touch) closeSheets();
+      route.setPath(hikePath(h), `${h.name} depuis ${h.start}`); routeReady(h.name);
+      if (h.cls === 'alpine') setTimeout(() => toast("Haute montagne : glacier ou rocher, crevasses et chutes de pierres possibles. Matériel d'alpinisme, expérience et encordement nécessaires ; guide conseillé. Le tracé s'arrête au bout des sentiers.", true, 7000), 4600);
     });
     box.appendChild(b);
   }
@@ -1256,7 +1498,7 @@ function renderC2C() {
 }
 function showC2C(r) {
   const line = c2cLine(c2c, r);
-  if (line) { route.setPath(line, r.t); renderRoute(); frameRoute(); }
+  if (line) { route.setPath(line, r.t); renderRoute(); frameRoute(); toast('Tracé camptocamp posé sur la carte.'); }
   else flyToLonLat(r.ll[0], r.ll[1]);
   const outs = r.outings.map(o => `<div class="out"><p><b>${c2cDate(o.d)}</b> ${condBadge(o.c)} · ${esc(o.by || 'anonyme')}${o.emax ? ` · jusqu'à ${fmt(o.emax)} m` : ''}</p>
     ${o.cond ? `<p>${esc(o.cond)}</p>` : '<p class="small">Pas de texte sur les conditions.</p>'}
@@ -1306,10 +1548,10 @@ $('flyRec').addEventListener('click', () => {
     $('routePackInfo').textContent = 'Vidéo du survol enregistrée.';
   };
   rec.start(1000); $('routePackInfo').textContent = 'Survol filmé en cours… la vidéo se télécharge à la fin.';
-  flyRoute = { d: 0, speed: Math.min(160, Math.max(25, route.length / 60)) }; fly = null; if (touch) closeSheets();
+  flyRoute = { d: 0, speed: Math.min(160, Math.max(25, route.length / 60)) }; fly = null; closeSheets();
   const watch = setInterval(() => { if (!flyRoute) { clearInterval(watch); rec.stop(); } }, 250);
 });
-$('flyGo').addEventListener('click', () => { if (route.length > 0) { flyRoute = { d: 0, speed: Math.min(160, Math.max(25, route.length / 60)) }; fly = null; if (touch) closeSheets(); } });
+$('flyGo').addEventListener('click', () => { if (route.length > 0) { flyRoute = { d: 0, speed: Math.min(160, Math.max(25, route.length / 60)) }; fly = null; closeSheets(); toast('Survol : touche la carte pour l\'arrêter.'); } });
 function flyAlongRoute(dt) {
   const r = flyRoute; r.d += dt * r.speed;
   if (r.d > route.length) { flyRoute = null; return; }
@@ -1413,7 +1655,7 @@ function setWeatherShown(on, withPrecip = true) {
   if (state.weather) renderWeather(); else { cloudU.cover.value = 0; showCloudLayers(); }
   try { localStorage.setItem('midi3d-weather-shown', on ? '1' : '0'); } catch { }
 }
-$('wxToggle').addEventListener('click', () => setWeatherShown(!state.clouds));
+$('wxToggle').addEventListener('click', () => { setWeatherShown(!state.clouds); toast(state.clouds ? 'Météo réelle affichée : nuages, pluie et neige du moment.' : 'Météo masquée : montagne vue comme par temps clair.'); });
 try { if (localStorage.getItem('midi3d-weather-shown') === '0') setWeatherShown(false); } catch { }
 // cloud layers cover the whole screen: none drawn in clear weather, fewer on lighter settings
 function showCloudLayers() { const n = QUAL[state.quality].clouds, vol = vclouds.on && post.enabled; clouds.children.forEach((m, i) => { m.visible = !vol && cloudU.cover.value > 0.01 && i < n && !state.far; }); }
@@ -1528,14 +1770,12 @@ $('gKeyClear').addEventListener('click', () => { googleKey.set(''); setView('ign
 let savedView = 'ign'; try { savedView = localStorage.getItem('midi3d-view') || 'ign'; } catch { }
 $('c-spin').addEventListener('change', e => { controls.autoRotate = e.target.checked; });
 $('home').addEventListener('click', home);
-// "3D" button: tilt to a view facing the mountains, or back to a view from above (same pivot and distance)
 // turn-around mode: one finger turns the view around the point in the middle of the screen
-const orbitHint = Object.assign(document.createElement('div'), { className: 'orbithint glass', hidden: true, textContent: "Un doigt : glisse à gauche ou à droite pour tourner autour du centre de l'écran, en haut ou en bas pour incliner. Retouche le bouton pour revenir au déplacement." });
-document.body.appendChild(orbitHint);
 $('orbitBtn').addEventListener('click', () => {
   controls.oneFingerOrbit = !controls.oneFingerOrbit; $('orbitBtn').setAttribute('aria-pressed', controls.oneFingerOrbit);
-  orbitHint.hidden = !controls.oneFingerOrbit; if (controls.oneFingerOrbit) setTimeout(() => { orbitHint.hidden = true; }, 6000);
+  toast(controls.oneFingerOrbit ? "Tourner autour : un doigt glissé à gauche ou à droite tourne autour du centre de l'écran, en haut ou en bas incline. Retouche le bouton pour revenir au déplacement." : 'Un doigt déplace de nouveau la carte.', false, controls.oneFingerOrbit ? 6500 : 2500);
 });
+// "3D" button: tilt to a view facing the mountains, or back to a view from above (same pivot and distance)
 $('tilt').addEventListener('click', () => {
   const off = camera.position.clone().sub(controls.target), s = new THREE.Spherical().setFromVector3(off);
   s.phi = s.phi < 0.9 ? 1.3 : 0.3; // ~75° from the vertical: nearly level; ~17°: almost straight down
@@ -1569,6 +1809,16 @@ const ADAPT_STEPS = [
   { noClouds: true, detail: 0.6, res: 0.6, noPost: true },
   { noClouds: true, detail: 0.6, res: 0.5, noPost: true }
 ];
+// what the automatic adjustment has given up, in words (under the quality choice)
+function showQualNote() {
+  const s = ADAPT_STEPS[adapt.level], bits = [];
+  if (s.noClouds && QUAL[state.quality].vSteps) bits.push('nuages plats');
+  if (s.detail) bits.push('détail lointain réduit');
+  if (s.res) bits.push(`résolution ${Math.round(s.res * 100)} %`);
+  if (s.noPost && state.quality !== 'standard') bits.push('sans la passe finale (halo, contraste)');
+  $('qualNote').textContent = (adapt.level ? `Réglage automatique pour rester fluide sur cet appareil : ${bits.join(', ')}. Il revient au mieux dès que l'image le permet.` : "Réglage automatique : rien n'est allégé en ce moment.")
+    + ' Standard économise la batterie, Extrême demande un appareil puissant.';
+}
 function setAdaptLevel(l) {
   adapt.level = l; const s = ADAPT_STEPS[l];
   adapt.res = s.res ?? 1; adapt.detail = s.detail ?? 1; adapt.noClouds = !!s.noClouds; adapt.noPost = !!s.noPost;
@@ -1600,7 +1850,7 @@ markSeg('quality', state.quality);
 
 
 // ---------- "à ton altitude": fresh snow / rain forecast at a chosen height or point ----------
-let pickArmed = false, altPoint = null;
+let altPoint = null;
 async function altitudeReport(lat, lon, alt, where) {
   const out = $('altOut');
   out.innerHTML = `<p class="cmeta">Prévision pour ${fmt(alt)} m…</p>`;
@@ -1633,15 +1883,12 @@ $('altGo').addEventListener('click', () => {
   altitudeReport(lat, lon, a, altPoint ? `Point choisi (${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E)` : `Secteur ${SPOTS.top.name}`);
 });
 $('altIn').addEventListener('keydown', e => { if (e.key === 'Enter') $('altGo').click(); });
-$('altPick').addEventListener('click', () => { pickArmed = true; $('altPick').textContent = 'Touche le relief…'; if (touch) closeSheets(); });
-function pickAt(hit) {
-  if (!pickArmed || !hit) return false;
-  pickArmed = false; $('altPick').textContent = 'Choisir sur le relief';
+$('altPick').addEventListener('click', () => startPick("Touche le relief à l'endroit voulu : la prévision se fait à son altitude.", altAt));
+function altAt(hit) {
   const [lon, lat] = worldToLonLat(hit.x, hit.z); altPoint = { lat, lon };
-  $('altIn').value = Math.round(hit.h); openSheet('cond');
-  altitudeReport(lat, lon, hit.h, `Point choisi (${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E)`);
-  $('sheet-cond').querySelector('#altBlock')?.scrollIntoView({ block: 'start' });
-  return true;
+  $('altIn').value = Math.round(hit.h); openSheet('cond', true); $('altBlock').open = true;
+  altitudeReport(lat, lon, hit.h, hit.name ? `${hit.name} (${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E)` : `Point choisi (${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E)`);
+  $('altBlock').scrollIntoView({ block: 'start' });
 }
 
 // ---------- point conditions: tap anywhere on the relief ----------
@@ -1664,9 +1911,7 @@ async function satSnowAt(lat, lon) {
   return { date: S.date, ndsi, fsc: Math.max(0, Math.min(1, 1.45 * ndsi - 0.01)), cloud: cls === 3 || (cls >= 8 && cls <= 10) };
 }
 async function pointReport(hit) {
-  const seq = ++pinSeq; pin = hit;
-  sheets.forEach(s => { $('sheet-' + s).hidden = true; $('tab-' + s).setAttribute('aria-pressed', 'false'); });
-  $('sheet-point').hidden = false;
+  const seq = ++pinSeq; showPointSheet(); dropPin(hit); keepInSight(hit);
   const [lon, lat] = worldToLonLat(hit.x, hit.z), s = engine.slopeAt(hit.x, hit.z);
   const where = hit.surface === 'google' ? 'altitude de la surface Google 3D (arbres, bâtiments et neige compris, ±quelques m)' : `relief ${SRC[s?.src] ?? 'IGN'}`;
   const meta = `<p class="cmeta">${lat.toFixed(5)}° N · ${lon.toFixed(5)}° E · ${where}</p>`
@@ -1702,7 +1947,7 @@ async function pointReport(hit) {
   html += `<p class="cnote">Hauteur totale de neige au sol : aucune mesure gratuite et fiable n'existe point par point. Les modèles météo se contredisent en haute montagne ; seules les stations nivologiques Météo-France la mesurent vraiment.</p>`;
   $('ptOut').innerHTML = html;
 }
-$('sheet-point').querySelector('.close').addEventListener('click', () => { $('sheet-point').hidden = true; pin = null; $('pin').hidden = true; });
+$('sheet-point').querySelector('.close').addEventListener('click', () => { $('sheet-point').hidden = true; pin = null; $('pin').hidden = true; syncSheetOpen(); });
 
 // ---------- sun on a face: when the sun reaches this point on the day shown, with the relief's shadows ----------
 // Every 10 minutes from 4 h to 22 h: the sun above the horizon, in front of the slope (its normal), and not hidden
@@ -1754,16 +1999,18 @@ function losCompute() {
   $('losOut').innerHTML = block ? `<b style="color:#ff6a5d">Pas de vue</b> : le relief cache le point à ${fmt(block.d)} m du départ (altitude ${fmt(block.h)} m). Distance ${t1(L / 1000)} km.`
     : `<b style="color:#3ddc84">Vue dégagée</b> sur ${t1(L / 1000)} km (de ${fmt(ha - 1.7)} m à ${fmt(hb - 1.7)} m), à hauteur d'yeux.`;
 }
-function losPick(hit) {
-  los[los.tap] = { x: hit.x, z: hit.z, h: hit.h }; const which = los.tap; los.tap = null;
-  $('losOut').textContent = which === 'a' ? 'Départ choisi. Touche « Vers » puis le point à viser.' : '';
-  openSheet('route'); losCompute();
+// the point aimed at, then the answer: on the map (green or red line) and in a message, the details in "Rando"
+function losAim() {
+  startPick('Touche maintenant le point à viser (ou son nom).', hit => {
+    los.b = { x: hit.x, z: hit.z, h: hit.h }; losCompute();
+    toast($('losOut').textContent, false, 5000); $('d-los').open = true;
+  });
 }
-$('losFromTap').addEventListener('click', () => { los.tap = 'a'; $('losOut').textContent = 'Touche la carte au point de départ…'; if (touch) closeSheets(); });
-$('losToTap').addEventListener('click', () => { los.tap = 'b'; $('losOut').textContent = 'Touche la carte au point à viser…'; if (touch) closeSheets(); });
+$('losFromTap').addEventListener('click', () => startPick("Touche l'endroit d'où l'on regarde (ou son nom).", hit => { los.a = { x: hit.x, z: hit.z, h: hit.h }; losAim(); }));
+$('losToTap').addEventListener('click', () => { if (!los.a) { $('losOut').textContent = "Choisis d'abord d'où l'on regarde."; return; } losAim(); });
 $('losFromGps').addEventListener('click', () => {
   const p = gps.pos; if (!p) { if (!gps.on) { gpsCentered = true; gps.start(); } $('losOut').textContent = 'Recherche de ta position… touche à nouveau dans un instant.'; return; }
-  los.a = { x: p.x, z: p.z, h: groundAt(p.x, p.z) ?? p.gpsAlt ?? 0 }; $('losOut').textContent = 'Départ : ta position. Touche « Vers » puis le point à viser.'; losCompute();
+  los.a = { x: p.x, z: p.z, h: groundAt(p.x, p.z) ?? p.gpsAlt ?? 0 }; losAim();
 });
 
 // ---------- emergency: the position, to say or send ----------
@@ -1886,8 +2133,10 @@ $('cacheClear').addEventListener('click', async () => {
 
 // labels
 const proj = new THREE.Vector3();
+const labView = { cam: new THREE.Matrix4(), proj: new THREE.Matrix4(), w: 0, h: 0 };
 let frameN = 0;
 function updateLabels() {
+  updateRouteMarks();
   if (pin) {
     proj.set(pin.x, pin.h * state.exag, pin.z).project(camera);
     const on = proj.z < 1 && Math.abs(proj.x) < 1.2 && Math.abs(proj.y) < 1.2;
@@ -1896,6 +2145,10 @@ function updateLabels() {
   }
   if (!state.labels) return;
   const w = stage.clientWidth, h = stage.clientHeight, cam = camera.position;
+  // the view still: the names stay where they are (hundreds of them, a real cost on phones); looked at again now and then
+  const still = labView.cam.equals(camera.matrixWorld) && labView.proj.equals(camera.projectionMatrix) && labView.w === w && labView.h === h && frameN % 15 !== 0;
+  labView.cam.copy(camera.matrixWorld); labView.proj.copy(camera.projectionMatrix); labView.w = w; labView.h = h;
+  if (still) return;
   PLACES.forEach((p, i) => {
     if ((frameN + i) % 20 === 0 && (p.area || (p.hut && !p.alt))) { const g = groundAt(p.x, p.z); if (g != null) p.h = g + (p.area ? 80 : 0); }
     if (p.fall && !streams.on) { p.el.classList.add('hidden'); return; }
@@ -1922,25 +2175,58 @@ function resize() {
   renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); route?.setResolution(w, h); trails?.setResolution(w, h); track?.setResolution(w, h); streams?.setResolution(w, h); pistes?.setResolution(w, h);
   SU.proj.value = h * renderer.getPixelRatio() / (2 * Math.tan(camera.fov * Math.PI / 360));
 }
-addEventListener('resize', resize);
+// a new size (phone turned, foldable opened or closed, window resized): the pixel budget is shared out again
+let rescale = null;
+const onResize = () => { resize(); clearTimeout(rescale); rescale = setTimeout(applyScale, 250); };
+addEventListener('resize', onResize);
 // the stage can change size without a window resize (a hidden tab coming back, the phone's bars appearing)
-new ResizeObserver(() => resize()).observe(stage);
+new ResizeObserver(onResize).observe(stage);
 applyQuality(state.quality);
-const clock = new THREE.Clock(); let fpsAcc = 0, fpsN = 0, adAcc = 0, adN = 0, started = false, gGround = null;
+// the frame clock; connected to the page so that time spent hidden does not come back as one huge step (not with
+// ?debugloop, whose whole point is to keep drawing in a hidden tab)
+const timer = new THREE.Timer(); if (!location.search.includes('debugloop')) timer.connect(document);
+let fpsAcc = 0, fpsN = 0, adAcc = 0, adN = 0, started = false, gGround = null;
 // ?debugloop keeps rendering in a hidden tab (for automated checks); normal use follows the display refresh
 const nextFrame = location.search.includes("debugloop") ? cb => setTimeout(cb, 16) : cb => requestAnimationFrame(cb);
+// Pace: at most 60 images/s (120 Hz screens would draw twice as often for nothing but heat and battery), and 30
+// when nothing moves (no gesture, flight, loading or falling snow for a few seconds): the clouds and water still
+// move, the phone keeps cool for when it is needed. Any touch brings the full pace back at once.
+// The display's refresh is measured (frames skipped cost nothing, so the ticks keep its pace); one tick in
+// "every" is drawn: 2 on a 120 Hz screen, 1 at 60 or 90 Hz (an uneven 11/22 ms pace would judder).
+let lastActive = performance.now(), idle = false, tickMs = 16.7, lastTick = 0, ticks = 0;
+const camWas = new THREE.Matrix4();
+const wake = () => { lastActive = performance.now(); };
+for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown']) addEventListener(ev, wake, { passive: true });
+function paceOk(now) {
+  if (lastTick) { const d = now - lastTick; if (d < 60) tickMs += (d - tickMs) * 0.05; }
+  lastTick = now;
+  idle = now - lastActive > 3000 && !fly && !flyRoute && !sight.on && !snow.visible && !rain.visible && !(google.on ? google.loading : engine.busy) && !draw.busy;
+  const every = Math.max(1, Math.floor(1000 / tickMs / (idle ? 30 : 60) + 0.25));
+  if (++ticks < every) return false;
+  ticks = 0; return true;
+}
 // one failing frame must never freeze the app: report it once and keep drawing
 let frameError = null;
 function frame() {
-  try { drawFrame(); } catch (e) { if (String(e) !== frameError) { frameError = String(e); console.error(e); } }
+  if (paceOk(performance.now())) {
+    try { drawFrame(); } catch (e) { if (String(e) !== frameError) { frameError = String(e); console.error(e); } }
+    if (!camWas.equals(camera.matrixWorld)) { camWas.copy(camera.matrixWorld); wake(); } // the view moving (inertia, easing) counts as activity
+  }
   nextFrame(frame);
 }
+// the graphics memory lost (a phone short of memory, the app long in the background): say so, and start again
+// once the browser gives it back (everything on the graphics chip must be rebuilt: reloading is the safe way)
+renderer.domElement.addEventListener('webglcontextlost', e => {
+  e.preventDefault();
+  const l = $('loader'); l.classList.remove('done'); l.querySelector('.msg').textContent = "Le téléphone a manqué de mémoire graphique : l'appli redémarre…";
+});
+renderer.domElement.addEventListener('webglcontextrestored', () => location.reload());
 // ?prof: time spent per part of the frame (ms, summed), and draw calls, to find what costs (window.midi3d.prof)
 const prof = location.search.includes('prof') ? { n: 0 } : null;
 let profT = 0; const lap = k => { if (!prof) return; const n = performance.now(); prof[k] = (prof[k] || 0) + n - profT; profT = n; };
 function drawFrame() {
   if (prof) { prof.n++; profT = performance.now(); renderer.info.autoReset = false; renderer.info.reset(); } // all the passes of the frame counted
-  const dt = clock.getDelta(), t = clock.elapsedTime;
+  timer.update(); const dt = timer.getDelta(), t = timer.getElapsed();
   U.time.value = t;
   if (fly) {
     const f = Math.min(1, (performance.now() - fly.t0) / fly.dur), e = ease(f);
@@ -1986,7 +2272,8 @@ function drawFrame() {
   // at night the red paths would outshine everything: dimmed (still there to follow)
   for (const mat of Object.values(trails.mats)) mat.opacity = 0.95 * (1 - 0.7 * U.night.value);
   gps.update(camera, groundAt, state.exag); if (gps.on && frameN % 60 === 0) renderGps();
-  route.update(frameN, state.exag, engine.busy);
+  // the numbers shown follow the relief as it arrives under the line (re-written only when they change)
+  if (route.update(frameN, state.exag, engine.busy)) { const st = route.stats(); if ((st ? `${Math.round(st.dist)}|${Math.round(st.up)}|${st.complete}` : '') !== routeSig) renderRouteCard(); }
   track.update(frameN, state.exag); lap('itineraire');
   trails.update(camera, controls.target, frameN, state.exag, google.on); lap('sentiers');
   streams.update(camera, controls.target, frameN, state.exag, google.on, dt); lap('torrents');
@@ -2008,14 +2295,20 @@ function drawFrame() {
   // start when the IGN relief is there, or when the Google view was chosen during loading (IGN then paused)
   if (!started && (engine.roots.filter(r => r.state === 'ready').length >= engine.roots.length * 0.6 || (google.on && t > 3))) {
     started = true; $('loader').classList.add('done'); if (!sharedView()) home();
+    // the first opening on a device: how to move around, said once
+    let seen = true; try { seen = localStorage.getItem('midi3d-hello') === '1'; localStorage.setItem('midi3d-hello', '1'); } catch { }
+    if (!seen) setTimeout(() => toast(matchMedia('(pointer: coarse)').matches ? 'Un doigt déplace la carte, deux doigts zooment, tournent et inclinent. Touche le relief pour sa météo.' : 'Glisser : déplacer · molette : zoomer · clic droit : tourner et incliner. Clique le relief pour sa météo.', false, 8000), 3500);
     if (savedView === 'google' && googleKey.get()) setView('google'); // each opening of the Google view = one Google session
   }
   if (google.on && frameN % 30 === 0) { const a = google.attributions(); $('gAttribTxt').textContent = a.length ? a.join(' ; ') : 'Google'; }
-  fpsAcc += dt; fpsN++; adAcc += dt; adN++;
+  fpsAcc += dt; fpsN++;
+  // the automatic adjustment judges only the frames drawn at full pace (the 30 images/s at rest say nothing)
+  if (idle) { adAcc = 0; adN = 0; } else { adAcc += dt; adN++; }
   if (adAcc > 1.5) { adaptTo(adN / adAcc); adAcc = 0; adN = 0; }
   if (fpsAcc > 0.5) {
     const auto = adapt.level > 0 ? ` · allégé ${adapt.level}/${ADAPT_STEPS.length - 1}` : '';
-    $('rFps').textContent = `${Math.round(fpsN / fpsAcc)} i/s · ${google.on ? 'Google 3D' : `${engine.tileCount ?? 0} tuiles`}${auto}`;
+    $('rFps').textContent = `${Math.round(fpsN / fpsAcc)} i/s${idle ? ' (au repos)' : ''} · ${google.on ? 'Google 3D' : `${engine.tileCount ?? 0} tuiles`}${auto}`;
+    if (!$('sheet-layers').hidden) showQualNote();
     const busy = google.on ? google.loading : engine.busy;
     $('status').hidden = busy === 0; $('statusN').textContent = busy;
     renderLidarInfo(); if (!$('sheet-layers').hidden) showPtStore();
@@ -2038,7 +2331,7 @@ function syncLinesBtn() { const on = $('c-trails').checked || $('c-streams').che
 $('linesBtn').addEventListener('click', () => {
   const on = !($('c-trails').checked || $('c-streams').checked);
   for (const id of ['c-trails', 'c-streams']) if ($(id).checked !== on) { $(id).checked = on; $(id).dispatchEvent(new Event('change')); }
-  syncLinesBtn();
+  syncLinesBtn(); toast(on ? 'Sentiers, refuges et torrents affichés.' : 'Sentiers, refuges et torrents masqués (plus fluide).');
 });
 for (const id of ['c-trails', 'c-streams']) $(id).addEventListener('change', syncLinesBtn);
 syncLinesBtn();

@@ -41,7 +41,14 @@ const LANES = [
   [u => u.startsWith('https://mapsref.brgm.fr/'), new Lane(6, 12, 4)], // avalanche map (Géorisques)
   [u => u.startsWith('https://planetarycomputer.microsoft.com/'), new Lane(12, 24, 10)],
   // LiDAR point clouds (IGN download service): its answers announce a budget of about 10 requests per second
-  [u => u.startsWith('https://data.geopf.fr/telechargement/'), new Lane(5, 8, 4)]
+  [u => u.startsWith('https://data.geopf.fr/telechargement/'), new Lane(5, 8, 4)],
+  // BD TOPO by WFS (paths, streams, lakes, glaciers, buildings, lights…): a view that moves asks for dozens of
+  // cells at once, and half of them were refused (measured: 51 refusals in 101 requests) before this lane
+  [u => u.startsWith('https://data.geopf.fr/wfs/'), new Lane(4, 12, 4)],
+  // walking itineraries: their own lane, so that a stretch being drawn never waits behind map cells
+  [u => u.startsWith('https://data.geopf.fr/navigation/'), new Lane(4, 8, 2)],
+  // the rest of the Géoplateforme (altitudes, place search)
+  [u => u.startsWith('https://data.geopf.fr/'), new Lane(5, 10, 4)]
 ];
 const laneFor = url => LANES.find(([m]) => m(url))?.[1];
 

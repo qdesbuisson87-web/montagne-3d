@@ -16,6 +16,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Copie camptocamp
         run: python3 scripts/c2c.py
+      - name: Pistes de ski (OpenStreetMap)
+        run: python3 scripts/pistes.py
       - name: Publier si changé
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -23,8 +25,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/c2c-*.json
+          git add data/pistes-*.json 2>/dev/null || true   # none yet if Overpass never answered
           if git diff --cached --quiet; then echo "rien de neuf"; exit 0; fi
-          git commit -m "Données camptocamp du jour"
-          git push
+          git commit -m "Données camptocamp et pistes du jour"
+          # the app may have been published meanwhile: take those commits first (only data/ changes here)
+          for i in 1 2 3; do git pull --rebase -q && git push && break; sleep 10; done
           # a push made with this token does not start the Pages build by itself
           gh api -X POST "repos/${GITHUB_REPOSITORY}/pages/builds" || true

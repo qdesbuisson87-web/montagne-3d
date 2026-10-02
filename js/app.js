@@ -1,33 +1,37 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610021708';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610021708';
-import { SITE, SITE_LIST } from './sites.js?v=202610021708';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610021708';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610021708';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610021708';
-import { searchPlaces } from './search.js?v=202610021708';
-import { TerrainShadows } from './shadows.js?v=202610021708';
-import { PostFX } from './post.js?v=202610021708';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610021708';
-import { Forest } from './forest.js?v=202610021708';
-import { Lakes } from './water.js?v=202610021708';
-import { Glaciers } from './glaciers.js?v=202610021708';
-import { NightLights } from './lights.js?v=202610021708';
-import { Buildings } from './buildings.js?v=202610021708';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610021708';
-import { TrackRecorder, progressOn } from './track.js?v=202610021708';
-import { GpsTracker } from './gps.js?v=202610021708';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610021708';
-import { walkingRoute } from './planner.js?v=202610021708';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610021708';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610021708';
-import { TrailsLayer } from './trails.js?v=202610021708';
-import { Weather3D } from './weather3d.js?v=202610021708';
-import { Sight } from './sight.js?v=202610021708';
-import { Photos360 } from './photos360.js?v=202610021708';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610021708';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610021708';
-import { VolumeClouds } from './clouds.js?v=202610021708';
+import { EarthControls } from './controls.js?v=202610021731';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610021731';
+import { SITE, SITE_LIST } from './sites.js?v=202610021731';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610021731';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610021731';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610021731';
+import { searchPlaces } from './search.js?v=202610021731';
+import { TerrainShadows } from './shadows.js?v=202610021731';
+import { PostFX } from './post.js?v=202610021731';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610021731';
+import { Forest } from './forest.js?v=202610021731';
+import { Lakes } from './water.js?v=202610021731';
+import { Glaciers } from './glaciers.js?v=202610021731';
+import { makeSite, removeSite } from './custom.js?v=202610021731';
+import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610021731';
+import { Streams } from './streams.js?v=202610021731';
+import { Refuges } from './refuges.js?v=202610021731';
+import { NightLights } from './lights.js?v=202610021731';
+import { Buildings } from './buildings.js?v=202610021731';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610021731';
+import { TrackRecorder, progressOn } from './track.js?v=202610021731';
+import { GpsTracker } from './gps.js?v=202610021731';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610021731';
+import { walkingRoute } from './planner.js?v=202610021731';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610021731';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610021731';
+import { TrailsLayer } from './trails.js?v=202610021731';
+import { Weather3D } from './weather3d.js?v=202610021731';
+import { Sight } from './sight.js?v=202610021731';
+import { Photos360 } from './photos360.js?v=202610021731';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610021731';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610021731';
+import { VolumeClouds } from './clouds.js?v=202610021731';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -170,8 +174,8 @@ vec3 aerial(vec3 col, vec3 w){
   return mix(pow(fogC, vec3(2.2)), col, max(T, vec3(0.07)));
 }`;
 const terrainFS = `
-uniform sampler2D map, slopeMap, ndsiMap, cloudMap, visMap, forestMap, noiseTex; uniform vec4 ovRect;
-uniform float historic, hasNdsi, hasCloud, hasVis, hasForest, tileSize, snowToday, visToday, slopes, vivid, time;
+uniform sampler2D map, slopeMap, ndsiMap, cloudMap, visMap, forestMap, clpaMap, noiseTex; uniform vec4 ovRect, clpaRect;
+uniform float historic, hasNdsi, hasCloud, hasVis, hasForest, hasClpa, tileSize, snowToday, visToday, slopes, vivid, time;
 ${SCENE_GLSL}
 varying vec2 vUv; varying vec3 vN, vW; varying float vAlt;
 const vec3 LUM = vec3(0.2126, 0.7152, 0.0722);
@@ -279,6 +283,8 @@ void main(){
   }
   float lum = dot(alb, LUM);
   alb = max(mix(vec3(lum), alb, 1.0 + vivid), 0.0) * (1.0 + vivid*0.15);
+  // avalanches of the past (CLPA): the map's own colours laid on the ground, lit with it
+  if (hasClpa > 0.5) { vec4 cp = texture2D(clpaMap, clpaRect.xy + vUv * clpaRect.zw); alb = mix(alb, pow(cp.rgb, vec3(2.2)) * 0.8, cp.a * 0.7); }
   vec3 col;
   if (light < 0.5) {
     // photo mode: the photo carries its own shading, except on steep faces where it is smeared; there the relief
@@ -369,6 +375,24 @@ function showPhoto(p) {
     <p class="cline"><a href="https://api.panoramax.xyz/#focus=pic&pic=${encodeURIComponent(p.id)}" target="_blank" rel="noopener">${p.pano ? 'Voir la photo à 360° et se promener' : 'Voir la photo'} sur Panoramax</a></p>`;
 }
 const trails = new TrailsLayer({ scene, groundAt: (x, z) => engine.heightAt(x, z), onHuts: huts => addHuts(huts) });
+// torrents (flowing) and named waterfalls (labels), IGN BD TOPO
+const fallIds = new Set();
+const streams = new Streams({ scene, groundAt: (x, z) => engine.heightAt(x, z), onFalls: falls => {
+  for (const f of falls) {
+    if (fallIds.has(f.id)) continue; fallIds.add(f.id);
+    const [x, z] = lonLatToWorld(f.lon, f.lat), g = engine.heightAt(x, z);
+    const p = { name: f.name, x, z, h: g ?? 1500, small: true, hut: true, fall: true };
+    const el = document.createElement('button'); el.type = 'button'; el.className = 'label small hut water hidden';
+    el.innerHTML = `<span class="t"><span class="n">≋ ${esc(f.name)}</span></span>`;
+    el.addEventListener('click', () => openPlace(p));
+    labelsEl.appendChild(el); p.el = el; PLACES.push(p);
+  }
+} });
+// ski pistes (OpenStreetMap, daily copy): off by default, a winter layer
+const pistes = new Pistes({ scene, groundAt: (x, z) => engine.heightAt(x, z) });
+pistes.load(SITE).then(d => {
+  $('pisteInfo').textContent = d ? `${fmt(d.pistes.length)} tracés · copie OpenStreetMap du ${new Date(d.fetched + 'T12:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}. ` + PISTE_LEGEND.map(([, n]) => n).join(' · ') : "Pas encore de copie des pistes pour ce massif (les serveurs OpenStreetMap n'ont pas répondu).";
+});
 const nightLights = new NightLights({ scene, groundAt: (x, z) => engine.heightAt(x, z), renderer });
 const hutSpots = []; // every hut seen, for the night lights
 
@@ -493,7 +517,7 @@ PLACES.forEach(p => {
   const el = document.createElement('button'); el.type = 'button';
   el.className = 'label' + (p.star ? ' star' : '') + (p.area ? ' area' : '') + (p.small ? ' small' : '');
   el.innerHTML = `<span class="t"><span class="n">${esc(p.name)}</span>${p.alt ? `<span class="h">${fmt(p.alt)} m</span>` : ''}</span>`;
-  el.addEventListener('click', () => flyToPlace(p));
+  el.addEventListener('click', () => openPlace(p));
   labelsEl.appendChild(el); p.el = el;
   const li = document.createElement('button'); li.type = 'button'; li.className = 'place';
   li.innerHTML = `<span>${esc(p.name)}</span><span class="pa">${p.alt ? fmt(p.alt) + ' m' : 'glacier'}</span>`;
@@ -511,9 +535,43 @@ function addHuts(huts) {
     const p = { name: hut.name, alt: hut.alt, x, z, h: hut.alt ?? 2000, small: true, hut: true, url: hut.url };
     const el = document.createElement('button'); el.type = 'button'; el.className = 'label small hut hidden';
     el.innerHTML = `<span class="t"><span class="n">⌂ ${esc(hut.name)}</span>${hut.alt ? `<span class="h">${fmt(hut.alt)} m</span>` : ''}</span>`;
-    el.addEventListener('click', () => flyToPlace(p));
+    el.addEventListener('click', () => openPlace(p));
     labelsEl.appendChild(el); p.el = el; PLACES.push(p);
   }
+}
+// a label touched: fly there, and show what refuges.info knows about it
+function openPlace(p) { flyToPlace(p); if (p.rinfo) showRefuge(p.rinfo); }
+// refuges.info: their sheet joins the label of the same hut (within 200 m), or gets its own label; water points
+// and tricky passages get small labels of their own
+const refuges = new Refuges(pts => {
+  for (const r of pts) {
+    const near = PLACES.find(p => (p.hut || p.small) && Math.hypot(p.x - r.x, p.z - r.z) < 200);
+    if (near && (r.kind === 'refuge' || r.kind === 'gîte' || r.kind === 'cabane')) { near.rinfo = r; if (!near.alt && r.alt) { near.alt = r.alt; near.h = r.alt; } continue; }
+    const p = { name: r.name, alt: r.alt, x: r.x, z: r.z, h: r.alt ?? 2000, small: true, hut: true, rinfo: r };
+    const el = document.createElement('button'); el.type = 'button'; el.className = `label small hut ${r.kind === 'eau' ? 'water' : r.kind === 'passage' ? 'warn' : ''} hidden`;
+    const mark = r.kind === 'eau' ? '◆ Eau ·' : r.kind === 'passage' ? '⚠' : '⌂';
+    el.innerHTML = `<span class="t"><span class="n">${mark} ${esc(r.name)}</span>${r.alt ? `<span class="h">${fmt(r.alt)} m</span>` : ''}</span>`;
+    el.addEventListener('click', () => openPlace(p));
+    labelsEl.appendChild(el); p.el = el; PLACES.push(p);
+  }
+});
+// links in hikers' text: phone numbers to call, e-mail addresses, web sites (escaped first)
+const linkify = s => esc(s).replace(/\n/g, '<br>')
+  .replace(/(https?:\/\/[^\s<)]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
+  .replace(/([\w.+-]+@[\w-]+\.[\w.]+)/g, '<a href="mailto:$1">$1</a>')
+  .replace(/(\+?\d[\d .]{8,}\d)/g, m => `<a href="tel:${m.replace(/[ .]/g, '')}">${m}</a>`);
+function showRefuge(r) {
+  sheets.forEach(s => { $('sheet-' + s).hidden = true; $('tab-' + s).setAttribute('aria-pressed', 'false'); });
+  $('sheet-point').hidden = false; pin = { x: r.x, z: r.z, h: r.alt ?? groundAt(r.x, r.z) ?? 0 };
+  $('ptTitle').textContent = r.name;
+  const cut = (s, n) => s.length > n ? s.slice(0, n) + '…' : s;
+  $('ptOut').innerHTML = `<p class="cmeta">${esc(r.type)}${r.alt ? ` · ${fmt(r.alt)} m` : ''}${r.places ? ` · ${r.places} places` : ''}${r.updated ? ` · fiche mise à jour le ${new Date(r.updated).toLocaleDateString('fr-FR')}` : ''}</p>
+    ${r.comp.length ? `<p class="cline">${r.comp.map(esc).join(' · ')}</p>` : ''}
+    ${r.access ? `<h3>Accès</h3><p class="cline">${linkify(cut(r.access, 600))}</p>` : ''}
+    ${r.owner ? `<h3>${esc(r.ownerLabel || 'Contact')}</h3><p class="cline">${linkify(cut(r.owner, 500))}</p>` : ''}
+    ${r.remark ? `<h3>Remarques</h3><p class="cline">${linkify(cut(r.remark, 900))}</p>` : ''}
+    <p class="cline small"><a href="${esc(r.link)}" target="_blank" rel="noopener">Fiche complète et commentaires sur refuges.info</a></p>
+    <p class="cnote">© contributeurs de refuges.info, licence CC BY-SA 2.0. Informations données par des randonneurs : gardiennage, places et état changent ; appelle le refuge avant de compter dessus.</p>`;
 }
 
 // ---------- site: header, links, switcher ----------
@@ -521,7 +579,21 @@ document.title = `${SITE.name} 3D`;
 $('siteRegion').textContent = SITE.region; $('siteName').textContent = SITE.name; $('siteAlt').textContent = `${fmt(SITE.alt)} m`;
 $('loaderTitle').textContent = SITE.name; $('home').setAttribute('aria-label', `Revenir à ${SITE.name}`);
 $('links').innerHTML = SITE.links.map(([u, t]) => `<li><a href="${u}" target="_blank" rel="noopener">${esc(t)}</a></li>`).join('');
-$('sites').innerHTML = SITE_LIST.map(x => `<a class="site${x.id === SITE.id ? ' on' : ''}" href="?site=${x.id}"${x.id === SITE.id ? ' aria-current="page"' : ''}><b>${esc(x.name)}</b><span>${esc(x.region)} · ${fmt(x.alt)} m</span></a>`).join('');
+$('sites').innerHTML = SITE_LIST.map(x => `<a class="site${x.id === SITE.id ? ' on' : ''}" href="?site=${x.id}"${x.id === SITE.id ? ' aria-current="page"' : ''}><b>${esc(x.name)}</b><span>${esc(x.region)} · ${fmt(x.alt)} m</span></a>${x.custom && x.id !== SITE.id ? `<button type="button" class="mini rmsite" data-rm="${x.id}">Retirer ${esc(x.name)}</button>` : ''}`).join('');
+$('sites').addEventListener('click', e => { const b = e.target.closest('[data-rm]'); if (!b) return; removeSite(b.dataset.rm); b.previousElementSibling?.remove(); b.remove(); });
+// a massif made around the point looked at (custom.js): named after the last place searched there, or the nearest summit
+let lastSearch = null;
+$('makeSite').addEventListener('click', async () => {
+  const T = controls.target, [lon, lat] = worldToLonLat(T.x, T.z);
+  const name = lastSearch && Math.hypot((lastSearch.lon - lon) * Math.cos(lat * Math.PI / 180), lastSearch.lat - lat) < 0.02 ? lastSearch.name : null;
+  $('makeSite').disabled = true;
+  try {
+    const s = await makeSite(lon, lat, name, beraKey.get(), t => { $('makeNote').textContent = t; });
+    $('makeNote').textContent = `Massif « ${s.name} » prêt (${fmt(s.alt)} m, météo à ${fmt(s.spots.valley.alt)} / ${fmt(s.spots.mid.alt)} / ${fmt(s.alt)} / ${fmt(s.spots.peak2.alt)} m${s.bra ? `, bulletin d'avalanche n° ${s.bra}` : ', pas de bulletin trouvé (clé Météo-France absente ou hors massif)'}). Ouverture…`;
+    setTimeout(() => { location.href = `?site=${s.id}`; }, 1200);
+  } catch (e) { $('makeNote').textContent = `Impossible de faire un massif ici : ${e.message}.`; }
+  $('makeSite').disabled = false;
+});
 
 // ---------- camera moves ----------
 let fly = null;
@@ -560,7 +632,7 @@ $('searchForm').addEventListener('submit', async e => {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'place';
       const dist = p.km < 10 ? `${t1(p.km)} km` : `${fmt(p.km)} km`;
       b.innerHTML = `<span>${esc(p.name)}</span><span class="pa">${esc(p.detail || p.src)} · à ${dist}</span>`;
-      b.addEventListener('click', () => { flyToLonLat(p.lon, p.lat); if (touch) closeSheets(); });
+      b.addEventListener('click', () => { lastSearch = p; flyToLonLat(p.lon, p.lat); if (touch) closeSheets(); });
       $('results').appendChild(b);
     });
   } catch (err) { $('searchNote').textContent = `Recherche impossible : ${err.message}.`; }
@@ -618,6 +690,7 @@ renderer.domElement.addEventListener('pointerup', e => {
     if (!hit) return;
     showPoint(hit);
     if (plan.tap) { planTap(hit); return; } // choosing an itinerary's start or destination
+    if (los.tap) { losPick(hit); return; } // choosing a point of the line of sight
     if (route.drawing) { route.add(hit.x, hit.z); renderRoute(); return; } // drawing an itinerary: each tap is a point
     if (!pickAt(hit)) pointReport(hit);
   }
@@ -1218,6 +1291,24 @@ $('routeOut').addEventListener('pointermove', e => {
 });
 $('routeOut').addEventListener('pointerleave', () => route.showCursor(null));
 // flight along the itinerary: ~1 minute whatever its length, camera behind and above, looking ahead
+// the flight filmed: the 3D image recorded while flying along (names and panels are not in the film)
+$('flyRec').addEventListener('click', () => {
+  if (!(route.length > 0)) { $('routePackInfo').textContent = "Charge d'abord un itinéraire."; return; }
+  const type = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'].find(t => window.MediaRecorder?.isTypeSupported(t));
+  if (!type || !renderer.domElement.captureStream) { $('routePackInfo').textContent = "Ce navigateur ne sait pas filmer l'image 3D."; return; }
+  const rec = new MediaRecorder(renderer.domElement.captureStream(30), { mimeType: type, videoBitsPerSecond: 8e6 }), parts = [];
+  rec.ondataavailable = e => { if (e.data.size) parts.push(e.data); };
+  rec.onstop = () => {
+    const a = document.createElement('a'), ext = type.startsWith('video/mp4') ? 'mp4' : 'webm';
+    a.href = URL.createObjectURL(new Blob(parts, { type: type.split(';')[0] }));
+    a.download = `survol-${(route.name || 'itineraire').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-').slice(0, 40)}.${ext}`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    $('routePackInfo').textContent = 'Vidéo du survol enregistrée.';
+  };
+  rec.start(1000); $('routePackInfo').textContent = 'Survol filmé en cours… la vidéo se télécharge à la fin.';
+  flyRoute = { d: 0, speed: Math.min(160, Math.max(25, route.length / 60)) }; fly = null; if (touch) closeSheets();
+  const watch = setInterval(() => { if (!flyRoute) { clearInterval(watch); rec.stop(); } }, 250);
+});
 $('flyGo').addEventListener('click', () => { if (route.length > 0) { flyRoute = { d: 0, speed: Math.min(160, Math.max(25, route.length / 60)) }; fly = null; if (touch) closeSheets(); } });
 function flyAlongRoute(dt) {
   const r = flyRoute; r.d += dt * r.speed;
@@ -1353,8 +1444,11 @@ function renderLidarInfo() {
   el.textContent = `${fmt(s.shown)} points affichés${when}${s.missing ? ` · ${s.missing} morceaux ${navigator.onLine ? 'en chargement' : 'non gardés (hors ligne)'}` : ''}`;
 }
 $('c-trails').addEventListener('change', e => { trails.on = e.target.checked; });
+$('c-streams').addEventListener('change', e => { streams.on = e.target.checked; });
+$('c-pistes').addEventListener('change', e => { pistes.on = e.target.checked; $('pisteInfo').hidden = !e.target.checked; });
 $('c-freeze').addEventListener('change', e => { weather3d.showFreeze = e.target.checked; });
 $('c-photos').addEventListener('change', e => { photos.on = e.target.checked; });
+$('c-clpa').addEventListener('change', e => { engine.setOverlay('clpa', e.target.checked); $('clpaLegend').hidden = !e.target.checked; });
 $('c-wind').addEventListener('change', e => { weather3d.showWind = e.target.checked; });
 // slope map: toggle, legend built from the same classes as the shader, choice remembered on the device
 $('slopeRows').innerHTML = SLOPE_CLASSES.map(([a, c], i) => {
@@ -1550,7 +1644,8 @@ async function pointReport(hit) {
   const [lon, lat] = worldToLonLat(hit.x, hit.z), s = engine.slopeAt(hit.x, hit.z);
   const where = hit.surface === 'google' ? 'altitude de la surface Google 3D (arbres, bâtiments et neige compris, ±quelques m)' : `relief ${SRC[s?.src] ?? 'IGN'}`;
   const meta = `<p class="cmeta">${lat.toFixed(5)}° N · ${lon.toFixed(5)}° E · ${where}</p>`
-    + (s ? `<p class="cline"><b>${s.deg < 3 ? 'Terrain plat' : `Pente ${Math.round(s.deg)}°`}</b>${s.deg >= 3 ? ` orientée ${compass16(s.aspect)}` : ''} <span class="small">· mesurée sur ${s.step < 10 ? t1(s.step) : fmt(s.step)} m, terrain nu</span></p>` : '');
+    + (s ? `<p class="cline"><b>${s.deg < 3 ? 'Terrain plat' : `Pente ${Math.round(s.deg)}°`}</b>${s.deg >= 3 ? ` orientée ${compass16(s.aspect)}` : ''} <span class="small">· mesurée sur ${s.step < 10 ? t1(s.step) : fmt(s.step)} m, terrain nu</span></p>` : '')
+    + sunlitText(hit.x, hit.z);
   $('ptTitle').textContent = `${fmt(hit.h)} m`;
   $('ptOut').innerHTML = meta + '<p class="cmeta">Récupération des conditions…</p>';
   const [f, sat] = await Promise.all([pointForecast(lat, lon, hit.h).catch(e => ({ error: e.message })), satSnowAt(lat, lon).catch(() => null)]);
@@ -1583,6 +1678,101 @@ async function pointReport(hit) {
 }
 $('sheet-point').querySelector('.close').addEventListener('click', () => { $('sheet-point').hidden = true; pin = null; $('pin').hidden = true; });
 
+// ---------- sun on a face: when the sun reaches this point on the day shown, with the relief's shadows ----------
+// Every 10 minutes from 4 h to 22 h: the sun above the horizon, in front of the slope (its normal), and not hidden
+// by the relief along its direction (marched up to 25 km over the loaded relief, earth curvature included).
+function sunlitIntervals(x, z) {
+  const h0 = groundAt(x, z); if (h0 == null) return null;
+  const s = engine.slopeAt(x, z), [lon, lat] = worldToLonLat(x, z), r = Math.PI / 180;
+  const sl = (s?.deg ?? 0) * r, asp = (s?.aspect ?? 0) * r, n = [Math.sin(asp) * Math.sin(sl), Math.cos(sl), -Math.cos(asp) * Math.sin(sl)];
+  const day = lightingNow(); day.setHours(0, 0, 0, 0);
+  const out = []; let cur = null;
+  for (let m = 240; m <= 1320; m += 10) {
+    const t = new Date(+day + m * 60e3), { az, el } = sunPosition(t, lat, lon);
+    const d = [Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el)];
+    let lit = el > 0.004 && n[0] * d[0] + n[1] * d[1] + n[2] * d[2] > 0.02;
+    if (lit) for (let k = 12; k < 25000; k *= 1.1) {
+      const g = groundAt(x + Math.sin(az) * k, z - Math.cos(az) * k); if (g == null) break;
+      if (g - k * k / (2 * 6371000) * 0.87 > h0 + 1 + k * Math.tan(el)) { lit = false; break; }
+    }
+    if (lit && !cur) cur = { from: t }; if (!lit && cur) { cur.to = t; out.push(cur); cur = null; }
+  }
+  if (cur) { cur.to = new Date(+day + 1320 * 60e3); out.push(cur); }
+  return out;
+}
+function sunlitText(x, z) {
+  const iv = sunlitIntervals(x, z); if (!iv) return '';
+  const day = lightingNow().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+  if (!iv.length) return `<p class="cline">Pas de soleil direct ici le ${day} (face à l'ombre ou cachée par le relief).</p>`;
+  const tot = iv.reduce((a, i) => a + (i.to - i.from), 0) / 3600e3;
+  return `<p class="cline">Au soleil le ${day} : <b>${iv.map(i => `${hhmm(i.from)} → ${hhmm(i.to)}`).join(', ')}</b> (${hm(tot)} en tout) <span class="small">· à 10 min près, ombres du relief comprises, nuages non comptés</span></p>`;
+}
+
+// ---------- line of sight between two points ----------
+const los = { tap: null, a: null, b: null, line: null };
+function losCompute() {
+  const { a, b } = los; if (!a || !b) return;
+  const ha = (groundAt(a.x, a.z) ?? a.h) + 1.7, hb = (groundAt(b.x, b.z) ?? b.h) + 1.7, L = Math.hypot(b.x - a.x, b.z - a.z), n = Math.max(20, Math.ceil(L / 8));
+  let block = null;
+  for (let i = 1; i < n; i++) {
+    const f = i / n, x = a.x + (b.x - a.x) * f, z = a.z + (b.z - a.z) * f;
+    if (f * L < 15 || (1 - f) * L < 15) continue; // the first and last metres are the ground one stands on
+    const g = groundAt(x, z); if (g == null) continue;
+    const ray = ha + (hb - ha) * f - (f * L) * ((1 - f) * L) / (2 * 6371000) * 0.87; // curvature, with refraction
+    if (g > ray + 0.5) { block = { x, z, h: g, d: f * L }; break; }
+  }
+  if (los.line) { scene.remove(los.line); los.line.geometry.dispose(); }
+  const end = block ?? { x: b.x, z: b.z, h: hb - 1.7 };
+  const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a.x, ha * state.exag, a.z), new THREE.Vector3(end.x, (block ? end.h + 1 : hb) * state.exag, end.z)]);
+  los.line = new THREE.Line(g, new THREE.LineBasicMaterial({ color: block ? 0xff4a3d : 0x3ddc84, depthTest: false })); los.line.renderOrder = 12; scene.add(los.line);
+  $('losOut').innerHTML = block ? `<b style="color:#ff6a5d">Pas de vue</b> : le relief cache le point à ${fmt(block.d)} m du départ (altitude ${fmt(block.h)} m). Distance ${t1(L / 1000)} km.`
+    : `<b style="color:#3ddc84">Vue dégagée</b> sur ${t1(L / 1000)} km (de ${fmt(ha - 1.7)} m à ${fmt(hb - 1.7)} m), à hauteur d'yeux.`;
+}
+function losPick(hit) {
+  los[los.tap] = { x: hit.x, z: hit.z, h: hit.h }; const which = los.tap; los.tap = null;
+  $('losOut').textContent = which === 'a' ? 'Départ choisi. Touche « Vers » puis le point à viser.' : '';
+  openSheet('route'); losCompute();
+}
+$('losFromTap').addEventListener('click', () => { los.tap = 'a'; $('losOut').textContent = 'Touche la carte au point de départ…'; if (touch) closeSheets(); });
+$('losToTap').addEventListener('click', () => { los.tap = 'b'; $('losOut').textContent = 'Touche la carte au point à viser…'; if (touch) closeSheets(); });
+$('losFromGps').addEventListener('click', () => {
+  const p = gps.pos; if (!p) { if (!gps.on) { gpsCentered = true; gps.start(); } $('losOut').textContent = 'Recherche de ta position… touche à nouveau dans un instant.'; return; }
+  los.a = { x: p.x, z: p.z, h: groundAt(p.x, p.z) ?? p.gpsAlt ?? 0 }; $('losOut').textContent = 'Départ : ta position. Touche « Vers » puis le point à viser.'; losCompute();
+});
+
+// ---------- emergency: the position, to say or send ----------
+const dms = (v, pos, neg) => { const a = Math.abs(v), d = Math.floor(a), m = Math.floor((a - d) * 60), s = ((a - d) * 60 - m) * 60; return `${d}°${String(m).padStart(2, '0')}'${s.toFixed(1).padStart(4, '0')}" ${v >= 0 ? pos : neg}`; };
+function sosText() {
+  const p = gps.pos; if (!p) return null;
+  const g = groundAt(p.x, p.z);
+  return `Position ${p.lat.toFixed(5)}, ${p.lon.toFixed(5)} (${dms(p.lat, 'N', 'S')} ${dms(p.lon, 'E', 'O')})${g != null ? `, altitude ${Math.round(g)} m` : ''}, précision ${Math.round(p.acc)} m, à ${hhmm(p.time)}`;
+}
+function renderSos() {
+  const t = sosText();
+  $('sosInfo').textContent = t ? t + '. Le 112 marche sur tous les réseaux, même sans carte SIM.' : (gps.on ? 'Recherche de ta position GPS…' : "Le 112 marche sur tous les réseaux, même sans carte SIM ; il oriente vers le secours en montagne (PGHM, CRS). Touche « Copier ma position » pour l'obtenir.");
+  $('sosSms').href = t ? `sms:?&body=${encodeURIComponent('Besoin d\'aide en montagne. ' + t + ' https://www.openstreetmap.org/?mlat=' + gps.pos.lat.toFixed(5) + '&mlon=' + gps.pos.lon.toFixed(5))}` : 'sms:';
+}
+$('sosCopy').addEventListener('click', async () => {
+  if (!gps.pos) { if (!gps.on) { gpsCentered = true; gps.start(); } renderSos(); return; }
+  try { await navigator.clipboard.writeText(sosText()); $('sosInfo').textContent = 'Position copiée : ' + sosText(); } catch { renderSos(); }
+});
+setInterval(() => { if (!$('sheet-route').hidden) renderSos(); }, 5000);
+
+// ---------- sharing a view: a link that opens the app at the same place, same angle ----------
+$('shareView').addEventListener('click', async () => {
+  const T = controls.target, [lon, lat] = worldToLonLat(T.x, T.z), c = controls.cur;
+  const url = `${location.origin}${location.pathname}?site=${SITE.id}&vue=${lon.toFixed(5)},${lat.toFixed(5)},${Math.round(T.y / state.exag)},${Math.round(c.d)},${(c.h * 180 / Math.PI).toFixed(1)},${(c.p * 180 / Math.PI).toFixed(1)}`;
+  try { if (navigator.share) { await navigator.share({ title: `${SITE.name} 3D`, url }); $('shareNote').textContent = 'Lien partagé.'; return; } } catch (e) { if (e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(url); $('shareNote').textContent = 'Lien copié : ' + url; } catch { $('shareNote').textContent = url; }
+});
+// a shared link: the view it holds instead of the summit's default one
+function sharedView() {
+  const v = new URLSearchParams(location.search).get('vue')?.split(',').map(Number); if (!v || v.length < 6 || v.some(isNaN)) return false;
+  const [lon, lat, alt, d, h, p] = v, [x, z] = lonLatToWorld(lon, lat), r = Math.PI / 180, t = new THREE.Vector3(x, alt * state.exag, z);
+  const off = new THREE.Vector3(Math.sin(p * r) * Math.sin(h * r), Math.cos(p * r), Math.sin(p * r) * Math.cos(h * r)).multiplyScalar(d);
+  engine.ensureRoots(x, z, 45000); startFly(t, t.clone().add(off), 2000); return true;
+}
+
 // ---------- offline: download the massif onto the device ----------
 const CORE_LL = SITE.core, MIDI_LL = SITE.detail; // whole massif / summit area at 20 cm
 const PACKS = { essentiel: { maxz: 16 }, detaille: { maxz: 17 }, maximum: { maxz: 18, z19: true } };
@@ -1609,12 +1799,34 @@ async function showStorage() {
   const e = await navigator.storage.estimate();
   $('storageInfo').textContent = `Stocké sur l'appareil : ${mo((e.usage || 0) / 1000)}${e.quota ? ` sur ${mo(e.quota / 1000)} disponibles` : ''}.`;
 }
-async function runPack() {
-  if (!self.isSecureContext || !self.caches) { $('packInfo').textContent = "Le hors ligne demande une adresse https (ou l'ordinateur lui-même, via lancer.bat)."; return; }
-  if (packRun) return;
+// tiles along an itinerary for the offline use of one outing: a corridor that narrows as the detail grows
+// (4 km each side up to zoom 14, then 2 km, 1 km, 500 m, and 200 m at the finest photos, zoom 19)
+function routeTiles() {
+  const S = route.samples; if (S.length < 2) return [];
+  const keys = new Set(), out = [], W = { 11: 4000, 12: 4000, 13: 4000, 14: 4000, 15: 2000, 16: 2000, 17: 1000, 18: 500, 19: 200 };
+  for (let z = 11; z <= 19; z++) {
+    let last = -1e9;
+    for (const s of S) {
+      if (s.d - last < Math.min(100, W[z] / 2) && s !== S[S.length - 1]) continue; last = s.d;
+      const [lon, lat] = worldToLonLat(s.x, s.z), dLat = W[z] / 111000, dLon = W[z] / (111000 * Math.cos(lat * Math.PI / 180));
+      const [x0, y0] = lonLatToTile(lon - dLon, lat + dLat, z), [x1, y1] = lonLatToTile(lon + dLon, lat - dLat, z);
+      for (let y = Math.floor(y0); y <= Math.floor(y1); y++) for (let x = Math.floor(x0); x <= Math.floor(x1); x++) { const k = `${z}/${x}/${y}`; if (!keys.has(k)) { keys.add(k); out.push([z, x, y]); } }
+    }
+  }
+  return out;
+}
+$('routePack').addEventListener('click', async () => {
+  const list = routeTiles(); if (!list.length) { $('routePackInfo').textContent = "Charge d'abord un itinéraire (rando, topo, GPX ou tracé)."; return; }
+  // the paths, huts, streams and glaciers along the way too (their cells are kept in the same store)
+  for (const s of route.samples.filter((_, i) => i % 50 === 0)) { trails.ensure(s.x, s.z); streams.ensure(s.x, s.z); refuges.ensure(s.x, s.z); glaciers.ensure(s.x, s.z); }
+  await runPack(list, $('routePackInfo'), $('routePack'));
+});
+async function runPack(list = packTiles(packChoice), info = $('packInfo'), btn = $('packGo')) {
+  if (!self.isSecureContext || !self.caches) { info.textContent = "Le hors ligne demande une adresse https (ou l'ordinateur lui-même, via lancer.bat)."; return; }
+  if (packRun) { info.textContent = 'Un téléchargement est déjà en cours.'; return; }
   navigator.storage?.persist?.();
-  const list = packTiles(packChoice), run = packRun = { stop: false, done: 0, fail: 0 };
-  $('packGo').disabled = true; $('packStop').hidden = false;
+  const run = packRun = { stop: false, done: 0, fail: 0 };
+  btn.disabled = true; $('packStop').hidden = false;
   let next = 0;
   const worker = async () => {
     while (!run.stop && next < list.length) {
@@ -1624,17 +1836,17 @@ async function runPack() {
       run.done++;
       if (run.done % 10 === 0 || run.done === list.length) {
         $('packBar').style.width = (run.done / list.length * 100) + '%';
-        $('packInfo').textContent = `${run.done.toLocaleString('fr-FR')} / ${list.length.toLocaleString('fr-FR')} tuiles${run.fail ? ` · ${run.fail} échecs (relancer pour les reprendre)` : ''}`;
+        info.textContent = `${run.done.toLocaleString('fr-FR')} / ${list.length.toLocaleString('fr-FR')} tuiles (environ ${mo(list.length * KB_PER_TILE)})${run.fail ? ` · ${run.fail} échecs (relancer pour les reprendre)` : ''}`;
       }
     }
   };
   await Promise.all(Array.from({ length: 6 }, worker));
-  $('packInfo').textContent = run.stop ? `Arrêté à ${run.done.toLocaleString('fr-FR')} tuiles. Relancer reprend là où ça s'est arrêté.` : `Terminé : ${list.length.toLocaleString('fr-FR')} tuiles disponibles hors ligne${run.fail ? ` (${run.fail} échecs, relancer pour les reprendre)` : ''}.`;
-  packRun = null; $('packGo').disabled = false; $('packStop').hidden = true; showStorage();
+  info.textContent = run.stop ? `Arrêté à ${run.done.toLocaleString('fr-FR')} tuiles. Relancer reprend là où ça s'est arrêté.` : `Terminé : ${list.length.toLocaleString('fr-FR')} tuiles disponibles hors ligne${run.fail ? ` (${run.fail} échecs, relancer pour les reprendre)` : ''}.`;
+  packRun = null; btn.disabled = false; $('packStop').hidden = true; showStorage();
 }
 document.querySelectorAll('[data-pack]').forEach(b => b.addEventListener('click', () => { packChoice = b.dataset.pack; markSeg('pack', packChoice); showPack(); }));
 markSeg('pack', packChoice); showPack(); showStorage();
-$('packGo').addEventListener('click', runPack);
+$('packGo').addEventListener('click', () => runPack());
 $('packStop').addEventListener('click', () => { if (packRun) packRun.stop = true; });
 function showPtStore() { $('ptStore').textContent = `Points gardés sur l'appareil : ${mo(lidar.store.used / 1000)} sur ${mo(lidar.store.limit / 1000)} autorisés.`; }
 document.querySelectorAll('[data-ptlimit]').forEach(b => b.addEventListener('click', async () => { markSeg('ptlimit', b.dataset.ptlimit); await lidar.store.setLimit(LIMITS[+b.dataset.ptlimit]); showPtStore(); showStorage(); }));
@@ -1660,12 +1872,15 @@ function updateLabels() {
   const w = stage.clientWidth, h = stage.clientHeight, cam = camera.position;
   PLACES.forEach((p, i) => {
     if ((frameN + i) % 20 === 0 && (p.area || (p.hut && !p.alt))) { const g = groundAt(p.x, p.z); if (g != null) p.h = g + (p.area ? 80 : 0); }
+    if (p.fall && !streams.on) { p.el.classList.add('hidden'); return; }
     const y = p.h * state.exag;
     proj.set(p.x, y, p.z).project(camera);
     const on = proj.z < 1 && Math.abs(proj.x) < 1.1 && Math.abs(proj.y) < 1.1;
     if (on && (frameN + i) % 10 === 0) {
       const dx = p.x - cam.x, dy = y - cam.y, dz = p.z - cam.z, L = Math.hypot(dx, dy, dz);
-      let hid = L > (p.small ? 9000 : p.area ? 14000 : 40000) || L < 60;
+      // water points, tricky passages and waterfalls only close by (like on a paper map), huts within 9 km
+      const far = p.rinfo?.kind === 'eau' || p.rinfo?.kind === 'passage' || p.fall ? 3000 : p.small ? 9000 : p.area ? 14000 : 40000;
+      let hid = L > far || L < 60;
       for (let s = 1; s < 48 && !hid; s++) { const f = s / 48 * 0.94, g = groundAt(cam.x + dx * f, cam.z + dz * f); if (g != null && g * state.exag > cam.y + dy * f + 12) hid = true; }
       p.hidden = hid;
     }
@@ -1678,7 +1893,7 @@ function updateLabels() {
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
   if (!w || !h) return; // hidden (background tab, app starting): keep the last good size, never divide by zero
-  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); route?.setResolution(w, h); trails?.setResolution(w, h); track?.setResolution(w, h);
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); route?.setResolution(w, h); trails?.setResolution(w, h); track?.setResolution(w, h); streams?.setResolution(w, h); pistes?.setResolution(w, h);
   SU.proj.value = h * renderer.getPixelRatio() / (2 * Math.tan(camera.fov * Math.PI / 360));
 }
 addEventListener('resize', resize);
@@ -1717,6 +1932,7 @@ function drawFrame() {
   if (frameN % 60 === 0) {
     engine.ensureRoots(T.x, T.z, 45000);
     if (!google.on) glaciers.ensure(T.x, T.z);
+    refuges.ensure(T.x, T.z);
     const far = Math.hypot(T.x, T.z) > 30000; // the weather stations only describe the massif
     if (far !== state.far) { state.far = far; updateCloudProfile(); updatePrecipForView(); }
   }
@@ -1741,6 +1957,8 @@ function drawFrame() {
   route.update(frameN, state.exag, engine.busy);
   track.update(frameN, state.exag);
   trails.update(camera, controls.target, frameN, state.exag, google.on);
+  streams.update(camera, controls.target, frameN, state.exag, google.on, dt);
+  pistes.update(camera, state.exag, google.on);
   weather3d.update(state.exag, state.far);
   photos.update(controls.target, frameN, state.exag, google.on);
   if (flyRoute) flyAlongRoute(dt);
@@ -1755,7 +1973,7 @@ function drawFrame() {
   post.render(scene, camera, t);
   // start when the IGN relief is there, or when the Google view was chosen during loading (IGN then paused)
   if (!started && (engine.roots.filter(r => r.state === 'ready').length >= engine.roots.length * 0.6 || (google.on && t > 3))) {
-    started = true; $('loader').classList.add('done'); home();
+    started = true; $('loader').classList.add('done'); if (!sharedView()) home();
     if (savedView === 'google' && googleKey.get()) setView('google'); // each opening of the Google view = one Google session
   }
   if (google.on && frameN % 30 === 0) { const a = google.attributions(); $('gAttribTxt').textContent = a.length ? a.join(' ; ') : 'Google'; }

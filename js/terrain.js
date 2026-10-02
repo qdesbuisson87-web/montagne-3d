@@ -2,9 +2,12 @@
 // elevation grid and photo. Close to the camera the tree goes down to zoom 19 (IGN photos 20 cm,
 // LiDAR HD elevation); far away it stays coarse. Nothing is pre-packaged: every tile is fetched live.
 import * as THREE from 'three';
-import { tileMerc, mercToWorld, mercToLonLat, worldToLonLat, lonLatToL93, lonLatToTile, K } from './geo.js?v=202610021708';
-import { cachedFetch, TransientError } from './net.js?v=202610021708';
-import { FOREST_WMS, decodeForest } from './foresttypes.js?v=202610021708';
+import { tileMerc, mercToWorld, mercToLonLat, worldToLonLat, lonLatToL93, lonLatToTile, K } from './geo.js?v=202610021731';
+import { cachedFetch, TransientError } from './net.js?v=202610021731';
+// avalanches of the past (CLPA, INRAE/IGN, served by Géorisques): areas seen on aerial photos and in the field
+// (magenta) and from witnesses (orange), as the map draws them
+const CLPA_WMS = ([x0, y0, x1, y1]) => `https://mapsref.brgm.fr/wxs/georisques/risques?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=CLPA_interpretation,CLPA_temoignage&STYLES=&CRS=EPSG:3857&BBOX=${x0},${y0},${x1},${y1}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true`;
+import { FOREST_WMS, decodeForest } from './foresttypes.js?v=202610021731';
 
 // NE: the grid plus a one-sample ring taken beyond the tile edge, so that normals and slopes at the edge
 // use the same central differences as the neighbour tile does (no seam in lighting or slope colours)
@@ -323,7 +326,7 @@ export class TerrainEngine {
     this.aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
     this.frame = 0; this.loading = 0; this.maxLoads = 8; this.splitK = 2; this.maxTiles = 700; this.exag = 1; this.epoch = 'current';
     this.frustum = new THREE.Frustum(); this.pv = new THREE.Matrix4();
-    this.overlay = { item: null, snow: false, vis: false, forest: true, cache: new Map(), pending: new Set(), active: 0 };
+    this.overlay = { item: null, snow: false, vis: false, forest: true, clpa: false, cache: new Map(), pending: new Set(), active: 0 };
     // roots: zoom-11 tiles, first over the massif and its surroundings, then wherever the camera goes (ensureRoots)
     const [ax, ay] = lonLatToTile(bounds[0], bounds[3], 11), [bx, by] = lonLatToTile(bounds[2], bounds[1], 11);
     this.roots = []; this.rootKeys = new Map();
@@ -354,8 +357,8 @@ export class TerrainEngine {
   }
   makeMaterial(tex, tileSize, slopeTex) {
     return new THREE.ShaderMaterial({
-      uniforms: { ...this.uniforms, map: { value: tex }, slopeMap: { value: slopeTex }, ndsiMap: { value: null }, cloudMap: { value: null }, visMap: { value: null }, forestMap: { value: null }, ovRect: { value: new THREE.Vector4(0, 0, 1, 1) },
-        hasNdsi: { value: 0 }, hasCloud: { value: 0 }, hasVis: { value: 0 }, hasForest: { value: 0 }, tileSize: { value: tileSize } },
+      uniforms: { ...this.uniforms, map: { value: tex }, slopeMap: { value: slopeTex }, ndsiMap: { value: null }, cloudMap: { value: null }, visMap: { value: null }, forestMap: { value: null }, clpaMap: { value: null }, ovRect: { value: new THREE.Vector4(0, 0, 1, 1) }, clpaRect: { value: new THREE.Vector4(0, 0, 1, 1) },
+        hasNdsi: { value: 0 }, hasCloud: { value: 0 }, hasVis: { value: 0 }, hasForest: { value: 0 }, hasClpa: { value: 0 }, tileSize: { value: tileSize } },
       vertexShader: this.vs, fragmentShader: this.fs
     });
   }
@@ -374,13 +377,14 @@ export class TerrainEngine {
   forEachReady(fn) { const walk = t => { if (t.state === 'ready') fn(t); t.children?.forEach(walk); }; this.roots.forEach(walk); }
   overlayUrl(kind, z, x, y) {
     if (kind === 'forest') { const m = tileMerc(z, x, y); return FOREST_WMS([m.minx, m.miny, m.maxx, m.maxy], 256, 256); }
+    if (kind === 'clpa') { const m = tileMerc(z, x, y); return CLPA_WMS([m.minx, m.miny, m.maxx, m.maxy]); }
     const base = `https://planetarycomputer.microsoft.com/api/data/v1/item/tiles/WebMercatorQuad/${z}/${x}/${y}@1x.png?collection=sentinel-2-l2a&item=${this.overlay.item.id}`;
     if (kind === 'ndsi') return base + '&expression=' + encodeURIComponent('(B03-B11)/(B03+B11)') + '&asset_as_band=true&rescale=-1,1';
     if (kind === 'cloud') return base + '&assets=SCL&nodata=0&resampling=nearest';
     return base + '&assets=visual&asset_bidx=visual%7C1%2C2%2C3&nodata=0';
   }
   async overlayTexture(kind, z, x, y) {
-    let bm = await fetchBitmap(this.overlayUrl(kind, z, x, y), kind === 'forest'); // the forest map does not change: kept offline
+    let bm = await fetchBitmap(this.overlayUrl(kind, z, x, y), kind === 'forest' || kind === 'clpa'); // maps that do not change: kept offline
     if (kind === 'forest') { // legend colours -> shares of broadleaf, larch, pine (foresttypes.js)
       const cv = document.createElement('canvas'); cv.width = cv.height = 256; const c = cv.getContext('2d', { willReadFrequently: true });
       c.drawImage(bm, 0, 0); const img = c.getImageData(0, 0, 256, 256); img.data.set(decodeForest(img.data)); c.putImageData(img, 0, 0);
@@ -420,18 +424,22 @@ export class TerrainEngine {
     u.ovRect.value.set((t.x % f) / f, (t.y % f) / f, 1 / f, 1 / f);
     // with today's snow on, the true colours of the same clear pass are needed too: they replace the snow that
     // the (older) aerial photo shows where the satellite now sees bare ground
-    const kinds = { ndsi: this.overlay.snow, cloud: this.overlay.snow || this.overlay.vis, vis: this.overlay.vis || this.overlay.snow, forest: this.overlay.forest };
+    const kinds = { ndsi: this.overlay.snow, cloud: this.overlay.snow || this.overlay.vis, vis: this.overlay.vis || this.overlay.snow, forest: this.overlay.forest, clpa: this.overlay.clpa };
+    // the avalanche map has narrow gullies: its own tiles, at zoom 15 (≈ 5 m per pixel)
+    const cz = Math.min(t.z, 15), cf = 2 ** (t.z - cz);
+    u.clpaRect.value.set((t.x % cf) / cf, (t.y % cf) / cf, 1 / cf, 1 / cf);
     // only ask for tiles that the satellite image covers (outside its footprint the server answers 404)
     const covered = !this.overlay.item || footprintCovers(this.overlay.item, oz, ox, oy);
     for (const [kind, on] of Object.entries(kinds)) {
       const has = 'has' + kind[0].toUpperCase() + kind.slice(1), map = kind + 'Map';
-      const sat = kind !== 'forest'; // the satellite overlays need a pass that covers the tile
+      const sat = kind !== 'forest' && kind !== 'clpa'; // the satellite overlays need a pass that covers the tile
       if (!on || (sat && (!this.overlay.item || !covered))) { u[has].value = 0; continue; }
-      const key = `${kind}/${oz}/${ox}/${oy}`;
+      const kz = kind === 'clpa' ? cz : oz, kx = t.x >> (t.z - kz), ky = t.y >> (t.z - kz);
+      const key = `${kind}/${kz}/${kx}/${ky}`;
       let o = this.overlay.cache.get(key);
       if (!o) { // queued; pumpOverlays() starts the ones nearest the camera first
-        const m = tileMerc(oz, ox, oy), [cx, cz] = mercToWorld((m.minx + m.maxx) / 2, (m.miny + m.maxy) / 2);
-        o = { tex: null, waiters: [], kind, oz, ox, oy, cx, cz, started: false }; this.overlay.cache.set(key, o); this.overlay.pending.add(key);
+        const m = tileMerc(kz, kx, ky), [mx, mz] = mercToWorld((m.minx + m.maxx) / 2, (m.miny + m.maxy) / 2);
+        o = { tex: null, waiters: [], kind, oz: kz, ox: kx, oy: ky, cx: mx, cz: mz, started: false }; this.overlay.cache.set(key, o); this.overlay.pending.add(key);
       }
       const apply = () => { if (!t.mesh) return; u[map].value = o.tex; u[has].value = 1; };
       if (o.tex) apply(); else { u[has].value = 0; o.waiters.push(apply); }

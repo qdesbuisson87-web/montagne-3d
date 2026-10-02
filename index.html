@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202610021708">
+<link rel="stylesheet" href="css/app.css?v=202610021731">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -56,6 +56,8 @@
 
 <section id="sheet-places" class="sheet glass" hidden aria-label="Lieux">
   <div class="sh"><h2>Lieux</h2><button class="close" type="button" aria-label="Fermer">×</button></div>
+  <button id="shareView" type="button" class="mini wide">Partager cette vue (lien)</button>
+  <p class="cline small" id="shareNote"></p>
   <form id="searchForm" class="row search" role="search">
     <label class="sr" for="q">Chercher un lieu</label>
     <input id="q" type="search" placeholder="Sommet, refuge, lac, village…" enterkeyhint="search" autocomplete="off">
@@ -65,6 +67,8 @@
   <p class="cline small" id="searchNote"></p>
   <h3>Massif</h3>
   <div id="sites" class="sites"></div>
+  <button id="makeSite" type="button" class="mini wide">Faire un massif de l'endroit regardé</button>
+  <p class="cline small" id="makeNote">N'importe où en France : météo à quatre altitudes, sommets nommés, neige du jour, bulletin d'avalanche (avec ta clé Météo-France), randos à construire. Gardé sur cet appareil.</p>
   <h3>Sommets et repères</h3>
   <div id="placeList" class="places"></div>
 </section>
@@ -128,9 +132,14 @@
   <div class="checks">
     <label for="c-slopes"><input id="c-slopes" type="checkbox"> Pentes (27° et plus)</label>
     <label for="c-photos"><input id="c-photos" type="checkbox"> Photos 360° (Panoramax)</label>
+    <label for="c-clpa"><input id="c-clpa" type="checkbox"> Avalanches passées (carte CLPA)</label>
+    <p class="cline small" id="clpaLegend" hidden><b style="color:#e070e0">Magenta</b> : avalanches repérées sur photos aériennes et sur le terrain · <b style="color:#f0a040">orange</b> : témoignages. Carte des phénomènes connus depuis plus d'un siècle (INRAE, IGN, via Géorisques) : elle ne dit rien du risque d'aujourd'hui, qui est dans le bulletin d'avalanche. Hors des zones enquêtées, aucune information.</p>
     <label for="c-freeze"><input id="c-freeze" type="checkbox"> Isotherme 0 °C (plan à l'altitude du gel)</label>
     <label for="c-wind"><input id="c-wind" type="checkbox"> Vent en altitude (≈ 3 000 m)</label>
     <label for="c-trails"><input id="c-trails" type="checkbox" checked> Sentiers, refuges et remontées (IGN)</label>
+    <label for="c-streams"><input id="c-streams" type="checkbox" checked> Torrents et cascades (IGN)</label>
+    <label for="c-pistes"><input id="c-pistes" type="checkbox"> Pistes de ski (OpenStreetMap)</label>
+    <p class="cline small" id="pisteInfo" hidden></p>
     <label for="c-buildings"><input id="c-buildings" type="checkbox" checked> Bâtiments en 3D (BD TOPO IGN)</label>
     <label for="c-trees"><input id="c-trees" type="checkbox" checked> Forêts en 3D (LiDAR IGN)</label>
     <label for="c-lidar"><input id="c-lidar" type="checkbox"> Nuage de points LiDAR (de près)</label>
@@ -161,11 +170,14 @@
   <div class="seg"><button type="button" data-ptlimit="0" aria-pressed="false">500 Mo</button><button type="button" data-ptlimit="1" aria-pressed="true">2 Go</button><button type="button" data-ptlimit="2" aria-pressed="false">5 Go</button></div>
   <p class="cline small" id="ptStore"></p>
   <button id="ptClear" type="button" class="mini">Vider les points LiDAR</button>
-  <p class="cnote">Sources : relief © IGN (LiDAR HD, RGE ALTI), photos © IGN (BD ORTHO), hors France Sentinel-2 cloudless © EOX (CC BY-NC-SA 4.0) et relief Mapzen/AWS Terrain Tiles · Satellite du jour : Copernicus Sentinel-2 via Microsoft Planetary Computer · Météo : Météo-France via Open-Meteo · Sentiers, refuges, remontées, bâtiments et lacs : IGN BD TOPO · Nuage de points : IGN LiDAR HD (Licence ouverte Etalab 2.0), décodé avec laz-perf (Hobu, Apache 2.0) · Vue Google 3D : Google Photorealistic 3D Tiles (© Google et fournisseurs affichés en bas de l'écran).</p>
+  <p class="cnote">Sources : relief © IGN (LiDAR HD, RGE ALTI), photos © IGN (BD ORTHO), hors France Sentinel-2 cloudless © EOX (CC BY-NC-SA 4.0) et relief Mapzen/AWS Terrain Tiles · Satellite du jour : Copernicus Sentinel-2 via Microsoft Planetary Computer · Météo : Météo-France via Open-Meteo · Sentiers, refuges, remontées, bâtiments et lacs : IGN BD TOPO · Pistes de ski : © contributeurs OpenStreetMap (ODbL) · Avalanches passées : CLPA (INRAE, IGN), Géorisques · Refuges, points d'eau, passages délicats : refuges.info (CC BY-SA 2.0) · Topos : camptocamp.org (CC BY-SA 4.0) · Forêts : IGN BD Forêt V2 · Nuage de points : IGN LiDAR HD (Licence ouverte Etalab 2.0), décodé avec laz-perf (Hobu, Apache 2.0) · Vue Google 3D : Google Photorealistic 3D Tiles (© Google et fournisseurs affichés en bas de l'écran).</p>
 </section>
 
 <section id="sheet-route" class="sheet glass" hidden aria-label="Sortie">
   <div class="sh"><h2>Sortie</h2><button class="close" type="button" aria-label="Fermer">×</button></div>
+  <h3>Secours</h3>
+  <div class="btns"><a id="sos112" class="btn sos" href="tel:112">Appeler le 112</a><button id="sosCopy" type="button" class="mini">Copier ma position</button><a id="sosSms" class="mini btnlink" href="sms:">Envoyer ma position par SMS</a></div>
+  <p class="cline small" id="sosInfo">Le 112 marche sur tous les réseaux, même sans carte SIM ; il oriente vers le secours en montagne (PGHM, CRS). Ta position s'affiche ici pour la dicter.</p>
   <h3>Ma position</h3>
   <div class="row"><button id="gpsGo" type="button" class="btn">Me localiser</button></div>
   <p class="cline small" id="gpsInfo">Ta position GPS en direct sur la carte (il faut autoriser la localisation).</p>
@@ -208,11 +220,18 @@
     <button id="drawUndo" type="button" class="mini">Annuler le dernier point</button>
   </div>
   <div id="routeOut"></div>
+  <p class="cline small" id="routePackInfo"></p>
   <div class="btns">
     <button id="flyGo" type="button" class="mini">Survoler l'itinéraire</button>
+    <button id="routePack" type="button" class="mini">Télécharger pour le hors ligne</button>
+    <button id="flyRec" type="button" class="mini">Survol en vidéo</button>
     <button id="gpxOut" type="button" class="mini">Exporter en GPX</button>
     <button id="routeClear" type="button" class="mini">Effacer</button>
   </div>
+  <h3>Ligne de vue</h3>
+  <p class="cline small">Voit-on un point depuis un autre ? (réseau, point de vue, signal) Calcul sur le relief LiDAR, courbure de la Terre comprise, sans les arbres ni les bâtiments.</p>
+  <div class="btns"><button id="losFromGps" type="button" class="mini">Depuis ma position</button><button id="losFromTap" type="button" class="mini">Depuis : toucher la carte</button><button id="losToTap" type="button" class="mini">Vers : toucher la carte</button></div>
+  <p class="cline" id="losOut"></p>
   <h3>Viseur</h3>
   <p class="cline small">Lève le téléphone vers les montagnes : la vue se place à ta position GPS et suit la direction du téléphone, avec le nom des sommets visibles.</p>
   <button id="sightGo" type="button" class="btn">Ouvrir le viseur</button>
@@ -246,6 +265,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202610021708"></script>
+<script type="module" src="js/app.js?v=202610021731"></script>
 </body>
 </html>

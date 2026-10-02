@@ -120,8 +120,10 @@ const SITES = {
   }
 };
 
+// massifs made on the device (custom.js), kept with the others
+try { Object.assign(SITES, JSON.parse(localStorage.getItem('midi3d-custom-sites') || '{}')); } catch { }
 let pick = 'midi';
 try { pick = new URLSearchParams(location.search).get('site') || localStorage.getItem('midi3d-site') || 'midi'; } catch { }
 export const SITE = SITES[pick] || SITES.midi;
 try { localStorage.setItem('midi3d-site', SITE.id); } catch { }
-export const SITE_LIST = Object.values(SITES).map(s => ({ id: s.id, name: s.name, region: s.region, alt: s.alt }));
+export const SITE_LIST = Object.values(SITES).map(s => ({ id: s.id, name: s.name, region: s.region, alt: s.alt, custom: !!s.custom }));

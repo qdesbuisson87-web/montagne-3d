@@ -45,6 +45,11 @@ h1 .alt { font-weight: 600; font-size: 17px; color: var(--ice); margin-left: 4px
 .trip .rec { color: #ff5a4f; }
 .trip .warn { color: var(--amber); font-weight: 600; }
 .trip .bad { color: #ff5a4f; font-weight: 600; }
+.label.water .n { color: #8fd0ff; }
+.label.warn .n { color: #ffb347; }
+.btn.sos { background: #c8322a; color: #fff; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+.btnlink { text-decoration: none; display: inline-flex; align-items: center; color: inherit; }
+.rmsite { margin: -2px 0 8px; opacity: .8; }
 .epochb { margin-top: 6px; appearance: none; border: 1px solid var(--amber); background: rgba(240,180,60,.15); color: inherit; border-radius: 6px; padding: 6px 8px; min-height: 32px; font: 500 12px/1.2 "IBM Plex Mono", ui-monospace, monospace; cursor: pointer; text-align: left; }
 .status { margin-top: 6px; display: flex; align-items: center; gap: 6px; font: 400 11px/1 "IBM Plex Mono", ui-monospace, monospace; color: var(--muted); }
 .status i { width: 8px; height: 8px; border-radius: 50%; background: var(--amber); animation: pulse 1s ease-in-out infinite; }

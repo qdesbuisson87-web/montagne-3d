@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610021708';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610021731';
 
 const STEP = 10, STORE = 'midi3d-route'; // metres between resampled points
 
@@ -45,10 +45,11 @@ export class RouteLayer {
     this.cursor = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false }));
     this.cursor.renderOrder = 11; this.cursor.visible = false; this.group.add(this.cursor);
     this.lines = [];
-    try { const s = JSON.parse(localStorage.getItem(STORE) || 'null'); if (s?.pts?.length) { this.pts = s.pts; this.name = s.name || ''; } } catch { }
+    // kept in longitude/latitude: the scene's metres depend on the massif open (older saves in metres are dropped)
+    try { const s = JSON.parse(localStorage.getItem(STORE) || 'null'); if (s?.ll?.length) { this.pts = s.ll.map(([lon, lat]) => lonLatToWorld(lon, lat)); this.name = s.name || ''; } } catch { }
   }
   setResolution(w, h) { this.mat.resolution.set(w, h); this.under.resolution.set(w, h); }
-  save() { try { localStorage.setItem(STORE, JSON.stringify({ pts: this.pts, name: this.name })); } catch { } }
+  save() { try { localStorage.setItem(STORE, JSON.stringify({ ll: this.pts.map(([x, z]) => worldToLonLat(x, z).map(v => +v.toFixed(6))), name: this.name })); } catch { } }
 
   // ----- editing -----
   add(x, z) { this.pts.push([x, z]); this.dirty = true; this.save(); }

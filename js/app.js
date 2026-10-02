@@ -1,31 +1,32 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610011858';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610011858';
-import { SITE, SITE_LIST } from './sites.js?v=202610011858';
-import { TerrainEngine, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610011858';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610011858';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610011858';
-import { searchPlaces } from './search.js?v=202610011858';
-import { TerrainShadows } from './shadows.js?v=202610011858';
-import { PostFX } from './post.js?v=202610011858';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610011858';
-import { Forest } from './forest.js?v=202610011858';
-import { Lakes } from './water.js?v=202610011858';
-import { Glaciers } from './glaciers.js?v=202610011858';
-import { NightLights } from './lights.js?v=202610011858';
-import { Buildings } from './buildings.js?v=202610011858';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610011858';
-import { GpsTracker } from './gps.js?v=202610011858';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610011858';
-import { walkingRoute } from './planner.js?v=202610011858';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610011858';
-import { TrailsLayer } from './trails.js?v=202610011858';
-import { Weather3D } from './weather3d.js?v=202610011858';
-import { Sight } from './sight.js?v=202610011858';
-import { Photos360 } from './photos360.js?v=202610011858';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610011858';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610011858';
-import { VolumeClouds } from './clouds.js?v=202610011858';
+import { EarthControls } from './controls.js?v=202610021701';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610021701';
+import { SITE, SITE_LIST } from './sites.js?v=202610021701';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610021701';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610021701';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610021701';
+import { searchPlaces } from './search.js?v=202610021701';
+import { TerrainShadows } from './shadows.js?v=202610021701';
+import { PostFX } from './post.js?v=202610021701';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610021701';
+import { Forest } from './forest.js?v=202610021701';
+import { Lakes } from './water.js?v=202610021701';
+import { Glaciers } from './glaciers.js?v=202610021701';
+import { NightLights } from './lights.js?v=202610021701';
+import { Buildings } from './buildings.js?v=202610021701';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610021701';
+import { GpsTracker } from './gps.js?v=202610021701';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610021701';
+import { walkingRoute } from './planner.js?v=202610021701';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610021701';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610021701';
+import { TrailsLayer } from './trails.js?v=202610021701';
+import { Weather3D } from './weather3d.js?v=202610021701';
+import { Sight } from './sight.js?v=202610021701';
+import { Photos360 } from './photos360.js?v=202610021701';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610021701';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610021701';
+import { VolumeClouds } from './clouds.js?v=202610021701';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -75,6 +76,8 @@ const U = {
   // shadows of the clouds in volume (clouds.js): their noise, the densest layer's altitude and cover, the wind
   glF: { value: null }, glC: { value: null }, // glacier outlines painted from above (glaciers.js), same squares
   clNoise: { value: null }, clOn: { value: 0 }, clAlt: { value: 2500 }, clCover: { value: 0 }, clWind: { value: null },
+  historic: { value: 0 }, // 1 with an old aerial photo: today's snow, ice and season colours are not drawn on it
+  doy: { value: 180 }, // day of the year shown (1–366): colours of the season (forests)
   night: { value: 0 }, // 0 by day, 1 at night under the real-sun light: lit windows, village lights
   light: { value: 0 }, vivid: { value: 0.2 }, snowToday: { value: 1 }, visToday: { value: 0 }, slopes: { value: state.slopes ? 1 : 0 }, fogDensity: { value: 0.000016 }, haze: { value: 0 }, time: { value: 0 }
 };
@@ -122,6 +125,38 @@ float sunShadow(vec3 w){
 float skyVis(vec3 w){ return aoOn > 0.5 ? reliefMap(aoF, aoC, w, 1.0) : 1.0; }
 // inside a glacier outline (0–1, soft at the edges)
 float glacierAt(vec3 w){ return aoOn > 0.5 ? reliefMap(glF, glC, w, 0.0) : 0.0; }
+// Leaves through the year at an altitude, for larch (larch = 1) or broadleaf trees (larch = 0): x = autumn colour
+// (0–1), y = bare (0–1). Autumn comes earlier higher up (~2.5 days per 100 m), spring later (~3 days per 100 m);
+// dates as usually seen in the northern Alps (larch gold in mid-October around 1 800 m).
+uniform float doy;
+vec2 leafState(float alt, float larch){
+  float onset = larch > 0.5 ? 286.0 - (alt - 1300.0) * 0.025 : 290.0 - (alt - 900.0) * 0.03;
+  float t = doy - onset;
+  float fall = smoothstep(larch > 0.5 ? 20.0 : 15.0, larch > 0.5 ? 36.0 : 28.0, t);
+  float spring = (larch > 0.5 ? 135.0 : 118.0) + (alt - 1000.0) * 0.03;
+  if (doy > 200.0) return vec2(smoothstep(-8.0, 6.0, t) * (1.0 - fall), fall);
+  return vec2(0.0, 1.0 - smoothstep(spring - 6.0, spring + 12.0, doy));
+}
+// colour of the leaves at a place: autumn yellows, oranges and reds for broadleaf trees (varied per place), gold
+// for larch, bare grey-brown twigs in winter; scaled to the brightness the photo shows there, which keeps its detail
+vec3 seasonColour(vec3 green, float lum, float broad, float larch, vec3 w){
+  float alt = w.y / exag;
+  vec2 L = leafState(alt, 1.0), B = leafState(alt, 0.0);
+  // smooth variation from stand to stand (blocks of a hashed grid looked like camouflage)
+  float n = 0.5 + 0.25 * sin(w.x / 41.0 + 1.7 * sin(w.z / 29.0)) + 0.25 * sin(w.z / 37.0 + 1.3 * sin(w.x / 23.0));
+  // muted, as seen through the air: ochre, rust and a few reds, never the saturated colours of a close leaf
+  vec3 au = mix(mix(vec3(0.2, 0.15, 0.045), vec3(0.2, 0.1, 0.035), smoothstep(0.35, 0.75, n)), vec3(0.15, 0.055, 0.03), smoothstep(0.82, 0.97, n));
+  float k = clamp(lum / 0.06, 0.6, 1.5);              // a dark green photo pixel gives a darker autumn colour
+  vec3 bare = vec3(0.07, 0.06, 0.05) * k;
+  vec3 c = green;
+  // a stand never turns all at once: part of the crowns keeps some green
+  float part = 0.6 + 0.4 * (0.5 + 0.5 * sin(w.x / 17.0 + w.z / 13.0 + 6.0 * n));
+  vec3 larchC = mix(mix(green, vec3(0.21, 0.15, 0.04) * k, L.x * part), bare, L.y);
+  vec3 broadC = mix(mix(green, au * k, B.x * part), bare, B.y);
+  c = mix(c, larchC, larch);
+  c = mix(c, broadC, broad);
+  return c;
+}
 // aerial perspective: the air thins with altitude (haze scale height 2.5 km), so valleys are hazier than
 // summits; blue light is scattered more, so distant relief turns blue-grey (horizon and glow colours come
 // from the same scattering model as the sky). col is linear; returns linear.
@@ -134,8 +169,8 @@ vec3 aerial(vec3 col, vec3 w){
   return mix(pow(fogC, vec3(2.2)), col, max(T, vec3(0.07)));
 }`;
 const terrainFS = `
-uniform sampler2D map, slopeMap, ndsiMap, cloudMap, visMap, noiseTex; uniform vec4 ovRect;
-uniform float hasNdsi, hasCloud, hasVis, tileSize, snowToday, visToday, slopes, vivid, time;
+uniform sampler2D map, slopeMap, ndsiMap, cloudMap, visMap, forestMap, noiseTex; uniform vec4 ovRect;
+uniform float historic, hasNdsi, hasCloud, hasVis, hasForest, tileSize, snowToday, visToday, slopes, vivid, time;
 ${SCENE_GLSL}
 varying vec2 vUv; varying vec3 vN, vW; varying float vAlt;
 const vec3 LUM = vec3(0.2126, 0.7152, 0.0722);
@@ -172,6 +207,13 @@ void main(){
     vec3 ratio = clamp((s2 + 0.004) / (low + 0.004), 0.25, 4.0);
     alb = mix(photo, photo * ratio, smoothstep(0.6, 0.95, v.a) * (1.0 - cloud));
   }
+  // the season in the forests (IGN BD Forêt): where the photo shows trees (green), broadleaf and larch take the
+  // colours of the date shown (the photos were flown in summer)
+  if (hasForest > 0.5 && historic < 0.5) {
+    vec4 fm = cubic(forestMap, ou);
+    float green = smoothstep(0.0, 0.025, photo.g - max(photo.r, photo.b)) * smoothstep(0.004, 0.02, plum) * (1.0 - smoothstep(0.25, 0.4, plum));
+    if (fm.a > 0.05 && green > 0.0) alb = mix(alb, seasonColour(alb, plum, fm.r, fm.g, vW), green * fm.a);
+  }
   vec3 n = normalize(vN); float slope = 1.0 - n.y;
   // steep faces: the vertical photo is stretched there (×2 at 60°, ×4 at 75°), so a fine rock grain is added,
   // projected on the three axes so that it never stretches; it changes the photo's brightness, not its colour.
@@ -197,7 +239,7 @@ void main(){
   vec3 nl = dot(nb, nb) > 1e-20 ? normalize(nb) : n; // lit normal
   // today's snow: continuous snow index, refined at metre scale with the LiDAR slope and the photo
   float todaySnow = 0.0;
-  if (snowToday > 0.5 && hasNdsi > 0.5) {
+  if (snowToday > 0.5 && hasNdsi > 0.5 && historic < 0.5) {
     vec4 nd = cubic(ndsiMap, ou);
     float valid = smoothstep(0.6, 0.95, nd.a) * (1.0 - cloud);
     float fsc = clamp(1.45*(nd.r*2.0 - 1.0) - 0.01, 0.0, 1.0);
@@ -226,7 +268,7 @@ void main(){
   // becomes ice, blue-grey, and what is darker than its surroundings (crevasses, séracs) a deep blue. Rubble on
   // the ice (brownish: red above blue) is left as it is.
   float iceK = 0.0;
-  float gl = glacierAt(vW);
+  float gl = historic > 0.5 ? 0.0 : glacierAt(vW); // today's outlines: not on an old photo
   if (gl > 0.01) {
     float iceLike = smoothstep(0.08, 0.22, plum) * (1.0 - smoothstep(0.55, 0.8, plum)) * (1.0 - smoothstep(0.01, 0.06, photo.r - photo.b));
     iceK = gl * iceLike * (1.0 - todaySnow);
@@ -606,6 +648,7 @@ function updateSky() {
   // night: once the sun is well down, the Moon (real position and phase for the date shown) becomes the light:
   // it lights the relief, casts its shadows, lights the clouds, and its disk is drawn where the sun's would be
   const nightK = 1 - sstep(-0.12, -0.03, s); state.night = nightK;
+  U.doy.value = (date - new Date(date.getFullYear(), 0, 0)) / 864e5; // the colours of the season follow the date shown
   U.night.value = state.light === 'sun' ? nightK : 0;
   const moon = moonPosition(date, ORIGIN.lat, ORIGIN.lon), mUp = sstep(-0.02, 0.06, Math.sin(moon.el));
   state.moon = moon;
@@ -1048,6 +1091,55 @@ $('hkBuild').addEventListener('click', async () => {
   hkBuilding = null; renderHikes();
 });
 renderHikes();
+
+// ---------- camptocamp: topos and recent outings (daily copy, c2c.js) ----------
+let c2c = null, c2cFilter = 'all', c2cShown = 30;
+const c2cDate = d => new Date(d + 'T12:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+const condBadge = c => C2C_COND[c] ? `<span class="cnd" style="--c:${C2C_COND[c][1]}">${C2C_COND[c][0]}</span>` : '';
+$('c2cFilters').innerHTML = C2C_FILTERS.map(([k, n]) => `<button type="button" data-c2c="${k}" aria-pressed="${k === 'all'}">${n}</button>`).join('');
+loadC2C(SITE).then(d => {
+  if (!d) { $('c2cInfo').textContent = "Topos camptocamp indisponibles (pas encore copiés pour ce massif, ou hors ligne sans copie)."; return; }
+  c2c = prepareC2C(d); renderC2C();
+});
+function renderC2C() {
+  if (!c2c) return;
+  const T = controls.target, recent = $('c2cRecent').checked, last = r => r.outings[0]?.d ?? '';
+  const list = c2c.routes.filter(r => c2cMatches(r, c2cFilter)).map(r => ({ r, km: Math.hypot(r.x - T.x, r.z - T.z) / 1000 }))
+    .sort((a, b) => recent && (last(a.r) || last(b.r)) && last(a.r) !== last(b.r) ? last(b.r).localeCompare(last(a.r)) : a.km - b.km);
+  const withOut = c2c.routes.filter(r => r.outings.length).length;
+  $('c2cInfo').textContent = `${fmt(c2c.routes.length)} itinéraires, ${fmt(c2c.outings.length)} sorties des 45 derniers jours (${withOut} itinéraires parcourus) · copie camptocamp du ${new Date(c2c.fetched + "T12:00").toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}. ${recent ? 'Les plus récemment parcourus' : 'Les plus proches du centre de la vue'} d'abord.`;
+  const box = $('c2cList'); box.innerHTML = '';
+  for (const { r, km } of list.slice(0, c2cShown)) {
+    const o = r.outings[0], b = document.createElement('button'); b.type = 'button'; b.className = 'place';
+    const meta = [activityText(r.act), ratingText(r), r.dup ? `+${fmt(r.dup)} m` : '', r.emax ? `${fmt(r.emax)} m` : '', r.or.join('/'), `à ${km < 10 ? t1(km) : fmt(km)} km`].filter(Boolean).join(' · ');
+    b.innerHTML = `<span>${esc(r.t)}</span><span class="pa">${esc(meta)}</span>${o ? `<span class="pa">${condBadge(o.c)} ${c2cDate(o.d)}${r.outings.length > 1 ? ` · ${r.outings.length} sorties en 45 j` : ''}</span>` : ''}`;
+    b.addEventListener('click', () => showC2C(r));
+    box.appendChild(b);
+  }
+  $('c2cMore').hidden = list.length <= c2cShown;
+}
+function showC2C(r) {
+  const line = c2cLine(c2c, r);
+  if (line) { route.setPath(line, r.t); renderRoute(); frameRoute(); }
+  else flyToLonLat(r.ll[0], r.ll[1]);
+  const outs = r.outings.map(o => `<div class="out"><p><b>${c2cDate(o.d)}</b> ${condBadge(o.c)} · ${esc(o.by || 'anonyme')}${o.emax ? ` · jusqu'à ${fmt(o.emax)} m` : ''}</p>
+    ${o.cond ? `<p>${esc(o.cond)}</p>` : '<p class="small">Pas de texte sur les conditions.</p>'}
+    ${snowText(o.snow) ? `<p class="small">${esc(snowText(o.snow))}</p>` : ''}${o.wx ? `<p class="small">Météo : ${esc(o.wx)}</p>` : ''}
+    <p class="small"><a href="https://www.camptocamp.org/outings/${o.id}" target="_blank" rel="noopener">Compte rendu complet sur camptocamp.org</a></p></div>`).join('');
+  $('c2cDetail').innerHTML = `<h4>${esc(r.t)}</h4>
+    <p class="cmeta">${esc([activityText(r.act), ratingText(r), r.dup ? `+${fmt(r.dup)} m` : '', r.emax ? `point haut ${fmt(r.emax)} m` : '', r.or.length ? `orientation ${r.or.join('/')}` : ''].filter(Boolean).join(' · '))}</p>
+    <p class="small">${line ? 'Tracé camptocamp posé sur la carte (profil et survol dans « Itinéraire » ci-dessous).' : "Pas de tracé détaillé dans la copie : la carte montre le point de l'itinéraire."}
+      <a href="https://www.camptocamp.org/routes/${r.id}" target="_blank" rel="noopener">Topo complet sur camptocamp.org</a></p>
+    ${outs || '<p class="small">Aucune sortie publiée sur cet itinéraire ces 45 derniers jours.</p>'}`;
+  $('c2cDetail').scrollIntoView({ block: 'nearest' });
+}
+document.getElementById('c2cFilters').addEventListener('click', e => {
+  const b = e.target.closest('[data-c2c]'); if (!b) return;
+  c2cFilter = b.dataset.c2c; c2cShown = 30; document.querySelectorAll('[data-c2c]').forEach(x => x.setAttribute('aria-pressed', x === b)); renderC2C();
+});
+$('c2cRecent').addEventListener('change', () => { c2cShown = 30; renderC2C(); });
+$('c2cMore').addEventListener('click', () => { c2cShown += 30; renderC2C(); });
+$('tab-route').addEventListener('click', () => renderC2C()); // distances from wherever the view is now
 $('gpxOut').addEventListener('click', () => {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([route.toGPX()], { type: 'application/gpx+xml' }));
   a.download = (route.name || 'itineraire').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-') + '.gpx'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
@@ -1178,6 +1270,25 @@ function applySlopes(on) {
 }
 $('c-slopes').addEventListener('change', e => applySlopes(e.target.checked));
 applySlopes(state.slopes);
+
+// ---------- back in time: aerial photos of another period on today's relief ----------
+$('epoch').innerHTML = Object.entries(EPOCHS).map(([k, [, , label]]) => `<option value="${k}">${label}</option>`).join('');
+$('epoch').addEventListener('change', e => {
+  const k = e.target.value; engine.setEpoch(k); U.historic.value = k === 'current' ? 0 : 1;
+  for (const id of ['c-snowtoday']) $(id).disabled = k !== 'current';
+  $('epochBadge').hidden = k === 'current'; $('epochBadge').textContent = `Photos ${EPOCHS[k][2]} · revenir à aujourd'hui`;
+  showEpochNote();
+});
+function showEpochNote() {
+  const k = engine.epoch, el = $('epochNote');
+  if (k === 'current') { el.textContent = 'Photos IGN les plus récentes (BD ORTHO, 20 cm).'; return; }
+  const c = engine.busy ? null : engine.epochCover; // judged once the photos have arrived
+  el.textContent = `Photos IGN ${EPOCHS[k][2]}${+k < 1970 ? ' (noir et blanc)' : ''}, posées sur le relief d'aujourd'hui (LiDAR 2022) : un glacier de l'époque, plus épais, apparaît à la hauteur actuelle de la glace. `
+    + (c == null ? 'Chargement des photos de cette époque… ' : c > 0.97 ? 'Toute la vue a une photo de cette époque.' : c < 0.03 ? "Pas de photo de cette époque ici : c'est la photo actuelle qui s'affiche." : `Photo de cette époque sur ${Math.round(c * 100)} % de la vue ; ailleurs, la photo actuelle.`)
+    + ' Neige du jour, glace et couleurs de saison coupées.';
+}
+showEpochNote();
+$('epochBadge').addEventListener('click', () => { $('epoch').value = 'current'; $('epoch').dispatchEvent(new Event('change')); });
 
 // ---------- view: IGN terrain or Google Photorealistic 3D Tiles, never both at once (see google3d.js) ----------
 state.view = 'ign';
@@ -1558,6 +1669,7 @@ function drawFrame() {
     const busy = google.on ? google.loading : engine.busy;
     $('status').hidden = busy === 0; $('statusN').textContent = busy;
     renderLidarInfo(); if (!$('sheet-layers').hidden) showPtStore();
+    if (engine.epoch !== 'current') showEpochNote();
     fpsAcc = 0; fpsN = 0;
   }
 }

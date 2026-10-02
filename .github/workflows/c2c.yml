@@ -1,0 +1,30 @@
+# Every morning: fresh camptocamp.org topos and outings (conditions reported by climbers) for each massif,
+# copied into data/ (the app cannot ask camptocamp from the browser: CORS), then the site is rebuilt.
+name: camptocamp quotidien
+on:
+  schedule:
+    - cron: '17 4 * * *'   # 04:17 UTC, 06:17 in Chamonix (summer time)
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+jobs:
+  c2c:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Copie camptocamp
+        run: python3 scripts/c2c.py
+      - name: Publier si changé
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/c2c-*.json
+          if git diff --cached --quiet; then echo "rien de neuf"; exit 0; fi
+          git commit -m "Données camptocamp du jour"
+          git push
+          # a push made with this token does not start the Pages build by itself
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/pages/builds" || true

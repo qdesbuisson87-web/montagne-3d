@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202610011858">
+<link rel="stylesheet" href="css/app.css?v=202610021701">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -33,6 +33,7 @@
 <header class="brand glass">
   <div class="eyebrow" id="siteRegion">Massif du Mont-Blanc</div>
   <h1><span id="siteName">Aiguille du Midi</span> <span class="alt" id="siteAlt"></span></h1>
+  <button id="epochBadge" type="button" class="epochb" hidden>Photos 1950–1965 · revenir à aujourd'hui</button>
   <div id="status" class="status" hidden><i></i>Chargement · <span id="statusN">0</span></div>
 </header>
 <aside id="slopeLegend" class="legend glass" hidden aria-label="Légende des pentes">
@@ -111,6 +112,9 @@
     </div>
     <p class="cline small" id="gNote"></p>
   </div>
+  <div class="field"><label for="epoch">Photos aériennes (remonter le temps)</label>
+    <select id="epoch" class="sel"></select>
+    <p class="cline small" id="epochNote"></p></div>
   <div class="field"><label>Lumière</label>
     <div class="seg"><button type="button" data-light="photo" aria-pressed="true">Photo</button><button type="button" data-light="sun" aria-pressed="false">Soleil réel</button></div></div>
   <div class="field dim" id="f-time"><label for="time">Heure du soleil <output id="timeOut">—</output></label>
@@ -183,6 +187,14 @@
   </div>
   <div id="hkList" class="places results ideas hklist"></div>
   <p class="cnote">Facile : moins de 3 h et 500 m de montée · Moyenne : moins de 5 h et 1 000 m · Difficile : moins de 8 h · Très longue : 8 h et plus · Haute montagne : au-dessus de 3 000 m ou au-delà des sentiers (glacier, rocher : matériel, expérience d'alpinisme, guide conseillé). Temps de marche sans pauses (norme DIN 33466), altitudes IGN RGE ALTI. Itinéraires calculés sur les chemins IGN, pas des topos vérifiés : consulte le bulletin et l'état des sentiers avant de partir.</p>
+  <h3>Topos et conditions récentes (camptocamp)</h3>
+  <p class="cline small" id="c2cInfo">Chargement des topos…</p>
+  <div class="hkf" id="c2cFilters" role="group" aria-label="Filtrer par activité"></div>
+  <label class="tgl" for="c2cRecent"><input id="c2cRecent" type="checkbox" checked> Itinéraires parcourus récemment d'abord</label>
+  <div id="c2cList" class="places results ideas hklist"></div>
+  <button id="c2cMore" type="button" class="mini wide" hidden>Plus d'itinéraires</button>
+  <div id="c2cDetail" class="c2cd"></div>
+  <p class="cnote" id="c2cNote">Topos et comptes rendus © contributeurs de camptocamp.org, licence CC BY-SA 4.0, copiés chaque matin. Les conditions sont celles qu'ont vues des pratiquants à une date donnée : elles changent vite. À recouper avec le bulletin d'avalanche, la météo et le refuge.</p>
   <h3>Itinéraire</h3>
   <p class="cline small" id="routeHelp">Importe une trace GPX, ou touche « Tracer » puis touche le relief point par point (aussi pour mesurer une distance).</p>
   <div class="btns">
@@ -225,6 +237,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202610011858"></script>
+<script type="module" src="js/app.js?v=202610021701"></script>
 </body>
 </html>

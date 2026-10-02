@@ -2,14 +2,29 @@
 // elevation grid and photo. Close to the camera the tree goes down to zoom 19 (IGN photos 20 cm,
 // LiDAR HD elevation); far away it stays coarse. Nothing is pre-packaged: every tile is fetched live.
 import * as THREE from 'three';
-import { tileMerc, mercToWorld, mercToLonLat, worldToLonLat, lonLatToL93, lonLatToTile, K } from './geo.js?v=202610011858';
-import { cachedFetch, TransientError } from './net.js?v=202610011858';
+import { tileMerc, mercToWorld, mercToLonLat, worldToLonLat, lonLatToL93, lonLatToTile, K } from './geo.js?v=202610021701';
+import { cachedFetch, TransientError } from './net.js?v=202610021701';
+import { FOREST_WMS, decodeForest } from './foresttypes.js?v=202610021701';
 
 // NE: the grid plus a one-sample ring taken beyond the tile edge, so that normals and slopes at the edge
 // use the same central differences as the neighbour tile does (no seam in lighting or slope colours)
 const N = 64, NV = N + 1, NE = NV + 2;
 export const GRID = N;
-const URL_IGN_PHOTO = (z, x, y) => `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}&FORMAT=image/jpeg`;
+const URL_IGN_PHOTO = (z, x, y, layer = 'ORTHOIMAGERY.ORTHOPHOTOS', fmt = 'jpeg') => `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer}&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}&FORMAT=image/${fmt}`;
+// Aerial photos of earlier times (IGN historical mosaics), for "back in time": id -> [layer, format, label]. Not
+// every period covers every place (1965–1995 are missing around Chamonix); where a period has nothing, the
+// current photo is used and the app says so. Black and white before 1970.
+export const EPOCHS = {
+  current: ['ORTHOIMAGERY.ORTHOPHOTOS', 'jpeg', 'Actuelle'],
+  '2021': ['ORTHOIMAGERY.ORTHOPHOTOS2021-2023', 'jpeg', '2021–2023'],
+  '2016': ['ORTHOIMAGERY.ORTHOPHOTOS2016-2020', 'jpeg', '2016–2020'],
+  '2011': ['ORTHOIMAGERY.ORTHOPHOTOS2011-2015', 'jpeg', '2011–2015'],
+  '2006': ['ORTHOIMAGERY.ORTHOPHOTOS2006-2010', 'jpeg', '2006–2010'],
+  '2000': ['ORTHOIMAGERY.ORTHOPHOTOS2000-2005', 'jpeg', '2000–2005'],
+  '1980': ['ORTHOIMAGERY.ORTHOPHOTOS.1980-1995', 'png', '1980–1995'],
+  '1965': ['ORTHOIMAGERY.ORTHOPHOTOS.1965-1980', 'png', '1965–1980'],
+  '1950': ['ORTHOIMAGERY.ORTHOPHOTOS.1950-1965', 'png', '1950–1965']
+};
 const URL_EOX = (z, x, y) => `https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/${z}/${y}/${x}.jpg`;
 const URL_TERRARIUM = (z, x, y) => `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`;
 const URL_IGN_ELEV = (layer, b, w, h) => `https://data.geopf.fr/wms-r/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=${layer}&STYLES=&CRS=EPSG:2154&BBOX=${b.join(',')}&WIDTH=${w}&HEIGHT=${h}&FORMAT=image/x-bil;bits=32`;
@@ -177,8 +192,22 @@ class Tile {
     return { e: extrapolateRing(e), src };
   }
   async loadPhoto() {
-    if (this.z > PHOTO_MAXZ) return this.loadPhotoCrop();
+    const ep = this.engine.epoch;
+    // historical mosaics stop at zoom 18 (≈ 50 cm, as fine as the old films go): finer tiles enlarge their parent
+    if (this.z > (ep === 'current' ? PHOTO_MAXZ : 18)) return this.loadPhotoCrop();
     const { z, x, y } = this;
+    if (ep !== 'current') {
+      const [layer, fmt] = EPOCHS[ep];
+      const old = await fetchBitmap(URL_IGN_PHOTO(z, x, y, layer, fmt)).catch(unlessTransient(null));
+      if (old) { // a period that has nothing here answers transparent (PNG) or all white (JPEG): then today's photo
+        // (white alone is not enough on a PNG period: snow and glaciers are white on those films)
+        const d = pixels(old).data, n = d.length / 64; let clear = 0, white = 0;
+        for (let k = 0; k < d.length; k += 64) { if (d[k + 3] < 128) clear++; else if (d[k] >= 254 && d[k + 1] >= 254 && d[k + 2] >= 254) white++; }
+        if (clear < n * 0.05 && !(fmt === 'jpeg' && white > n * 0.98)) { this.epochOk = true; return this.engine.makeTexture(old); }
+        old.close?.();
+      }
+      this.epochOk = false;
+    }
     // a missing photo (404) is replaced below; a refused one makes the whole tile wait and retry
     const ign = await fetchBitmap(URL_IGN_PHOTO(z, x, y)).catch(unlessTransient(null));
     // outside France IGN returns white: fill those pixels from Sentinel-2 cloudless
@@ -292,9 +321,9 @@ export class TerrainEngine {
     this.renderer = renderer; this.uniforms = uniforms; this.vs = vertexShader; this.fs = fragmentShader;
     this.group = new THREE.Group(); scene.add(this.group);
     this.aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-    this.frame = 0; this.loading = 0; this.maxLoads = 8; this.splitK = 2; this.maxTiles = 700; this.exag = 1;
+    this.frame = 0; this.loading = 0; this.maxLoads = 8; this.splitK = 2; this.maxTiles = 700; this.exag = 1; this.epoch = 'current';
     this.frustum = new THREE.Frustum(); this.pv = new THREE.Matrix4();
-    this.overlay = { item: null, snow: false, vis: false, cache: new Map(), pending: new Set(), active: 0 };
+    this.overlay = { item: null, snow: false, vis: false, forest: true, cache: new Map(), pending: new Set(), active: 0 };
     // roots: zoom-11 tiles, first over the massif and its surroundings, then wherever the camera goes (ensureRoots)
     const [ax, ay] = lonLatToTile(bounds[0], bounds[3], 11), [bx, by] = lonLatToTile(bounds[2], bounds[1], 11);
     this.roots = []; this.rootKeys = new Map();
@@ -325,8 +354,8 @@ export class TerrainEngine {
   }
   makeMaterial(tex, tileSize, slopeTex) {
     return new THREE.ShaderMaterial({
-      uniforms: { ...this.uniforms, map: { value: tex }, slopeMap: { value: slopeTex }, ndsiMap: { value: null }, cloudMap: { value: null }, visMap: { value: null }, ovRect: { value: new THREE.Vector4(0, 0, 1, 1) },
-        hasNdsi: { value: 0 }, hasCloud: { value: 0 }, hasVis: { value: 0 }, tileSize: { value: tileSize } },
+      uniforms: { ...this.uniforms, map: { value: tex }, slopeMap: { value: slopeTex }, ndsiMap: { value: null }, cloudMap: { value: null }, visMap: { value: null }, forestMap: { value: null }, ovRect: { value: new THREE.Vector4(0, 0, 1, 1) },
+        hasNdsi: { value: 0 }, hasCloud: { value: 0 }, hasVis: { value: 0 }, hasForest: { value: 0 }, tileSize: { value: tileSize } },
       vertexShader: this.vs, fragmentShader: this.fs
     });
   }
@@ -335,17 +364,28 @@ export class TerrainEngine {
   // ndsi: continuous snow index (B03-B11)/(B03+B11) - smooth to interpolate, unlike the 10 m class map
   // cloud: clouds and cloud shadows from the scene classification, softened into a mask
   // vis: true colours of the day, used to re-colour the 20 cm photo rather than to replace it
-  setOverlayItem(item) { this.overlay.item = item; this.overlay.cache.forEach(o => o.tex?.dispose()); this.overlay.cache.clear(); this.overlay.pending.clear(); this.forEachReady(t => this.attachOverlays(t)); }
+  // forest: what grows in the forests (IGN BD Forêt, foresttypes.js), for the colours of the season; not a satellite image
+  setOverlayItem(item) {
+    this.overlay.item = item;
+    for (const [k, o] of this.overlay.cache) if (o.kind !== 'forest') { o.tex?.dispose(); this.overlay.cache.delete(k); this.overlay.pending.delete(k); }
+    this.forEachReady(t => this.attachOverlays(t));
+  }
   setOverlay(kind, on) { this.overlay[kind] = on; this.forEachReady(t => this.attachOverlays(t)); }
   forEachReady(fn) { const walk = t => { if (t.state === 'ready') fn(t); t.children?.forEach(walk); }; this.roots.forEach(walk); }
   overlayUrl(kind, z, x, y) {
+    if (kind === 'forest') { const m = tileMerc(z, x, y); return FOREST_WMS([m.minx, m.miny, m.maxx, m.maxy], 256, 256); }
     const base = `https://planetarycomputer.microsoft.com/api/data/v1/item/tiles/WebMercatorQuad/${z}/${x}/${y}@1x.png?collection=sentinel-2-l2a&item=${this.overlay.item.id}`;
     if (kind === 'ndsi') return base + '&expression=' + encodeURIComponent('(B03-B11)/(B03+B11)') + '&asset_as_band=true&rescale=-1,1';
     if (kind === 'cloud') return base + '&assets=SCL&nodata=0&resampling=nearest';
     return base + '&assets=visual&asset_bidx=visual%7C1%2C2%2C3&nodata=0';
   }
   async overlayTexture(kind, z, x, y) {
-    let bm = await fetchBitmap(this.overlayUrl(kind, z, x, y), false);
+    let bm = await fetchBitmap(this.overlayUrl(kind, z, x, y), kind === 'forest'); // the forest map does not change: kept offline
+    if (kind === 'forest') { // legend colours -> shares of broadleaf, larch, pine (foresttypes.js)
+      const cv = document.createElement('canvas'); cv.width = cv.height = 256; const c = cv.getContext('2d', { willReadFrequently: true });
+      c.drawImage(bm, 0, 0); const img = c.getImageData(0, 0, 256, 256); img.data.set(decodeForest(img.data)); c.putImageData(img, 0, 0);
+      bm.close?.(); bm = await createImageBitmap(cv, { premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
+    }
     if (kind === 'cloud') { // class map -> soft mask (red = cloud or cloud shadow, alpha = data)
       const cv = document.createElement('canvas'); cv.width = cv.height = 256; const c = cv.getContext('2d', { willReadFrequently: true });
       c.drawImage(bm, 0, 0); const img = c.getImageData(0, 0, 256, 256), d = img.data;
@@ -380,12 +420,13 @@ export class TerrainEngine {
     u.ovRect.value.set((t.x % f) / f, (t.y % f) / f, 1 / f, 1 / f);
     // with today's snow on, the true colours of the same clear pass are needed too: they replace the snow that
     // the (older) aerial photo shows where the satellite now sees bare ground
-    const kinds = { ndsi: this.overlay.snow, cloud: this.overlay.snow || this.overlay.vis, vis: this.overlay.vis || this.overlay.snow };
+    const kinds = { ndsi: this.overlay.snow, cloud: this.overlay.snow || this.overlay.vis, vis: this.overlay.vis || this.overlay.snow, forest: this.overlay.forest };
     // only ask for tiles that the satellite image covers (outside its footprint the server answers 404)
     const covered = !this.overlay.item || footprintCovers(this.overlay.item, oz, ox, oy);
     for (const [kind, on] of Object.entries(kinds)) {
       const has = 'has' + kind[0].toUpperCase() + kind.slice(1), map = kind + 'Map';
-      if (!on || !this.overlay.item || !covered) { u[has].value = 0; continue; }
+      const sat = kind !== 'forest'; // the satellite overlays need a pass that covers the tile
+      if (!on || (sat && (!this.overlay.item || !covered))) { u[has].value = 0; continue; }
       const key = `${kind}/${oz}/${ox}/${oy}`;
       let o = this.overlay.cache.get(key);
       if (!o) { // queued; pumpOverlays() starts the ones nearest the camera first
@@ -447,6 +488,19 @@ export class TerrainEngine {
     }
   }
   setExaggeration(e) { this.exag = e; }
+  // aerial photos of another period: every tile is rebuilt (relief from the cache, photos of that period)
+  setEpoch(e) {
+    if (!EPOCHS[e] || e === this.epoch) return;
+    this.epoch = e;
+    const kill = n => { n.children?.forEach(kill); n.children = null; n.dispose(); };
+    this.roots.forEach(kill);
+  }
+  // share of the drawn tiles that have a photo of the chosen period (the others show today's)
+  get epochCover() {
+    if (this.epoch === 'current') return 1;
+    const ts = this.drawn.map(m => m.userData.tile).filter(t => t && t.z >= 13); if (!ts.length) return null;
+    return ts.filter(t => t.epochOk || (t.z > 18 && t.parent?.epochOk)).length / ts.length;
+  }
 
   // deepest loaded tile under a point (null when nothing is loaded yet)
   tileAt(x, z) {

@@ -1,37 +1,37 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610021731';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610021731';
-import { SITE, SITE_LIST } from './sites.js?v=202610021731';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610021731';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610021731';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610021731';
-import { searchPlaces } from './search.js?v=202610021731';
-import { TerrainShadows } from './shadows.js?v=202610021731';
-import { PostFX } from './post.js?v=202610021731';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610021731';
-import { Forest } from './forest.js?v=202610021731';
-import { Lakes } from './water.js?v=202610021731';
-import { Glaciers } from './glaciers.js?v=202610021731';
-import { makeSite, removeSite } from './custom.js?v=202610021731';
-import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610021731';
-import { Streams } from './streams.js?v=202610021731';
-import { Refuges } from './refuges.js?v=202610021731';
-import { NightLights } from './lights.js?v=202610021731';
-import { Buildings } from './buildings.js?v=202610021731';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610021731';
-import { TrackRecorder, progressOn } from './track.js?v=202610021731';
-import { GpsTracker } from './gps.js?v=202610021731';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610021731';
-import { walkingRoute } from './planner.js?v=202610021731';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610021731';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610021731';
-import { TrailsLayer } from './trails.js?v=202610021731';
-import { Weather3D } from './weather3d.js?v=202610021731';
-import { Sight } from './sight.js?v=202610021731';
-import { Photos360 } from './photos360.js?v=202610021731';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610021731';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610021731';
-import { VolumeClouds } from './clouds.js?v=202610021731';
+import { EarthControls } from './controls.js?v=202610021825';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610021825';
+import { SITE, SITE_LIST } from './sites.js?v=202610021825';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610021825';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610021825';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610021825';
+import { searchPlaces } from './search.js?v=202610021825';
+import { TerrainShadows } from './shadows.js?v=202610021825';
+import { PostFX } from './post.js?v=202610021825';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610021825';
+import { Forest } from './forest.js?v=202610021825';
+import { Lakes } from './water.js?v=202610021825';
+import { Glaciers } from './glaciers.js?v=202610021825';
+import { makeSite, removeSite } from './custom.js?v=202610021825';
+import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610021825';
+import { Streams } from './streams.js?v=202610021825';
+import { Refuges } from './refuges.js?v=202610021825';
+import { NightLights } from './lights.js?v=202610021825';
+import { Buildings } from './buildings.js?v=202610021825';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610021825';
+import { TrackRecorder, progressOn } from './track.js?v=202610021825';
+import { GpsTracker } from './gps.js?v=202610021825';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610021825';
+import { walkingRoute } from './planner.js?v=202610021825';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610021825';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610021825';
+import { TrailsLayer } from './trails.js?v=202610021825';
+import { Weather3D } from './weather3d.js?v=202610021825';
+import { Sight } from './sight.js?v=202610021825';
+import { Photos360 } from './photos360.js?v=202610021825';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610021825';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610021825';
+import { VolumeClouds } from './clouds.js?v=202610021825';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -1529,6 +1529,13 @@ let savedView = 'ign'; try { savedView = localStorage.getItem('midi3d-view') || 
 $('c-spin').addEventListener('change', e => { controls.autoRotate = e.target.checked; });
 $('home').addEventListener('click', home);
 // "3D" button: tilt to a view facing the mountains, or back to a view from above (same pivot and distance)
+// turn-around mode: one finger turns the view around the point in the middle of the screen
+const orbitHint = Object.assign(document.createElement('div'), { className: 'orbithint glass', hidden: true, textContent: "Un doigt : glisse à gauche ou à droite pour tourner autour du centre de l'écran, en haut ou en bas pour incliner. Retouche le bouton pour revenir au déplacement." });
+document.body.appendChild(orbitHint);
+$('orbitBtn').addEventListener('click', () => {
+  controls.oneFingerOrbit = !controls.oneFingerOrbit; $('orbitBtn').setAttribute('aria-pressed', controls.oneFingerOrbit);
+  orbitHint.hidden = !controls.oneFingerOrbit; if (controls.oneFingerOrbit) setTimeout(() => { orbitHint.hidden = true; }, 6000);
+});
 $('tilt').addEventListener('click', () => {
   const off = camera.position.clone().sub(controls.target), s = new THREE.Spherical().setFromVector3(off);
   s.phi = s.phi < 0.9 ? 1.3 : 0.3; // ~75° from the vertical: nearly level; ~17°: almost straight down

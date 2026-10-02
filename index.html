@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202610021731">
+<link rel="stylesheet" href="css/app.css?v=202610021825">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -50,6 +50,7 @@
   <button id="tab-route" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c3-1 3-5 7-6s4-5 7-7"/><circle cx="5" cy="19" r="1.8"/><circle cx="19" cy="6" r="1.8"/></svg>Sortie</button>
   <button id="tab-layers" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg>Affichage</button>
   <button id="wxToggle" type="button" class="ico wx" aria-pressed="true" aria-label="Météo réelle affichée : nuages, pluie et neige (toucher pour les masquer)" title="Nuages, pluie et neige réels : afficher / masquer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1.5A3.5 3.5 0 1 1 17 18z"/><path class="off" d="M4 4l16 16"/></svg></button>
+  <button id="orbitBtn" type="button" class="ico" aria-pressed="false" aria-label="Tourner autour du centre de l'écran" title="Tourner autour : un doigt fait tourner et incliner la vue autour du centre"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v4h-4"/><circle cx="12" cy="12" r="2"/></svg></button>
   <button id="tilt" type="button" class="ico tilt" aria-label="Incliner la vue (de face ou du dessus)" title="Vue de face / vue du dessus (ou clic droit + glisser, Ctrl + glisser)">3D</button>
   <button id="home" type="button" class="ico" aria-label="Revenir à l'Aiguille du Midi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4m0 10v4M3 12h4m10 0h4"/><circle cx="12" cy="12" r="4"/></svg></button>
 </nav>
@@ -265,6 +266,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202610021731"></script>
+<script type="module" src="js/app.js?v=202610021825"></script>
 </body>
 </html>

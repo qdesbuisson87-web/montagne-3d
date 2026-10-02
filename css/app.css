@@ -50,6 +50,9 @@ h1 .alt { font-weight: 600; font-size: 17px; color: var(--ice); margin-left: 4px
 .btn.sos { background: #c8322a; color: #fff; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
 .btnlink { text-decoration: none; display: inline-flex; align-items: center; color: inherit; }
 .rmsite { margin: -2px 0 8px; opacity: .8; }
+.tabs button#orbitBtn[aria-pressed="true"] { background: var(--ink); color: #10151c; border-radius: 10px; }
+.orbithint { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(96px + var(--safe-b, 0px)); z-index: 6; padding: 8px 12px; font-size: 13px; max-width: calc(100vw - 32px); text-align: center; }
+.orbithint[hidden] { display: none; }
 .epochb { margin-top: 6px; appearance: none; border: 1px solid var(--amber); background: rgba(240,180,60,.15); color: inherit; border-radius: 6px; padding: 6px 8px; min-height: 32px; font: 500 12px/1.2 "IBM Plex Mono", ui-monospace, monospace; cursor: pointer; text-align: left; }
 .status { margin-top: 6px; display: flex; align-items: center; gap: 6px; font: 400 11px/1 "IBM Plex Mono", ui-monospace, monospace; color: var(--muted); }
 .status i { width: 8px; height: 8px; border-radius: 50%; background: var(--amber); animation: pulse 1s ease-in-out infinite; }

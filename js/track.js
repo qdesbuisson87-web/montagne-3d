@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
-import { lonLatToWorld } from './geo.js?v=202610021731';
+import { lonLatToWorld } from './geo.js?v=202610021825';
 
 const STORE = 'midi3d-track', MIN_STEP = 6, MAX_ACC = 35; // metres
 
@@ -16,13 +16,15 @@ export class TrackRecorder {
     this.groundAt = groundAt; this.pts = []; this.recording = false; this.wake = null; this.dirty = true;
     this.mat = new LineMaterial({ color: 0x1e88ff, linewidth: 4, transparent: true });
     this.under = new LineMaterial({ color: 0x08203a, linewidth: 7, transparent: true, opacity: 0.6 });
+    // the parts hidden behind the relief: dashes drawn over it, so the line is never cut
+    this.hidden = new LineMaterial({ color: 0x1e88ff, linewidth: 3, transparent: true, opacity: 0.75, depthTest: false, depthWrite: false, dashed: true, dashSize: 14, gapSize: 10 });
     this.group = new THREE.Group(); scene.add(this.group); this.lines = [];
     // positions in the scene's metres are recomputed from longitude/latitude: they depend on the massif open
     try { const s = JSON.parse(localStorage.getItem(STORE) || 'null'); if (s?.pts) { this.pts = s.pts.map(p => { const [x, z] = lonLatToWorld(p.lon, p.lat); return { ...p, x, z }; }); this.recording = !!s.recording; this.started = s.started; } } catch { }
     // the screen lock released by the system (app hidden) is asked for again when the app comes back
     document.addEventListener('visibilitychange', () => { if (this.recording && document.visibilityState === 'visible') this.keepAwake(); });
   }
-  setResolution(w, h) { this.mat.resolution.set(w, h); this.under.resolution.set(w, h); }
+  setResolution(w, h) { for (const m of [this.mat, this.under, this.hidden]) m.resolution.set(w, h); }
   save() { try { localStorage.setItem(STORE, JSON.stringify({ pts: this.pts, recording: this.recording, started: this.started })); } catch { } }
   async keepAwake() { try { this.wake = await navigator.wakeLock?.request('screen'); } catch { this.wake = null; } }
   start() {
@@ -66,7 +68,7 @@ export class TrackRecorder {
     if (this.pts.length < 2) return;
     let last = 0; const pos = [];
     for (const p of this.pts) { const h = this.groundAt(p.x, p.z) ?? p.g ?? last; last = h; pos.push(p.x, h * exag + 3, p.z); }
-    for (const m of [this.under, this.mat]) { const g = new LineGeometry(); g.setPositions(pos); const l = new Line2(g, m); l.computeLineDistances(); l.renderOrder = m === this.mat ? 7 : 6; this.group.add(l); this.lines.push(l); }
+    for (const m of [this.hidden, this.under, this.mat]) { const g = new LineGeometry(); g.setPositions(pos); const l = new Line2(g, m); l.computeLineDistances(); l.renderOrder = m === this.mat ? 7 : 6; this.group.add(l); this.lines.push(l); }
   }
 }
 

@@ -37,6 +37,7 @@ export class EarthControls extends THREE.EventDispatcher {
     super();
     this.camera = camera; this.dom = dom; this.pick = pick; this.heightAt = heightAt;
     this.target = new THREE.Vector3(); this.enabled = true; this.autoRotate = false; this.autoRotateSpeed = 0.3;
+    this.oneFingerOrbit = false; // "turn around" mode: one finger turns and tilts around the middle of the screen
     this.minDistance = 12; this.maxDistance = 120000;
     this.cur = new View(); this.goal = new View(); this.gcam = camera.clone();
     this.lastPos = new THREE.Vector3(NaN); this.lastT = new THREE.Vector3(NaN);
@@ -88,7 +89,7 @@ export class EarthControls extends THREE.EventDispatcher {
       this.lastTap = dbl ? 0 : now; this.tapX = e.clientX; this.tapY = e.clientY;
       if (dbl) { const p = this.surface(e.clientX, e.clientY); if (p) this.zoomTo(p, 1 / 2.5); this.mode = null; return; }
       this.anchor = (e.button === 0 && !(e.ctrlKey || e.shiftKey || e.metaKey)) ? this.surface(e.clientX, e.clientY) : null;
-      this.mode = this.anchor ? 'pan' : 'orbit'; // right/middle button, a modifier key, or the sky: turn and tilt
+      this.mode = this.anchor && !this.oneFingerOrbit ? 'pan' : 'orbit'; // right/middle button, a modifier key, the sky, or the turn mode
       this.prev = { x: e.clientX, y: e.clientY };
     } else if (this.pointers.size === 2) {
       const [a, b] = [...this.pointers.values()], mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
@@ -109,7 +110,9 @@ export class EarthControls extends THREE.EventDispatcher {
       this.trail.push({ s, t: performance.now() }); if (this.trail.length > 8) this.trail.shift();
     } else if (this.mode === 'orbit') {
       const dx = e.clientX - this.prev.x, dy = e.clientY - this.prev.y; this.prev = { x: e.clientX, y: e.clientY };
-      this.goal.h -= dx * 0.006; this.goal.p = THREE.MathUtils.clamp(this.goal.p - dy * 0.005, 0, MAX_TILT);
+      // a finger turns faster than a mouse: half a turn across the screen width
+      const k = e.pointerType === 'touch' ? Math.PI / Math.max(300, this.dom.clientWidth) : 0.006;
+      this.goal.h -= dx * k; this.goal.p = THREE.MathUtils.clamp(this.goal.p - dy * k * 0.8, 0, MAX_TILT);
     } else if (this.mode === 'two' && this.pointers.size === 2) {
       const [a, b] = [...this.pointers.values()], mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
       const d = Math.hypot(b.x - a.x, b.y - a.y), ang = Math.atan2(b.y - a.y, b.x - a.x), t = this.two;

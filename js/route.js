@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610021731';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610021825';
 
 const STEP = 10, STORE = 'midi3d-route'; // metres between resampled points
 
@@ -41,6 +41,8 @@ export class RouteLayer {
     this.groundAt = groundAt; this.pts = []; this.name = ''; this.drawing = false; this.samples = []; this.dirty = true;
     this.mat = new LineMaterial({ color: 0xff3b30, linewidth: 4, transparent: true, depthTest: true });
     this.under = new LineMaterial({ color: 0x3a0a08, linewidth: 7, transparent: true, opacity: 0.6, depthTest: true });
+    // the parts hidden behind the relief: dashes drawn over it, so the line is never cut
+    this.hidden = new LineMaterial({ color: 0xff3b30, linewidth: 3, transparent: true, opacity: 0.75, depthTest: false, depthWrite: false, dashed: true, dashSize: 14, gapSize: 10 });
     this.group = new THREE.Group(); scene.add(this.group);
     this.cursor = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false }));
     this.cursor.renderOrder = 11; this.cursor.visible = false; this.group.add(this.cursor);
@@ -48,7 +50,7 @@ export class RouteLayer {
     // kept in longitude/latitude: the scene's metres depend on the massif open (older saves in metres are dropped)
     try { const s = JSON.parse(localStorage.getItem(STORE) || 'null'); if (s?.ll?.length) { this.pts = s.ll.map(([lon, lat]) => lonLatToWorld(lon, lat)); this.name = s.name || ''; } } catch { }
   }
-  setResolution(w, h) { this.mat.resolution.set(w, h); this.under.resolution.set(w, h); }
+  setResolution(w, h) { for (const m of [this.mat, this.under, this.hidden]) m.resolution.set(w, h); }
   save() { try { localStorage.setItem(STORE, JSON.stringify({ ll: this.pts.map(([x, z]) => worldToLonLat(x, z).map(v => +v.toFixed(6))), name: this.name })); } catch { } }
 
   // ----- editing -----
@@ -90,7 +92,8 @@ export class RouteLayer {
     if (this.samples.length < 2) return;
     let last = 0; const pos = [];
     for (const p of this.samples) { const h = p.h ?? last; last = h; pos.push(p.x, h * exag + 2.5, p.z); }
-    for (const m of [this.under, this.mat]) { const g = new LineGeometry(); g.setPositions(pos); const l = new Line2(g, m); l.computeLineDistances(); l.renderOrder = m === this.mat ? 6 : 5; this.group.add(l); this.lines.push(l); }
+    // dashes first, over everything; then the solid line where the relief does not hide it
+    for (const m of [this.hidden, this.under, this.mat]) { const g = new LineGeometry(); g.setPositions(pos); const l = new Line2(g, m); l.computeLineDistances(); l.renderOrder = m === this.mat ? 6 : 5; this.group.add(l); this.lines.push(l); }
   }
   update(frameN, exag, loading) {
     if (this.dirty || exag !== this.exag || (frameN % 120 === 0 && loading === 0 && this.samples.some(p => p.h == null))) this.drape(exag);

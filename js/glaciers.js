@@ -3,8 +3,8 @@
 // cascade), and the terrain shader turns the photo inside them into ice where it is not covered by snow:
 // blue-grey bare ice, deep blue crevasses, a sheen in the sun.
 import * as THREE from 'three';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610021731';
-import { cachedFetch } from './net.js?v=202610021731';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610021825';
+import { cachedFetch } from './net.js?v=202610021825';
 
 const CELL = 0.1; // degrees (≈ 8 × 11 km): few requests, a massif's glaciers in a handful of cells
 const WFS = (s, w, n, e) => 'https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=BDTOPO_V3:plan_d_eau&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=2000'

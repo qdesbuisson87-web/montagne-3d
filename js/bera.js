@@ -3,7 +3,7 @@
 // 16:00 from early November to late May. Besides the risk it carries what the forecasters know of the snow:
 // depth by altitude on north and south slopes, snow line, fresh snow of the last days. Nothing is computed or
 // guessed here: every figure is the bulletin's, with its date. The last bulletin is kept for offline use.
-import { timedFetch } from './net.js?v=202610031135';
+import { timedFetch } from './net.js?v=202610031153';
 
 const API = id => `https://public-api.meteofrance.fr/public/DPBRA/v1/massif/BRA?id-massif=${id}&format=xml`;
 // the same bulletin as published on meteofrance.com (used only if the API answer cannot be read)

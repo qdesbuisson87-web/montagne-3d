@@ -1,37 +1,37 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610031135';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610031135';
-import { SITE, SITE_LIST } from './sites.js?v=202610031135';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610031135';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610031135';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610031135';
-import { searchPlaces } from './search.js?v=202610031135';
-import { TerrainShadows } from './shadows.js?v=202610031135';
-import { PostFX } from './post.js?v=202610031135';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610031135';
-import { Forest } from './forest.js?v=202610031135';
-import { Lakes } from './water.js?v=202610031135';
-import { Glaciers } from './glaciers.js?v=202610031135';
-import { makeSite, removeSite } from './custom.js?v=202610031135';
-import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610031135';
-import { Streams } from './streams.js?v=202610031135';
-import { Refuges } from './refuges.js?v=202610031135';
-import { NightLights } from './lights.js?v=202610031135';
-import { Buildings } from './buildings.js?v=202610031135';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610031135';
-import { TrackRecorder, progressOn } from './track.js?v=202610031135';
-import { GpsTracker } from './gps.js?v=202610031135';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610031135';
-import { walkingRoute } from './planner.js?v=202610031135';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610031135';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610031135';
-import { TrailsLayer } from './trails.js?v=202610031135';
-import { Weather3D } from './weather3d.js?v=202610031135';
-import { Sight } from './sight.js?v=202610031135';
-import { Photos360 } from './photos360.js?v=202610031135';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610031135';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610031135';
-import { VolumeClouds } from './clouds.js?v=202610031135';
+import { EarthControls } from './controls.js?v=202610031153';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610031153';
+import { SITE, SITE_LIST } from './sites.js?v=202610031153';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610031153';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610031153';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610031153';
+import { searchPlaces } from './search.js?v=202610031153';
+import { TerrainShadows } from './shadows.js?v=202610031153';
+import { PostFX } from './post.js?v=202610031153';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610031153';
+import { Forest } from './forest.js?v=202610031153';
+import { Lakes } from './water.js?v=202610031153';
+import { Glaciers } from './glaciers.js?v=202610031153';
+import { makeSite, removeSite } from './custom.js?v=202610031153';
+import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610031153';
+import { Streams } from './streams.js?v=202610031153';
+import { Refuges } from './refuges.js?v=202610031153';
+import { NightLights } from './lights.js?v=202610031153';
+import { Buildings } from './buildings.js?v=202610031153';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610031153';
+import { TrackRecorder, progressOn } from './track.js?v=202610031153';
+import { GpsTracker } from './gps.js?v=202610031153';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610031153';
+import { walkingRoute } from './planner.js?v=202610031153';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610031153';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610031153';
+import { TrailsLayer } from './trails.js?v=202610031153';
+import { Weather3D } from './weather3d.js?v=202610031153';
+import { Sight } from './sight.js?v=202610031153';
+import { Photos360 } from './photos360.js?v=202610031153';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610031153';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610031153';
+import { VolumeClouds } from './clouds.js?v=202610031153';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -2198,11 +2198,18 @@ function updateLabels() {
       const dx = p.x - cam.x, dy = y - cam.y, dz = p.z - cam.z, L = Math.hypot(dx, dy, dz);
       // water points, tricky passages and waterfalls only close by (like on a paper map), huts within 9 km
       const far = p.rinfo?.kind === 'eau' || p.rinfo?.kind === 'passage' || p.fall ? 3000 : p.small ? 9000 : p.area ? 14000 : 40000;
-      let hid = L > far || L < 60;
-      for (let s = 1; s < 48 && !hid; s++) { const f = s / 48 * 0.94, g = groundAt(cam.x + dx * f, cam.z + dz * f); if (g != null && g * state.exag > cam.y + dy * f + 12) hid = true; }
-      p.hidden = hid;
+      // The answer hesitated on ridge edges and at the summit itself (the line of sight grazing the rock): names
+      // blinked several times a second (measured: 399 changes in 25 s for the Aiguille du Midi). So: a margin
+      // that differs to hide and to show again, the last 80 m before the name ignored (its own summit), a change
+      // only once three checks in a row agree (about half a second).
+      const was = !!p.hidden, margin = (was ? -4 : 12) + L * 0.004, fEnd = Math.min(0.94, 1 - 80 / L);
+      let hid = L > far * (was ? 0.95 : 1.05) || L < 60;
+      for (let s = 1; s < 48 && !hid; s++) { const f = s / 48 * fEnd, g = groundAt(cam.x + dx * f, cam.z + dz * f); if (g != null && g * state.exag > cam.y + dy * f + margin) hid = true; }
+      if (hid !== was) { if ((p.flip = (p.flip || 0) + 1) >= 3) { p.hidden = hid; p.flip = 0; } } else p.flip = 0;
     }
-    p.el.classList.toggle('hidden', !on || !!p.hidden || (p.hut && !trails.on));
+    // always a true/false: toggle(name, undefined) flips the class instead, and every summit name (p.hut undefined)
+    // blinked at the frame rate
+    p.el.classList.toggle('hidden', !on || !!p.hidden || !!(p.hut && !trails.on));
     if (on) p.el.style.transform = `translate(${(proj.x * 0.5 + 0.5) * w}px, ${(-proj.y * 0.5 + 0.5) * h}px)`;
   });
 }
@@ -2374,7 +2381,7 @@ $('linesBtn').addEventListener('click', () => {
 });
 for (const id of ['c-trails', 'c-streams']) $(id).addEventListener('change', syncLinesBtn);
 syncLinesBtn();
-window.midi3d = { engine, google, camera, controls, adapt, applyScale, forest, lakes, shadows, gps, route, sight, lidar, post, U, state, prof,
+window.midi3d = { engine, google, camera, controls, adapt, places: PLACES, applyScale, forest, lakes, shadows, gps, route, sight, lidar, post, U, state, prof,
   set overcast(v) { overcast = v; U.haze.value = v; updateSky(); } }; // handy for debugging from the console
 updateSky(); frame(); refreshLive();
 // every 15 minutes while on screen, and at once when the app comes back after being away that long

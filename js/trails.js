@@ -6,8 +6,8 @@ import * as THREE from 'three';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
 import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610030113';
-import { cachedFetch } from './net.js?v=202610030113';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610031135';
+import { cachedFetch } from './net.js?v=202610031135';
 
 const CELL = 0.04, RANGE = 5000, SHOW = 6500; // metres: fat lines cost on phones, the far ones were barely visible
 const WFS = (layer, cql, [s, w, n, e]) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=${layer}&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=5000`
@@ -82,6 +82,9 @@ export class TrailsLayer {
     this.group.visible = this.on && !hidden; if (!this.group.visible) return;
     if (frameN % 50 === 0) this.ensure(target.x, target.z);
     const now = performance.now(), c = camera.position, reExag = exag !== this.exag; this.exag = exag;
+    // cells far behind are freed (graphics memory would otherwise grow all along a long trip); back there, they
+    // come again from the device's cache
+    if (frameN % 300 === 150) for (const [k, cell] of this.cells) if (Math.hypot(cell.cx - c.x, cell.cz - c.z) > 25000) { cell.meshes.forEach(m => { this.group.remove(m); m.geometry.dispose(); }); this.cells.delete(k); }
     let budget = 1; // one cell re-laid per frame at most: no stutter
     for (const cell of this.cells.values()) {
       const vis = Math.hypot(cell.cx - c.x, cell.cz - c.z) < SHOW;

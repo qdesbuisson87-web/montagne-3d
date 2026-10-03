@@ -3,7 +3,7 @@
 // altitudes), the weather is taken at four heights (the point, the highest summit, mid-slope, the lowest inhabited
 // place nearby), and the avalanche bulletin's massif is found with the owner's Météo-France key when there is one.
 // Read back by sites.js on the next opening (?site=<id>).
-import { cachedFetch } from './net.js?v=202610030113';
+import { cachedFetch, timedFetch } from './net.js?v=202610031135';
 const STORE = 'midi3d-custom-sites';
 const WFS = (layer, cql, [w, s, e, n]) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=${layer}&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=500`
   + `&CQL_FILTER=${encodeURIComponent(`${cql} AND BBOX(geometrie,${w},${s},${e},${n},'EPSG:4326')`)}`;
@@ -21,7 +21,7 @@ export function removeSite(id) { const all = customSites(); delete all[id]; try 
 async function braAt(lon, lat, key) {
   if (!key) return null;
   try {
-    const r = await fetch('https://public-api.meteofrance.fr/public/DPBRA/v1/liste-massifs', { headers: { apikey: key } }); if (!r.ok) return null;
+    const r = await timedFetch('https://public-api.meteofrance.fr/public/DPBRA/v1/liste-massifs', { headers: { apikey: key } }, 20000); if (!r.ok) return null;
     const g = await r.json(), inRing = (ring) => { let c = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const [xi, yi] = ring[i], [xj, yj] = ring[j]; if ((yi > lat) !== (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) c = !c; } return c; };
     for (const f of g.features ?? []) {
       const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;

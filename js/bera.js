@@ -3,6 +3,8 @@
 // 16:00 from early November to late May. Besides the risk it carries what the forecasters know of the snow:
 // depth by altitude on north and south slopes, snow line, fresh snow of the last days. Nothing is computed or
 // guessed here: every figure is the bulletin's, with its date. The last bulletin is kept for offline use.
+import { timedFetch } from './net.js?v=202610031135';
+
 const API = id => `https://public-api.meteofrance.fr/public/DPBRA/v1/massif/BRA?id-massif=${id}&format=xml`;
 // the same bulletin as published on meteofrance.com (used only if the API answer cannot be read)
 const PUBLIC = id => `https://api.meteofrance.com/files/mountain/bulletins/BRA${String(id).padStart(2, '0')}.xml`;
@@ -59,7 +61,7 @@ function parse(text) {
 export async function fetchBera(massifId) {
   const key = beraKey.get(); if (!key) throw new BeraError('nokey', 'clé Météo-France absente');
   let r;
-  try { r = await fetch(API(massifId), { headers: { apikey: key } }); }
+  try { r = await timedFetch(API(massifId), { headers: { apikey: key } }, 20000); }
   catch {
     const saved = (() => { try { return localStorage.getItem(STORE(massifId)); } catch { return null; } })();
     if (saved) return { ...parse(saved), offline: true };
@@ -78,7 +80,7 @@ export async function fetchBera(massifId) {
   try { b = parse(xml); }
   catch (e) {
     // the key works but the answer is not a bulletin: take the same bulletin from Météo-France's public file
-    const pub = await fetch(PUBLIC(massifId)).then(p => p.ok ? p.text() : null).catch(() => null);
+    const pub = await timedFetch(PUBLIC(massifId), {}, 20000).then(p => p.ok ? p.text() : null).catch(() => null);
     if (!pub) throw e;
     b = { ...parse(pub), source: 'public' };
     try { localStorage.setItem(STORE(massifId), pub); } catch { }

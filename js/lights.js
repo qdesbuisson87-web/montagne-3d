@@ -3,8 +3,8 @@
 // the final image pass makes shine; near the eye (where buildings stand in 3D) they fade out and the lit
 // windows of buildings.js take over. Fetched only at night, by cells of ≈ 3 × 4.5 km, kept for offline use.
 import * as THREE from 'three';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610030113';
-import { cachedFetch } from './net.js?v=202610030113';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610031135';
+import { cachedFetch } from './net.js?v=202610031135';
 
 const CELL = 0.04, RANGE = 15000;
 const WFS = (s, w, n, e) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=BDTOPO_V3:batiment&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=10000&PROPERTYNAME=geometrie,usage_1,nombre_de_logements&BBOX=${s},${w},${n},${e},urn:ogc:def:crs:EPSG::4326`;
@@ -40,6 +40,7 @@ export class NightLights {
     for (let a = Math.floor((lat - dLat) / CELL); a <= Math.floor((lat + dLat) / CELL); a++) for (let b = Math.floor((lon - dLon) / CELL); b <= Math.floor((lon + dLon) / CELL); b++) {
       const key = `${a}/${b}`; if (this.cells.has(key)) continue;
       const cell = { pts: null, mesh: null, draped: 0 }; this.cells.set(key, cell);
+      [cell.cx, cell.cz] = lonLatToWorld((b + 0.5) * CELL, (a + 0.5) * CELL);
       cachedFetch(WFS(a * CELL, b * CELL, (a + 1) * CELL, (b + 1) * CELL)).then(r => r.ok ? r.json() : null).then(j => {
         if (!j) { this.cells.delete(key); return; }
         cell.pts = [];
@@ -83,6 +84,8 @@ export class NightLights {
     this.group.visible = night > 0.01 && !hidden; if (!this.group.visible) return;
     this.u.px.value = 2.2 * Math.min(2, this.renderer.getPixelRatio());
     if (frameN % 90 === 0) this.ensure(target.x, target.z);
+    // cells far behind are freed (see trails.js)
+    if (frameN % 300 === 170) for (const [k, cell] of this.cells) if (Math.hypot(cell.cx - target.x, cell.cz - target.z) > 40000) { if (cell.mesh) { this.group.remove(cell.mesh); cell.mesh.geometry.dispose(); } this.cells.delete(k); }
     const now = performance.now(); let budget = 2; // a couple of cells re-laid per frame at most
     for (const cell of [...this.cells.values(), ...(this.huts ? [this.huts] : [])]) {
       if (!cell.pts || budget <= 0) continue;

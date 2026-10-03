@@ -28,7 +28,7 @@ le temps et les tokens nécessaires. Ne jamais sacrifier la qualité pour aller 
 ## Architecture
 - `js/sites.js` : un objet par massif (origine, zone chargée, zone « cœur », points météo top/peak2/mid/valley, lieux, téléphérique, liens). Ajouter un sommet = ajouter une entrée.
 - `js/geo.js` : Web Mercator (tuiles), repère local en mètres (origine = sommet, x est, z sud, y altitude), Lambert-93 pour l'IGN.
-- `js/net.js` : accès réseau des tuiles. Cache Storage d'abord (`midi3d-tiles-v1`, hors ligne), puis file d'attente polie par service (IGN WMS-R, IGN WMTS, Planetary Computer) avec débit adaptatif (AIMD) et nouvelles tentatives sur 429/5xx. `TransientError` = pas de réponse maintenant (hors ligne, refus) : la tuile est retentée plus tard et le parent reste affiché, jamais remplacé par une donnée de repli. Mesuré : le WMS-R IGN refuse (429) au-delà d'environ 40 requêtes en rafale ; avant ce module, 146 tuiles sur 200 retombaient pour de bon sur le relief parent.
+- `js/net.js` : accès réseau des tuiles. Cache Storage d'abord (`midi3d-tiles-v1`, hors ligne), puis file d'attente polie par service (IGN WMS-R, WMTS, WFS, itinéraires, reste de la Géoplateforme, Planetary Computer, Géorisques, téléchargement LiDAR) avec débit adaptatif, délai d'abandon (`timedFetch`) (AIMD) et nouvelles tentatives sur 429/5xx. `TransientError` = pas de réponse maintenant (hors ligne, refus) : la tuile est retentée plus tard et le parent reste affiché, jamais remplacé par une donnée de repli. Mesuré : le WMS-R IGN refuse (429) au-delà d'environ 40 requêtes en rafale ; avant ce module, 146 tuiles sur 200 retombaient pour de bon sur le relief parent.
 - `js/terrain.js` : moteur de streaming en quadtree de tuiles Web Mercator, du zoom 11 au 19, chaque tuile = maillage 64×64 + jupes.
   - chaque tuile charge une grille 67×67 (anneau d'un échantillon au-delà du bord, pris dans la marge de la requête LiDAR, sinon extrapolé) : normales et pentes sans raccord entre tuiles. L'URL LiDAR ne dépend que de la tuile, les caches existants restent valides.
   - texture de pente par tuile (RG16F, gradient du sol en vrais mètres, sans l'exagération), interpolée par pixel. `engine.slopeAt(x, z)` → degrés, orientation, pas de mesure, source du relief (`tile.src` : lidar / rge / global).
@@ -182,6 +182,40 @@ Ordre suivi : camptocamp, forêts et saisons, remonter le temps, suivi en sortie
 - `THREE.Clock` (obsolète) → `THREE.Timer`, relié à la visibilité de la page (sauf `?debugloop`).
 - Testé dans le navigateur intégré (sans erreur dans la console), en vérifiant automatiquement qu'aucun élément ne sort de l'écran ni n'en chevauche un autre (fermé, panneau ouvert, tracé, choix d'un point), aux tailles 320×568, 344×882 (Fold fermé), 375×812, 390×844, 667×375 et 844×390 (paysage), 690×829, 884×1104 (Fold ouvert), 1280×800. Également testé : tracé réel Lac Blanc → La Flégère (3,35 km, −533 m, 1 h 35, sur le sentier), annuler / terminer / abandonner, A → B automatique, ligne de vue, altitude choisie, catalogue, topos.
 - PAS testé : vrais doigts sur iPhone / Samsung / Fold, vibreur, zones sûres réelles (encoche), pliant en deux moitiés, i/s réels.
+
+### Solidité : relecture complète du code (03/10/2026, demande : « plus de solidité, vérifie tout »)
+Relecture de tous les modules ; défauts trouvés et corrigés :
+- **Requêtes sans fin** : sur un signal faible, une requête peut rester ouverte des minutes et gardait sa place dans la file polie ; quelques-unes figeaient le chargement du relief. `timedFetch` (net.js) abandonne :
+  - après 30 s pour les tuiles ;
+  - après 20 s pour la météo, le bulletin et la liste des massifs ;
+  - après 15 s pour la recherche.
+  Une requête abandonnée est traitée comme une panne réseau, donc retentée plus tard.
+- **Tuile chargée deux fois** (terrain.js) : une tuile effacée en plein chargement (changement d'époque des photos, racines libérées), puis redemandée, pouvait finir deux chargements et laisser un maillage que personne ne libère. Chaque chargement a maintenant un numéro (`gen`), et seul le dernier construit.
+- **Mémoire graphique qui grossissait sans fin** pendant une longue navigation, désormais libérée quand elle n'est plus utile :
+  - images satellite et forêt : comptage des tuiles qui s'en servent (`users`, `releaseOverlays`), libérées quand plus aucune ne les utilise ;
+  - sentiers et torrents : cellules à plus de 25 km ;
+  - lumières de nuit : cellules à plus de 40 km ;
+  - lacs : maillages à plus de 40 km, reconstruits au retour.
+- **Rafraîchissement toutes les 15 min** :
+  - il retéléchargeait toutes les images de neige satellite (la neige disparaissait le temps du chargement) et ramenait le film de l'enneigement à la dernière image ;
+  - maintenant : même passage = rien à refaire (`setOverlayItem`), le film n'est plus touché (`film.away`), et la recherche satellite n'a lieu qu'à l'ouverture puis toutes les 3 h (un passage tous les 2 à 5 jours) ;
+  - un seul rafraîchissement à la fois ; mise à jour dès le retour dans l'appli après 15 min d'absence, et dès le retour du réseau.
+- **Hors ligne** :
+  - la dernière météo et les derniers passages satellite sont gardés (localStorage `midi3d-weather-<site>`, `midi3d-s2-<site>`, ~30 Ko) ;
+  - sans réseau, ils s'affichent avec leur date et un avertissement, au lieu de « Météo indisponible » ;
+  - une mise à jour ratée ne remplace plus la météo affichée par un message d'erreur ;
+  - les tuiles de neige du passage retenu sont gardées dans le cache (`overlay.keepId`), pas celles du film (elles rempliraient l'appareil) ;
+  - messages d'erreur réseau en français (`why()` : « pas de réseau », « le réseau ne répond pas »).
+- **Service hors ligne (sw.js v34)** :
+  - avant, un seul fichier en échec à l'installation (le serveur de code tiers qui hoquette) faisait perdre tout le hors-ligne ; chaque fichier est maintenant mis en cache séparément ;
+  - les fichiers de pistes de ski ont été ajoutés.
+  - Testé : serveur local arrêté, l'appli redémarre depuis le cache (261 tuiles, aucune erreur).
+- **Gestes** :
+  - trois doigts posés puis un levé : plus de saut (le geste à deux doigts repart des doigts restants) ;
+  - en mode tracé, un double toucher (zoom) ou un doigt qui hésite au même endroit (< 12 px) n'ajoute plus d'étape en double.
+- Valeur satellite d'un point : passe par la file polie (délai d'abandon) et reste gardée pour le hors-ligne.
+- Retesté après tout ça, sans erreur dans la console : tracé Flégère → Lac Blanc (double toucher ignoré), neige du jour (362 tuiles sur 403), mise en page 390×844 sans chevauchement, coupure réseau simulée (météo gardée affichée avec l'avertissement).
+- PAS testé : vraie montagne sans réseau sur un téléphone, réseau très lent réel.
 
 ### Plus beau (01/10/2026, « fais tout ça » : creux, lumière, nuages, glaciers, nuit, couleurs)
 1. Ombrage des creux (`shadows.js`, passe `aoFS`) : sur les cartes de hauteur des deux cascades (6 et 48 km), visibilité du ciel = moyenne sur 8/10/16 directions de cos²(horizon au-dessus du plan tangent), recherche jusqu'à 10 km (pas ×1,3). Plan tangent sur ±3 texels et hauteur de départ = max sur ±1 texel (`hTop`) : sinon les jointures de tuiles (sillon d'un texel où la jupe apparaît) faisaient des lignes sombres ; même correction pour les ombres portées. `skyVis(w)` dans SCENE_GLSL : mode Photo ×mix(1, V, 0,45) ; Soleil réel : lumière du ciel ×V, soleil ×mix(1, V, 0,25). Arbres, bâtiments, points LiDAR aussi. Calculé dans les deux lumières, seulement quand la vue bouge ou que des tuiles arrivent.

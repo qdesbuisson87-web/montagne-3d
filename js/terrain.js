@@ -2,12 +2,12 @@
 // elevation grid and photo. Close to the camera the tree goes down to zoom 19 (IGN photos 20 cm,
 // LiDAR HD elevation); far away it stays coarse. Nothing is pre-packaged: every tile is fetched live.
 import * as THREE from 'three';
-import { tileMerc, mercToWorld, mercToLonLat, worldToLonLat, lonLatToL93, lonLatToTile, K } from './geo.js?v=202610030113';
-import { cachedFetch, TransientError } from './net.js?v=202610030113';
+import { tileMerc, mercToWorld, mercToLonLat, worldToLonLat, lonLatToL93, lonLatToTile, K } from './geo.js?v=202610031135';
+import { cachedFetch, TransientError } from './net.js?v=202610031135';
 // avalanches of the past (CLPA, INRAE/IGN, served by Géorisques): areas seen on aerial photos and in the field
 // (magenta) and from witnesses (orange), as the map draws them
 const CLPA_WMS = ([x0, y0, x1, y1]) => `https://mapsref.brgm.fr/wxs/georisques/risques?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=CLPA_interpretation,CLPA_temoignage&STYLES=&CRS=EPSG:3857&BBOX=${x0},${y0},${x1},${y1}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true`;
-import { FOREST_WMS, decodeForest } from './foresttypes.js?v=202610030113';
+import { FOREST_WMS, decodeForest } from './foresttypes.js?v=202610031135';
 
 // NE: the grid plus a one-sample ring taken beyond the tile edge, so that normals and slopes at the edge
 // use the same central differences as the neighbour tile does (no seam in lighting or slope colours)
@@ -126,10 +126,13 @@ class Tile {
   }
 
   async load() {
+    // each load has its own number: a tile disposed while loading (new photo period, roots dropped) and asked for
+    // again starts a second load, and only the latest may build (two would leave a mesh nobody frees)
+    const gen = this.gen = (this.gen || 0) + 1;
     this.state = 'loading';
     const [hr, pr] = await Promise.allSettled([this.loadHeights(), this.loadPhoto()]);
     const tex = pr.status === 'fulfilled' ? pr.value : null;
-    if (this.state !== 'loading') { tex?.dispose(); return; } // disposed meanwhile
+    if (this.state !== 'loading' || gen !== this.gen) { tex?.dispose(); return; } // disposed or reloaded meanwhile
     if ([hr, pr].some(r => r.status === 'rejected' && r.reason instanceof TransientError)) {
       // no answer for now (offline, server busy): the parent stays on screen and the tile is retried later
       tex?.dispose(); this.fails = (this.fails || 0) + 1;
@@ -279,7 +282,7 @@ class Tile {
     this.engine.onTileBuilt?.(this); // layers standing on the ground (forests…) hook here
   }
   dispose() {
-    this.engine.onTileDisposed?.(this);
+    this.engine.onTileDisposed?.(this); this.engine.releaseOverlays(this);
     if (this.mesh) {
       this.engine.group.remove(this.mesh);
       // detach the shared index/uv first so dispose() only frees this tile's own buffers
@@ -287,7 +290,7 @@ class Tile {
       const u = this.mesh.material.uniforms;
       this.mesh.geometry.dispose(); u.map.value?.dispose(); u.slopeMap.value?.dispose(); this.mesh.material.dispose(); this.mesh = null;
     }
-    this.h = null; this.state = 'idle';
+    this.h = null; this.state = 'idle'; this.gen = (this.gen || 0) + 1;
   }
 }
 
@@ -369,6 +372,7 @@ export class TerrainEngine {
   // vis: true colours of the day, used to re-colour the 20 cm photo rather than to replace it
   // forest: what grows in the forests (IGN BD Forêt, foresttypes.js), for the colours of the season; not a satellite image
   setOverlayItem(item) {
+    if (item?.id === this.overlay.item?.id) return; // the same pass: its tiles are already there
     this.overlay.item = item;
     for (const [k, o] of this.overlay.cache) if (o.kind !== 'forest') { o.tex?.dispose(); this.overlay.cache.delete(k); this.overlay.pending.delete(k); }
     this.forEachReady(t => this.attachOverlays(t));
@@ -384,7 +388,10 @@ export class TerrainEngine {
     return base + '&assets=visual&asset_bidx=visual%7C1%2C2%2C3&nodata=0';
   }
   async overlayTexture(kind, z, x, y) {
-    let bm = await fetchBitmap(this.overlayUrl(kind, z, x, y), kind === 'forest' || kind === 'clpa'); // maps that do not change: kept offline
+    // maps that do not change are kept offline, and so are the tiles of the pass chosen to be kept (today's snow);
+    // not those of every date of the snow film, which would fill the device
+    const keep = kind === 'forest' || kind === 'clpa' || this.overlay.item?.id === this.overlay.keepId;
+    let bm = await fetchBitmap(this.overlayUrl(kind, z, x, y), keep);
     if (kind === 'forest') { // legend colours -> shares of broadleaf, larch, pine (foresttypes.js)
       const cv = document.createElement('canvas'); cv.width = cv.height = 256; const c = cv.getContext('2d', { willReadFrequently: true });
       c.drawImage(bm, 0, 0); const img = c.getImageData(0, 0, 256, 256); img.data.set(decodeForest(img.data)); c.putImageData(img, 0, 0);
@@ -430,6 +437,7 @@ export class TerrainEngine {
     u.clpaRect.value.set((t.x % cf) / cf, (t.y % cf) / cf, 1 / cf, 1 / cf);
     // only ask for tiles that the satellite image covers (outside its footprint the server answers 404)
     const covered = !this.overlay.item || footprintCovers(this.overlay.item, oz, ox, oy);
+    this.releaseOverlays(t);
     for (const [kind, on] of Object.entries(kinds)) {
       const has = 'has' + kind[0].toUpperCase() + kind.slice(1), map = kind + 'Map';
       const sat = kind !== 'forest' && kind !== 'clpa'; // the satellite overlays need a pass that covers the tile
@@ -439,8 +447,9 @@ export class TerrainEngine {
       let o = this.overlay.cache.get(key);
       if (!o) { // queued; pumpOverlays() starts the ones nearest the camera first
         const m = tileMerc(kz, kx, ky), [mx, mz] = mercToWorld((m.minx + m.maxx) / 2, (m.miny + m.maxy) / 2);
-        o = { tex: null, waiters: [], kind, oz: kz, ox: kx, oy: ky, cx: mx, cz: mz, started: false }; this.overlay.cache.set(key, o); this.overlay.pending.add(key);
+        o = { tex: null, waiters: [], users: new Set(), kind, oz: kz, ox: kx, oy: ky, cx: mx, cz: mz, started: false }; this.overlay.cache.set(key, o); this.overlay.pending.add(key);
       }
+      o.users.add(t); t.ovUsed.push(o);
       const apply = () => { if (!t.mesh) return; u[map].value = o.tex; u[has].value = 1; };
       if (o.tex) apply(); else { u[has].value = 0; o.waiters.push(apply); }
     }
@@ -464,6 +473,7 @@ export class TerrainEngine {
       w.t.load().catch(() => { w.t.state = 'idle'; }).finally(() => { this.loading--; });
     }
     if (this.frame % 30 === 0) this.evict();
+    if (this.frame % 600 === 0) this.evictOverlays();
     if (this.frame % 5 === 0) this.pumpOverlays();
     for (const m of this.drawn) m.visible = true;
   }
@@ -493,6 +503,15 @@ export class TerrainEngine {
       const t = all[i]; if (this.frame - t.lastSeen < 90) break;
       const kill = n => { n.children?.forEach(kill); n.children = null; n.dispose(); };
       kill(t);
+    }
+  }
+  // overlay tiles no relief tile uses any more (its tiles were evicted, or the camera went elsewhere) are freed
+  // from the graphics memory; needed again, they come back (from the device's cache for most of them)
+  releaseOverlays(t) { for (const o of t.ovUsed ?? []) o.users.delete(t); t.ovUsed = []; }
+  evictOverlays() {
+    for (const [k, o] of this.overlay.cache) {
+      if (o.users.size || (o.started && !o.tex)) continue; // (in flight: left to finish)
+      o.tex?.dispose(); this.overlay.cache.delete(k); this.overlay.pending.delete(k);
     }
   }
   setExaggeration(e) { this.exag = e; }

@@ -352,7 +352,7 @@ tbody th { font-weight: 600; text-transform: capitalize; }
 .bera .rose { width: 86px; height: 86px; flex: none; }
 .bera .rose path { stroke: rgba(255,255,255,.35); stroke-width: 1; }
 .bera .rose text { font: 500 8.5px "IBM Plex Mono", monospace; fill: var(--muted); }
-.bera .stale { color: var(--amber); }
+.stale { color: var(--amber); }
 .bera table td, .bera table th { padding: 4px 6px; }
 .bera details { margin: 8px 0; }
 .bera summary { cursor: pointer; font-size: 13.5px; min-height: 44px; display: flex; align-items: center; }

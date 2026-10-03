@@ -3,8 +3,8 @@
 // the sun's glint and, for the nearest lake (Haute / Extrême quality), a true mirror of the mountains.
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610030113';
-import { cachedFetch } from './net.js?v=202610030113';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610031135';
+import { cachedFetch } from './net.js?v=202610031135';
 
 const CELL = 0.04; // degrees: lakes are fetched by cells of ≈ 3 × 4.5 km
 const WFS = (s, w, n, e) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=BDTOPO_V3:plan_d_eau&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=500&BBOX=${s},${w},${n},${e},urn:ogc:def:crs:EPSG::4326`;
@@ -93,8 +93,13 @@ export class Lakes {
     let nearest = null, best = Infinity;
     for (const l of this.lakes.values()) {
       const d = Math.hypot(l.cx - camera.position.x, l.cz - camera.position.z) - l.radius;
-      if (d > 20000) { if (l.mesh) l.mesh.visible = false; continue; }
-      if (!l.locked && frameN % 30 === 0) { const r = this.level(l); if (r) { l.level = r.h + 0.15; l.locked = !r.coarse; if (!l.mesh) this.build(l); } }
+      if (d > 20000) {
+        // far behind: its mesh is freed (the outline and level are kept, it is rebuilt when one comes back)
+        if (l.mesh && d > 40000 && l !== this.mirror?.userData.lake) { this.group.remove(l.mesh); l.mesh.geometry.dispose(); l.mesh = null; }
+        if (l.mesh) l.mesh.visible = false; continue;
+      }
+      if (!l.locked && frameN % 30 === 0) { const r = this.level(l); if (r) { l.level = r.h + 0.15; l.locked = !r.coarse; } }
+      if (!l.mesh && l.level != null) this.build(l);
       if (!l.mesh) continue;
       l.mesh.visible = true; l.mesh.position.y = l.level * exag;
       if (d < best && l.radius > 40) { best = d; nearest = l; }

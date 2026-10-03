@@ -1,42 +1,44 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610030113';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610030113';
-import { SITE, SITE_LIST } from './sites.js?v=202610030113';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610030113';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610030113';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610030113';
-import { searchPlaces } from './search.js?v=202610030113';
-import { TerrainShadows } from './shadows.js?v=202610030113';
-import { PostFX } from './post.js?v=202610030113';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610030113';
-import { Forest } from './forest.js?v=202610030113';
-import { Lakes } from './water.js?v=202610030113';
-import { Glaciers } from './glaciers.js?v=202610030113';
-import { makeSite, removeSite } from './custom.js?v=202610030113';
-import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610030113';
-import { Streams } from './streams.js?v=202610030113';
-import { Refuges } from './refuges.js?v=202610030113';
-import { NightLights } from './lights.js?v=202610030113';
-import { Buildings } from './buildings.js?v=202610030113';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610030113';
-import { TrackRecorder, progressOn } from './track.js?v=202610030113';
-import { GpsTracker } from './gps.js?v=202610030113';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610030113';
-import { walkingRoute } from './planner.js?v=202610030113';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610030113';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610030113';
-import { TrailsLayer } from './trails.js?v=202610030113';
-import { Weather3D } from './weather3d.js?v=202610030113';
-import { Sight } from './sight.js?v=202610030113';
-import { Photos360 } from './photos360.js?v=202610030113';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610030113';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610030113';
-import { VolumeClouds } from './clouds.js?v=202610030113';
+import { EarthControls } from './controls.js?v=202610031135';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610031135';
+import { SITE, SITE_LIST } from './sites.js?v=202610031135';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610031135';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610031135';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610031135';
+import { searchPlaces } from './search.js?v=202610031135';
+import { TerrainShadows } from './shadows.js?v=202610031135';
+import { PostFX } from './post.js?v=202610031135';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610031135';
+import { Forest } from './forest.js?v=202610031135';
+import { Lakes } from './water.js?v=202610031135';
+import { Glaciers } from './glaciers.js?v=202610031135';
+import { makeSite, removeSite } from './custom.js?v=202610031135';
+import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610031135';
+import { Streams } from './streams.js?v=202610031135';
+import { Refuges } from './refuges.js?v=202610031135';
+import { NightLights } from './lights.js?v=202610031135';
+import { Buildings } from './buildings.js?v=202610031135';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610031135';
+import { TrackRecorder, progressOn } from './track.js?v=202610031135';
+import { GpsTracker } from './gps.js?v=202610031135';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610031135';
+import { walkingRoute } from './planner.js?v=202610031135';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610031135';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610031135';
+import { TrailsLayer } from './trails.js?v=202610031135';
+import { Weather3D } from './weather3d.js?v=202610031135';
+import { Sight } from './sight.js?v=202610031135';
+import { Photos360 } from './photos360.js?v=202610031135';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610031135';
+import { fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610031135';
+import { VolumeClouds } from './clouds.js?v=202610031135';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
 const fmt = n => Math.round(n).toLocaleString('fr-FR');
 const t1 = v => (v == null || isNaN(v)) ? '—' : (Math.round(v * 10) / 10).toLocaleString('fr-FR');
+// an error said on screen: the browsers' network errors are technical English ("Failed to fetch", "Load failed")
+const why = e => { const m = String(e?.message ?? e ?? ''); return e?.name === 'AbortError' || /aborted/i.test(m) ? 'le réseau ne répond pas' : /fetch|network|load failed/i.test(m) ? 'pas de réseau' : m; };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
@@ -639,7 +641,7 @@ $('searchForm').addEventListener('submit', async e => {
       b.addEventListener('click', () => { lastSearch = p; flyToLonLat(p.lon, p.lat); closeIfCovering(); });
       $('results').appendChild(b);
     });
-  } catch (err) { $('searchNote').textContent = `Recherche impossible : ${err.message}.`; }
+  } catch (err) { $('searchNote').textContent = `Recherche impossible : ${why(err)}.`; }
 });
 
 // ---------- terrain queries ----------
@@ -785,7 +787,10 @@ function renderWeather() {
   if (wa) { const d = wa.dir * Math.PI / 180, v = wa.speed / 3.6; vclouds.setWind(Math.sin(d) * v, -Math.cos(d) * v); }
   const d = W.top.daily;
   const days = d.time.map((t, i) => `<tr><th>${dayName(new Date(t + 'T12:00'))}</th><td>${esc(WMO[d.weather_code[i]] || '—')}</td><td class="n">${Math.round(d.temperature_2m_min[i])}° / ${Math.round(d.temperature_2m_max[i])}°</td><td class="n">${d.snowfall_sum[i] > 0 ? t1(d.snowfall_sum[i]) + ' cm' : '—'}</td><td class="n">${Math.round(d.wind_gusts_10m_max[i])}</td></tr>`).join('');
-  el.innerHTML = `<p class="cmeta">Météo-France (AROME/ARPEGE) · reçu ${W.fetchedAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
+  const got = W.fetchedAt, today = got.toDateString() === new Date().toDateString();
+  const gotText = `${today ? '' : dayName(got) + ' '}${got.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+  el.innerHTML = `<p class="cmeta">Météo-France (AROME/ARPEGE) · reçu ${gotText}</p>
+    ${W.stale ? `<p class="cline stale">Pas de mise à jour possible (${navigator.onLine ? esc(W.stale) : 'hors ligne'}) : voici la météo reçue ${today ? 'à' : 'le'} ${gotText}, conditions « maintenant » de ce moment-là (${ago(got)}).</p>` : ''}
     <div class="spots">${spots}</div>
     <p class="cline"><b>Isotherme 0 °C</b> ${fz != null ? fmt(fz) + ' m' : '—'}${wa ? ` · <b>Vent vers ${fmt(wa.alt)} m</b> ${Math.round(wa.speed)} km/h de ${compass(wa.dir)}` : ''}</p>
     <p class="cline small">Affichables en 3D : Affichage → « Isotherme 0 °C » et « Vent en altitude » (prévision de l'heure, autour du massif).</p>
@@ -857,6 +862,7 @@ function renderSatellite() {
   if (!S) return;
   const { latest, clear } = S;
   let html = '';
+  if (S.stale) html += `<p class="cline stale">Pas de recherche possible (${navigator.onLine ? esc(S.stale) : 'hors ligne'}) : images trouvées lors de la dernière connexion.</p>`;
   if (latest) html += `<p class="cline">Dernier passage : <b>${dayName(latest.date)}</b> (${ago(latest.date)}), ${Math.round(latest.cloud * 100)} % de nuages sur le massif.</p>`;
   if (clear) {
     html += `<p class="cline">Dernière image nette : <b>${dayName(clear.date)}</b> (${ago(clear.date)}). C'est elle qui pose la neige du jour sur le relief, lissée et affinée au mètre avec le LiDAR.</p>`;
@@ -946,7 +952,7 @@ $('bera').addEventListener('click', e => { if (e.target.closest('[data-bera-key]
 // ---------- snow film: today's-snow layer switched from one clear pass of the year to the next ----------
 let film = null;
 function showFilmFrame(i) {
-  const e = film.list[i]; film.i = i; $('filmRange').value = i;
+  const e = film.list[i]; film.i = i; film.away = true; $('filmRange').value = i;
   $('filmDate').textContent = e.date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
   $('filmNote').textContent = `Passage du ${dayName(e.date)} · ${Math.round(e.cloudTile)} % de nuages sur la zone couverte par l'image (les nuages restants sont masqués). Les images arrivent en quelques secondes.`;
   if (!state.snowToday) { $('c-snowtoday').checked = true; $('c-snowtoday').dispatchEvent(new Event('change')); }
@@ -960,7 +966,7 @@ $('filmLoad').addEventListener('click', async () => {
     film = { list, i: list.length - 1, timer: null };
     $('filmRange').max = list.length - 1; $('film').hidden = false; $('filmLoad').hidden = true;
     showFilmFrame(list.length - 1);
-  } catch (err) { $('filmLoad').disabled = false; $('filmLoad').textContent = `Échec (${err.message}) — réessayer`; }
+  } catch (err) { $('filmLoad').disabled = false; $('filmLoad').textContent = `Échec (${why(err)}) — réessayer`; }
 });
 $('filmRange').addEventListener('input', e => showFilmFrame(+e.target.value));
 $('filmPlay').addEventListener('click', () => {
@@ -970,21 +976,44 @@ $('filmPlay').addEventListener('click', () => {
 });
 $('filmBack').addEventListener('click', () => {
   if (film?.timer) { clearInterval(film.timer); film.timer = null; $('filmPlay').textContent = 'Lecture'; }
+  if (film) film.away = false;
   if (state.s2?.clear) engine.setOverlayItem(state.s2.clear);
   $('filmNote').textContent = state.s2?.clear ? `Retour à la dernière image nette (${dayName(state.s2.clear.date)}).` : '';
 });
 
-async function refreshLive() {
+// The last weather and satellite answers are kept on the device: without network (in the mountains), the app
+// shows them with their date rather than nothing; a failed update keeps what is on screen, marked as old.
+const keepKey = k => `midi3d-${k}-${SITE.id}`;
+const keepSave = (k, v) => { try { localStorage.setItem(keepKey(k), JSON.stringify(v)); } catch { } };
+const keepLoad = k => { try { return JSON.parse(localStorage.getItem(keepKey(k)) || 'null'); } catch { return null; } };
+const reviveS2 = e => e && { ...e, date: new Date(e.date) };
+let s2At = 0, liveRun = null;
+// one update at a time (the timer, the app coming back and the button may ask together)
+function refreshLive() { return liveRun ??= refreshLiveNow().finally(() => { liveRun = null; }); }
+async function refreshLiveNow() {
   loadBera();
-  $('wx').innerHTML = '<p class="cmeta">Récupération de la météo…</p>';
-  try { state.weather = await fetchWeather(); renderWeather(); }
-  catch (e) { $('wx').innerHTML = `<p class="cline">Météo indisponible (${esc(e.message)}). Vérifiez la connexion.</p>`; }
-  $('sat').innerHTML = '<p class="cmeta">Recherche du dernier passage Sentinel-2…</p>';
+  if (!state.weather) $('wx').innerHTML = '<p class="cmeta">Récupération de la météo…</p>';
+  try { state.weather = await fetchWeather(); keepSave('weather', state.weather); renderWeather(); }
+  catch (e) {
+    const kept = state.weather ?? (w => w && { ...w, fetchedAt: new Date(w.fetchedAt) })(keepLoad('weather'));
+    if (kept) { state.weather = { ...kept, stale: why(e) }; renderWeather(); }
+    else $('wx').innerHTML = `<p class="cline">Météo indisponible (${esc(why(e))}) et aucune météo gardée sur cet appareil. Vérifie la connexion.</p>`;
+  }
+  // a satellite passes every 2 to 5 days: looked for at opening, then every 3 hours
+  if (state.s2 && !state.s2.stale && Date.now() - s2At < 3 * 3600e3) return;
+  if (!state.s2) $('sat').innerHTML = '<p class="cmeta">Recherche du dernier passage Sentinel-2…</p>';
   try {
-    state.s2 = await findSentinel(d => { $('sat').innerHTML = `<p class="cmeta">Analyse de l'image du ${dayName(new Date(d))}…</p>`; });
-    renderSatellite();
-    if (state.s2.clear) { engine.setOverlayItem(state.s2.clear); engine.setOverlay('snow', state.snowToday); engine.setOverlay('vis', state.render === 'sat'); }
-  } catch (e) { $('sat').innerHTML = `<p class="cline">Satellite indisponible (${esc(e.message)}).</p>`; }
+    state.s2 = await findSentinel(d => { if (!state.s2) $('sat').innerHTML = `<p class="cmeta">Analyse de l'image du ${dayName(new Date(d))}…</p>`; });
+    s2At = Date.now(); keepSave('s2', state.s2);
+  } catch (e) {
+    const kept = state.s2 ?? (s => s && { latest: reviveS2(s.latest), clear: reviveS2(s.clear) })(keepLoad('s2'));
+    if (!kept) { $('sat').innerHTML = `<p class="cline">Satellite indisponible (${esc(why(e))}) et aucune image gardée sur cet appareil.</p>`; return; }
+    state.s2 = { ...kept, stale: why(e) };
+  }
+  renderSatellite();
+  const c = state.s2.clear;
+  // the snow film shows a date of its own: left alone (the button "Revenir à la dernière image nette" comes back)
+  if (c && !film?.away) { engine.overlay.keepId = c.id; engine.setOverlayItem(c); engine.setOverlay('snow', state.snowToday); engine.setOverlay('vis', state.render === 'sat'); }
 }
 
 // ---------- UI ----------
@@ -1272,7 +1301,11 @@ async function pathStretch(a, b, tol, firstLeg) {
   }
 }
 function drawStep(x, z) {
-  const tol = Math.min(300, Math.max(25, 28 * metresPerPixel(x, z))), mark = { x, z }, gen = draw.gen;
+  const mpp = metresPerPixel(x, z), tol = Math.min(300, Math.max(25, 28 * mpp)), mark = { x, z }, gen = draw.gen;
+  // a touch on (almost) the same spot as the last step is not a new step: a double tap (which zooms in), or a
+  // finger that hesitated
+  const prev = draw.pending[draw.pending.length - 1] ?? (route.last && { x: route.last[0], z: route.last[1] });
+  if (prev && Math.hypot(prev.x - x, prev.z - z) < 12 * mpp) return;
   const live = () => draw.on && draw.gen === gen; // the same drawing still going on
   draw.busy++; draw.pending.push(mark); buzz(12); renderDraw();
   draw.q = draw.q.then(async () => {
@@ -1390,7 +1423,7 @@ $('plSearch').addEventListener('submit', async e => {
       b.addEventListener('click', () => { plan.to = { lon: p.lon, lat: p.lat, name: p.name }; $('plResults').innerHTML = ''; renderPlan(); flashEl('plTo'); planMaybe(); });
       $('plResults').appendChild(b);
     });
-  } catch (err) { $('plNote').textContent = `Recherche impossible : ${err.message}.`; }
+  } catch (err) { $('plNote').textContent = `Recherche impossible : ${why(err)}.`; }
 });
 function offPathNote(r, toName) {
   const bits = [];
@@ -1405,7 +1438,7 @@ async function planGo(from, to) {
     route.setPath(r.pts, `${from.name ?? 'Départ'} → ${to.name ?? 'Arrivée'}`);
     $('plNote').textContent = ['Itinéraire IGN sur sentiers et chemins : vérifie l\'état (neige, fermetures, difficulté) avant de partir.', offPathNote(r, to.name)].filter(Boolean).join(' ');
     routeReady('Itinéraire tracé');
-  } catch (err) { $('plNote').textContent = `Itinéraire impossible : ${err.message}.`; toast(`Itinéraire impossible : ${err.message}.`, true, 4500); }
+  } catch (err) { $('plNote').textContent = `Itinéraire impossible : ${why(err)}.`; toast(`Itinéraire impossible : ${why(err)}.`, true, 4500); }
   $('plGo').disabled = false;
 }
 $('plGo').addEventListener('click', () => {
@@ -1471,7 +1504,7 @@ document.querySelectorAll('[data-hk]').forEach(b => b.addEventListener('click', 
 $('hkBuild').addEventListener('click', async () => {
   if (hkBuilding) return; hkBuilding = new AbortController(); renderHikes(hkList.length, '…');
   try { hkList = await buildHikes(SITE, (list, done, total) => { hkList = list; renderHikes(done, total); }, hkBuilding.signal); }
-  catch (err) { $('hkInfo').textContent = `Construction impossible : ${err.message}. Réessaie avec du réseau.`; }
+  catch (err) { $('hkInfo').textContent = `Construction impossible : ${why(err)}. Réessaie avec du réseau.`; }
   hkBuilding = null; renderHikes();
 });
 renderHikes();
@@ -1879,7 +1912,7 @@ async function altitudeReport(lat, lon, alt, where) {
       <p class="cline">Maintenant : ${esc(WMO[c.weather_code] || '—')}${c.snowfall > 0 ? `, ${t1(c.snowfall)} cm/h de neige` : c.rain > 0 ? `, ${t1(c.rain)} mm/h de pluie` : ''} · min/max 24 h ${Math.round(f.tmin)}° / ${Math.round(f.tmax)}°${f.firstSnow ? ` · prochaine neige : ${new Date(f.firstSnow).toLocaleString('fr-FR', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}</p>
       ${sat}
       <p class="cnote">La hauteur totale de neige au sol n'est pas mesurée ici : les modèles sont trop peu fiables en haute montagne. Les cm affichés sont la neige fraîche prévue.</p>`;
-  } catch (e) { out.innerHTML = `<p class="cline">Prévision indisponible (${esc(e.message)}).</p>`; }
+  } catch (e) { out.innerHTML = `<p class="cline">Prévision indisponible (${esc(why(e))}).</p>`; }
 }
 $('altGo').addEventListener('click', () => {
   const a = Math.round(+$('altIn').value);
@@ -1905,7 +1938,7 @@ async function satSnowAt(lat, lon) {
   const [fx, fy] = lonLatToTile(lon, lat, 14), x = Math.floor(fx), y = Math.floor(fy);
   const px = Math.min(255, Math.floor((fx - x) * 256)), py = Math.min(255, Math.floor((fy - y) * 256));
   const read = async kind => {
-    const r = await fetch(engine.overlayUrl(kind, 14, x, y)); if (!r.ok) return null;
+    const r = await cachedFetch(engine.overlayUrl(kind, 14, x, y)); if (!r.ok) return null; // queued, timed out, kept for offline
     const bm = await createImageBitmap(await r.blob(), { premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
     const cv = document.createElement('canvas'); cv.width = cv.height = 3; const c = cv.getContext('2d', { willReadFrequently: true });
     c.drawImage(bm, Math.max(0, px - 1), Math.max(0, py - 1), 3, 3, 0, 0, 3, 3); const d = c.getImageData(0, 0, 3, 3).data;
@@ -1925,7 +1958,7 @@ async function pointReport(hit) {
     + sunlitText(hit.x, hit.z);
   $('ptTitle').textContent = `${fmt(hit.h)} m`;
   $('ptOut').innerHTML = meta + '<p class="cmeta">Récupération des conditions…</p>';
-  const [f, sat] = await Promise.all([pointForecast(lat, lon, hit.h).catch(e => ({ error: e.message })), satSnowAt(lat, lon).catch(() => null)]);
+  const [f, sat] = await Promise.all([pointForecast(lat, lon, hit.h).catch(e => ({ error: why(e) })), satSnowAt(lat, lon).catch(() => null)]);
   if (seq !== pinSeq) return;
   const cm = v => v >= 0.5 ? t1(v) + ' cm' : v > 0 ? 'traces' : '0 cm', mmv = v => v >= 0.2 ? t1(v) + ' mm' : '0 mm';
   let html = meta;
@@ -2344,7 +2377,10 @@ syncLinesBtn();
 window.midi3d = { engine, google, camera, controls, adapt, applyScale, forest, lakes, shadows, gps, route, sight, lidar, post, U, state, prof,
   set overcast(v) { overcast = v; U.haze.value = v; updateSky(); } }; // handy for debugging from the console
 updateSky(); frame(); refreshLive();
+// every 15 minutes while on screen, and at once when the app comes back after being away that long
 setInterval(() => { if (document.visibilityState === 'visible') refreshLive(); }, 15 * 60e3);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && state.weather && Date.now() - state.weather.fetchedAt > 15 * 60e3) refreshLive(); });
+addEventListener('online', () => { if (state.weather?.stale || state.s2?.stale) refreshLive(); }); // the network is back
 setTimeout(() => $('loader').classList.add('done'), 15000);
 
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => { });

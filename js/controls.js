@@ -91,12 +91,14 @@ export class EarthControls extends THREE.EventDispatcher {
       this.anchor = (e.button === 0 && !(e.ctrlKey || e.shiftKey || e.metaKey)) ? this.surface(e.clientX, e.clientY) : null;
       this.mode = this.anchor && !this.oneFingerOrbit ? 'pan' : 'orbit'; // right/middle button, a modifier key, the sky, or the turn mode
       this.prev = { x: e.clientX, y: e.clientY };
-    } else if (this.pointers.size === 2) {
-      const [a, b] = [...this.pointers.values()], mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-      this.mode = 'two'; this.twoMode = null; this.twoMoved = false;
-      this.anchor = this.surface(mx, my);
-      this.two = { d: Math.hypot(b.x - a.x, b.y - a.y), ang: Math.atan2(b.y - a.y, b.x - a.x), mx, my, my0: my, d0: Math.hypot(b.x - a.x, b.y - a.y), t0: performance.now() };
-    }
+    } else if (this.pointers.size === 2) this.startTwo();
+  }
+  // two fingers on the screen (also when a third one is lifted): the gesture starts from where they are now
+  startTwo() {
+    const [a, b] = [...this.pointers.values()], mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    this.mode = 'two'; this.twoMode = null; this.twoMoved = false;
+    this.anchor = this.surface(mx, my);
+    this.two = { d: Math.hypot(b.x - a.x, b.y - a.y), ang: Math.atan2(b.y - a.y, b.x - a.x), mx, my, my0: my, d0: Math.hypot(b.x - a.x, b.y - a.y), t0: performance.now() };
   }
   move(e) {
     const ptr = this.pointers.get(e.pointerId); if (!ptr || !this.enabled) return;
@@ -134,7 +136,8 @@ export class EarthControls extends THREE.EventDispatcher {
   }
   up(e) {
     const ptr = this.pointers.get(e.pointerId); this.pointers.delete(e.pointerId);
-    if (this.mode === 'two' && this.pointers.size === 1) {
+    if (this.pointers.size === 2) { this.begin(); this.startTwo(); this.twoMoved = true; } // three fingers down to two: no jump
+    else if (this.mode === 'two' && this.pointers.size === 1) {
       // a quick two-finger tap that did not move: zoom out, as in map apps
       if (!this.twoMoved && performance.now() - this.two.t0 < 300) { const c = this.surface(this.two.mx, this.two.my); if (c) this.zoomTo(c, 2.5); }
       const [p] = [...this.pointers.values()]; // back to one finger: carry on dragging from there

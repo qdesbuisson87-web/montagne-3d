@@ -7,8 +7,8 @@ import * as THREE from 'three';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
 import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610030113';
-import { cachedFetch } from './net.js?v=202610030113';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610031135';
+import { cachedFetch } from './net.js?v=202610031135';
 
 const CELL = 0.04, RANGE = 5000, SHOW = 5000;
 const WFS = (layer, cql, [s, w, n, e]) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=${layer}&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=5000`
@@ -72,6 +72,8 @@ export class Streams {
     if (frameN % 50 === 7) this.ensure(target.x, target.z);
     this.mats.permFlow.dashOffset -= dt * 3; // the water runs downstream (≈ 3 m/s)
     const now = performance.now(), c = camera.position, reExag = exag !== this.exag; this.exag = exag;
+    // cells far behind are freed (see trails.js)
+    if (frameN % 300 === 160) for (const [k, cell] of this.cells) if (Math.hypot(cell.cx - c.x, cell.cz - c.z) > 25000) { cell.meshes.forEach(m => { this.group.remove(m); m.geometry.dispose(); }); this.cells.delete(k); }
     let budget = 1;
     for (const cell of this.cells.values()) {
       const vis = Math.hypot(cell.cx - c.x, cell.cz - c.z) < SHOW;

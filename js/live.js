@@ -1,7 +1,8 @@
 // Live data, fetched every time the app opens: Météo-France forecasts (via Open-Meteo),
 // the latest Sentinel-2 pass and the latest clear one (Microsoft Planetary Computer), snow by altitude.
-import { lonLatToMerc, RE } from './geo.js?v=202610030113';
-import { SITE } from './sites.js?v=202610030113';
+import { lonLatToMerc, RE } from './geo.js?v=202610031135';
+import { SITE } from './sites.js?v=202610031135';
+import { timedFetch } from './net.js?v=202610031135';
 
 export const SPOTS = SITE.spots; // top, peak2, mid, valley
 // pressure levels (hPa) of the cloud profile: ≈ 1 500, 2 000, 3 000, 4 200, 5 600, 7 200 and 9 200 m
@@ -15,7 +16,7 @@ export function cloudProfile(extra, hourIso) {
   return out.length >= 3 ? out.sort((a, b) => a.alt - b.alt) : null;
 }
 const qs = o => new URLSearchParams(o).toString();
-async function json(url, opts) { const r = await fetch(url, opts); if (!r.ok) throw new Error(`${r.status} ${url.slice(0, 60)}`); return r.json(); }
+async function json(url, opts) { const r = await timedFetch(url, opts, 20000); if (!r.ok) throw new Error(`${r.status} ${url.slice(0, 60)}`); return r.json(); }
 
 export async function fetchWeather() {
   const common = { timezone: 'Europe/Paris', forecast_days: 4, models: 'meteofrance_seamless' };
@@ -60,7 +61,7 @@ const CORE = [...lonLatToMerc(SITE.core[0], SITE.core[1]), ...lonLatToMerc(SITE.
 const bboxPng = (item, asset, w, h) => `${PC}/data/v1/item/bbox/${CORE.join(',')}/${w}x${h}.png?` + qs({ collection: 'sentinel-2-l2a', item, assets: asset, nodata: 0, coord_crs: 'epsg:3857', dst_crs: 'epsg:3857', resampling: 'nearest' });
 
 async function decode(url) {
-  const r = await fetch(url); if (!r.ok) throw new Error(r.status);
+  const r = await timedFetch(url, {}, 30000); if (!r.ok) throw new Error(r.status);
   const bm = await createImageBitmap(await r.blob(), { premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
   const cv = document.createElement('canvas'); cv.width = bm.width; cv.height = bm.height;
   const c = cv.getContext('2d', { willReadFrequently: true }); c.drawImage(bm, 0, 0);

@@ -14,6 +14,13 @@ export const resetTileCache = () => { cacheP = null; };
 export class TransientError extends Error {}
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// A request that never answers (weak signal in the mountains: the phone keeps the connection open for minutes)
+// would hold its place in the queue for ever, and a few of them froze the loading of the relief: given up after
+// `ms` (until the answer starts to arrive), then treated as a network failure.
+export function timedFetch(url, init = {}, ms = 30000) {
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), ms);
+  return fetch(url, { ...init, signal: ctl.signal }).finally(() => clearTimeout(timer));
+}
 const RETRY = new Set([408, 425, 429, 500, 502, 503, 504]);
 
 class Lane {
@@ -59,7 +66,7 @@ export async function netFetch(url, attempts = 5, init = {}) {
     if (!navigator.onLine) throw new TransientError('hors ligne');
     if (lane) await lane.acquire();
     let r = null;
-    try { r = await fetch(url, { mode: 'cors', ...init }); } catch { r = null; } finally { lane?.release(); }
+    try { r = await timedFetch(url, { mode: 'cors', ...init }); } catch { r = null; } finally { lane?.release(); }
     if (r && !RETRY.has(r.status)) { lane?.ok(); return r; }
     if (r) lane?.refused(+r.headers.get('retry-after'));
     if (a + 1 >= attempts) throw new TransientError(r ? `${r.status}` : 'réseau');

@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610030113';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610031135';
 
 const STEP = 10, STORE = 'midi3d-route'; // metres between resampled points
 

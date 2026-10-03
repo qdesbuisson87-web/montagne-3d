@@ -2,6 +2,8 @@
 // Nominatim for the rest of the Alps, both biased towards what is on screen, then sorted by distance from it:
 // a name like "Grand Paradis" exists in many places, the one wanted is almost always the nearest.
 // Nominatim's rules (at most one request per second, no search-as-you-type) are met by searching on submit only.
+import { timedFetch } from './net.js?v=202610031135';
+
 const first = v => Array.isArray(v) ? v[0] : v;
 const km = (a, b) => { const r = Math.PI / 180, x = (b.lon - a.lon) * r * Math.cos((a.lat + b.lat) * r / 2), y = (b.lat - a.lat) * r; return Math.hypot(x, y) * 6371; };
 
@@ -10,8 +12,8 @@ export async function searchPlaces(q, near) {
   const box = [near.lon - 2, near.lat + 1.5, near.lon + 2, near.lat - 1.5].map(v => v.toFixed(3)).join(',');
   const osm = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&accept-language=fr&viewbox=${box}&q=${encodeURIComponent(q)}`;
   const [a, b] = await Promise.all([
-    fetch(ign).then(r => r.ok ? r.json() : null).catch(() => null),
-    fetch(osm).then(r => r.ok ? r.json() : null).catch(() => null)
+    timedFetch(ign, {}, 15000).then(r => r.ok ? r.json() : null).catch(() => null),
+    timedFetch(osm, {}, 15000).then(r => r.ok ? r.json() : null).catch(() => null)
   ]);
   if (!a && !b) throw new Error('recherche indisponible (connexion ?)');
   const out = [];

@@ -3,8 +3,8 @@
 // the final image pass makes shine; near the eye (where buildings stand in 3D) they fade out and the lit
 // windows of buildings.js take over. Fetched only at night, by cells of ≈ 3 × 4.5 km, kept for offline use.
 import * as THREE from 'three';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610031254';
-import { cachedFetch } from './net.js?v=202610031254';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610031335';
+import { cachedFetch } from './net.js?v=202610031335';
 
 const CELL = 0.04, RANGE = 15000;
 const WFS = (s, w, n, e) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=BDTOPO_V3:batiment&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=10000&PROPERTYNAME=geometrie,usage_1,nombre_de_logements&BBOX=${s},${w},${n},${e},urn:ogc:def:crs:EPSG::4326`;

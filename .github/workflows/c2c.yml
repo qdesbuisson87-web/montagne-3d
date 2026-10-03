@@ -11,9 +11,9 @@ permissions:
 jobs:
   c2c:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 150   # six massifs at one camptocamp request every 0.5 s: about an hour
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Copie camptocamp
         run: python3 scripts/c2c.py
       - name: Pistes de ski (OpenStreetMap)

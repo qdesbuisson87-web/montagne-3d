@@ -6,9 +6,9 @@
 // Nothing is invented: where the path ends short of a goal (glaciers, rock) the entry says how far, and
 // everything above 3 000 m or off the paths is marked as high mountain (mountaineering, not hiking).
 // Built once per massif (a few minutes, done politely one request at a time) and kept on the device.
-import { lonLatToWorld } from './geo.js?v=202610031254';
-import { cachedFetch } from './net.js?v=202610031254';
-import { walkingRoute } from './planner.js?v=202610031254';
+import { lonLatToWorld } from './geo.js?v=202610031335';
+import { cachedFetch } from './net.js?v=202610031335';
+import { walkingRoute } from './planner.js?v=202610031335';
 
 const WFS = (layer, cql) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=${layer}&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=3000&CQL_FILTER=${encodeURIComponent(cql)}`;
 const ALTI = (lons, lats) => `https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json?lon=${lons.join('|')}&lat=${lats.join('|')}&resource=ign_rge_alti_wld&zonly=true`;

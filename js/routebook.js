@@ -2,8 +2,8 @@
 // huts along the way; and when to leave, from the Météo-France forecast at the itinerary's highest point and the
 // daylight. Everything is computed from the relief under the line (route.js samples) and official forecasts; the
 // walking times are the DIN 33466 ones (average hiker, no breaks), said as such on screen.
-import { pathStats } from './route.js?v=202610031254';
-import { sunPosition, sunTimes } from './live.js?v=202610031254';
+import { pathStats } from './route.js?v=202610031335';
+import { sunPosition, sunTimes } from './live.js?v=202610031335';
 
 const BOOK = 'midi3d-routes';
 export const loadBook = () => { try { return JSON.parse(localStorage.getItem(BOOK) || '[]'); } catch { return []; } };

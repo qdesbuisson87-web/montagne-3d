@@ -262,6 +262,7 @@ Relecture de tous les modules ; défauts trouvés et corrigés :
     - Construits avec le code « Faire un massif » ; altitudes RGE ALTI au point le plus haut à 40 m (la grille de 5 m rabotait les sommets : 4 073 m au lieu de 4 102), altitude officielle du sommet principal.
     - Géoïde EGM2008 par GeographicLib (contrôle : 53,45 m au Midi, comme avant) ; numéros de bulletin vérifiés dans les fichiers publics.
     - Catalogues de randos construits d'avance (`data/hikes-<id>.json`) ; topos, pistes et webcams dans la tâche quotidienne.
+    - Tâche quotidienne : avec six massifs, la copie camptocamp a dépassé les 40 min autorisées ; limite portée à 150 min (52 min mesurées), `actions/checkout@v5`. 03/10 : Écrins 3 094 itinéraires / 273 sorties, Vanoise 1 342 / 87, Belledonne 2 272 / 128.
 11. **Mémoire graphique** :
     - Le KTX2 demanderait d'encoder chaque photo sur le téléphone, trop lent pour des tuiles qui arrivent en continu : non fait.
     - À la place, les surcouches ne gardent que les canaux lus : neige du jour en RG (moitié), masque des nuages en R (quart). Aucune perte.

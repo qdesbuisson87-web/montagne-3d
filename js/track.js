@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
-import { lonLatToWorld } from './geo.js?v=202610031335';
+import { lonLatToWorld } from './geo.js?v=202610031428';
 
 const STORE = 'midi3d-track', MIN_STEP = 6, MAX_ACC = 35; // metres
 

@@ -1,8 +1,8 @@
 // Live data, fetched every time the app opens: Météo-France forecasts (via Open-Meteo),
 // the latest Sentinel-2 pass and the latest clear one (Microsoft Planetary Computer), snow by altitude.
-import { lonLatToMerc, RE } from './geo.js?v=202610031428';
-import { SITE } from './sites.js?v=202610031428';
-import { timedFetch } from './net.js?v=202610031428';
+import { lonLatToMerc, RE } from './geo.js?v=202610031435';
+import { SITE } from './sites.js?v=202610031435';
+import { timedFetch } from './net.js?v=202610031435';
 
 export const SPOTS = SITE.spots; // top, peak2, mid, valley
 // pressure levels (hPa) of the cloud profile: ≈ 1 500, 2 000, 3 000, 4 200, 5 600, 7 200 and 9 200 m

@@ -73,3 +73,32 @@ export function whenToLeave(samples, hourly, lat, lon, now = new Date()) {
   }
   return { toTop, total, hiAlt: hi.h, days };
 }
+
+// ----- Can it be walked? -----
+// Along the line (samples every 10 m): is each stretch on a footpath or track (IGN BD TOPO, within 40 m: the
+// line drawn and the map's path differ by a few metres), on a glacier (BD TOPO outlines), and how steep is the
+// ground it crosses (LiDAR relief): 35° and more is very steep ground (a slip does not stop), 45° and more is rock
+// where the hands are needed (climbing). Nothing is guessed: a stretch whose paths are not loaded yet is "unknown".
+// returns lengths (m) and the stretches to show on the map: [{ d0, d1, kind }] with kind rock | steep | glacier | off
+export function walkability(samples, { slopeAt, onGlacier, pathDist }) {
+  const out = { total: 0, path: 0, off: 0, unknown: 0, glacier: 0, steep: 0, rock: 0, rockMax: 0, stretches: [] };
+  let cur = null;
+  const push = (d0, d1, kind) => { if (cur && cur.kind === kind && d0 - cur.d1 < 15) cur.d1 = d1; else { if (cur) out.stretches.push(cur); cur = { d0, d1, kind }; } };
+  for (let i = 1; i < samples.length; i++) {
+    const a = samples[i - 1], b = samples[i], len = b.d - a.d, mx = (a.x + b.x) / 2, mz = (a.z + b.z) / 2;
+    out.total += len;
+    const s = slopeAt(mx, mz), deg = s?.deg ?? 0, ice = onGlacier(mx, mz), pd = pathDist(mx, mz);
+    const onPath = pd != null && pd <= 40;
+    if (pd == null) out.unknown += len; else if (onPath) out.path += len; else out.off += len;
+    if (ice) out.glacier += len;
+    // steepness counts off the paths only: a path cut into a steep slope is a path (its own grade is measured apart)
+    if (!onPath && deg >= 45) { out.rock += len; out.rockMax = Math.max(out.rockMax, deg); }
+    else if (!onPath && deg >= 35) out.steep += len;
+    const kind = !onPath && deg >= 45 ? 'rock' : ice ? 'glacier' : !onPath && deg >= 35 ? 'steep' : pd != null && !onPath ? 'off' : null;
+    if (kind) push(a.d, b.d, kind);
+  }
+  if (cur) out.stretches.push(cur);
+  // the verdict, the worst first
+  out.level = out.rock > 30 ? 'rock' : out.glacier > 50 ? 'glacier' : out.steep > 50 ? 'steep' : out.off > 200 ? 'off' : out.unknown > out.total * 0.3 ? 'unknown' : 'path';
+  return out;
+}

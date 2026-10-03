@@ -1,40 +1,40 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610031428';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610031428';
-import { SITE, SITE_LIST } from './sites.js?v=202610031428';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610031428';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610031428';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610031428';
-import { searchPlaces } from './search.js?v=202610031428';
-import { TerrainShadows } from './shadows.js?v=202610031428';
-import { PostFX } from './post.js?v=202610031428';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610031428';
-import { Forest } from './forest.js?v=202610031428';
-import { Lakes } from './water.js?v=202610031428';
-import { Glaciers } from './glaciers.js?v=202610031428';
-import { makeSite, removeSite } from './custom.js?v=202610031428';
-import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610031428';
-import { Streams } from './streams.js?v=202610031428';
-import { Refuges } from './refuges.js?v=202610031428';
-import { NightLights } from './lights.js?v=202610031428';
-import { Buildings } from './buildings.js?v=202610031428';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610031428';
-import { TrackRecorder, progressOn } from './track.js?v=202610031428';
-import { GpsTracker } from './gps.js?v=202610031428';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610031428';
-import { walkingRoute } from './planner.js?v=202610031428';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610031428';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610031428';
-import { TrailsLayer } from './trails.js?v=202610031428';
-import { Weather3D } from './weather3d.js?v=202610031428';
-import { Sight } from './sight.js?v=202610031428';
-import { Photos360 } from './photos360.js?v=202610031428';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610031428';
-import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610031428';
-import { VolumeClouds } from './clouds.js?v=202610031428';
-import { LiveShare, LiveFollow } from './share.js?v=202610031428';
-import { NightSky } from './sky.js?v=202610031428';
-import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise } from './routebook.js?v=202610031428';
+import { EarthControls } from './controls.js?v=202610031435';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610031435';
+import { SITE, SITE_LIST } from './sites.js?v=202610031435';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610031435';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610031435';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610031435';
+import { searchPlaces } from './search.js?v=202610031435';
+import { TerrainShadows } from './shadows.js?v=202610031435';
+import { PostFX } from './post.js?v=202610031435';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610031435';
+import { Forest } from './forest.js?v=202610031435';
+import { Lakes } from './water.js?v=202610031435';
+import { Glaciers } from './glaciers.js?v=202610031435';
+import { makeSite, removeSite } from './custom.js?v=202610031435';
+import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610031435';
+import { Streams } from './streams.js?v=202610031435';
+import { Refuges } from './refuges.js?v=202610031435';
+import { NightLights } from './lights.js?v=202610031435';
+import { Buildings } from './buildings.js?v=202610031435';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610031435';
+import { TrackRecorder, progressOn } from './track.js?v=202610031435';
+import { GpsTracker } from './gps.js?v=202610031435';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610031435';
+import { walkingRoute } from './planner.js?v=202610031435';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610031435';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610031435';
+import { TrailsLayer } from './trails.js?v=202610031435';
+import { Weather3D } from './weather3d.js?v=202610031435';
+import { Sight } from './sight.js?v=202610031435';
+import { Photos360 } from './photos360.js?v=202610031435';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610031435';
+import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610031435';
+import { VolumeClouds } from './clouds.js?v=202610031435';
+import { LiveShare, LiveFollow } from './share.js?v=202610031435';
+import { NightSky } from './sky.js?v=202610031435';
+import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise } from './routebook.js?v=202610031435';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -1393,7 +1393,13 @@ async function pathStretch(a, b, tol, firstLeg) {
     const via = r.pts.slice(); let start = null, end = via[via.length - 1], note = '';
     // the start touched beside a path is put on it; otherwise a straight line joins it to the path
     if (r.offStart > 1) { if (firstLeg && r.offStart <= tol) start = via[0]; else via.unshift(a); }
-    if (r.offEnd > tol) { via.push(b); end = b; note = `Fin hors sentier : ligne droite sur ${fmt(r.offEnd)} m.`; }
+    // the paths stop short of the point touched: the line stops with them (a straight line beyond went up faces and
+    // glaciers no one walks); said, with the lift that serves the place when there is one
+    if (r.offEnd > tol) {
+      const lift = trails.lifts().map(l => ({ l, d: Math.min(Math.hypot(l.a[0] - b[0], l.a[1] - b[1]), Math.hypot(l.b[0] - b[0], l.b[1] - b[1])) })).sort((p, q) => p.d - q.d)[0];
+      note = `Pas de sentier jusqu'au point touché : le chemin s'arrête ${fmt(r.offEnd)} m avant (au-delà : glacier, rocher ou pente raide, terrain d'alpinisme). Le tracé s'arrête au bout du chemin.`
+        + (lift && lift.d < 600 ? ` Ce point est desservi par une remontée (${lift.l.name ?? 'téléphérique'}).` : '');
+    }
     const len = pathLength(via);
     if (len > 3 * straight && len - straight > 1500) note = `Par les sentiers, ce passage fait ${km(len)} km (${km(straight)} km à vol d'oiseau). Annule le point et pose une étape avant, ou décoche « Suivre les sentiers ».`;
     return { via, start, end, note };

@@ -14,6 +14,20 @@ const WFS = (layer, cql, [s, w, n, e]) => `https://data.geopf.fr/wfs/ows?SERVICE
   // in a CQL filter the box is lon/lat ('EPSG:4326'); in the BBOX parameter with the URN it is lat/lon
   + (cql ? `&CQL_FILTER=${encodeURIComponent(`${cql} AND BBOX(geometrie,${w},${s},${e},${n},'EPSG:4326')`)}` : `&BBOX=${s},${w},${n},${e},urn:ogc:def:crs:EPSG::4326`);
 // kind -> [colour, width in px, height above ground (m)]
+// grid of path segments, squares of G metres, for distance queries; NEAR: farther than this is "off the paths"
+const G = 100, NEAR = 150;
+function gridOf(ways) {
+  const grid = new Map();
+  for (const w of ways) {
+    if (w.kind === 'lift') continue;
+    for (let i = 1; i < w.pts.length; i++) {
+      const [ax, az] = w.pts[i - 1], [bx, bz] = w.pts[i], s = [ax, az, bx, bz];
+      const x0 = Math.floor(Math.min(ax, bx) / G), x1 = Math.floor(Math.max(ax, bx) / G), z0 = Math.floor(Math.min(az, bz) / G), z1 = Math.floor(Math.max(az, bz) / G);
+      for (let gz = z0; gz <= z1; gz++) for (let gx = x0; gx <= x1; gx++) { const k = `${gx},${gz}`; let l = grid.get(k); if (!l) grid.set(k, l = []); l.push(s); }
+    }
+  }
+  return grid;
+}
 const STYLE = { path: [0xe0261b, 2.6, 1.2], track: [0x8a5a2b, 2.4, 1.0], lift: [0x202428, 2.0, 14] };
 
 export class TrailsLayer {
@@ -38,11 +52,12 @@ export class TrailsLayer {
       ]).then(([roads, lifts, zones]) => {
         if (this.cells.get(key) !== cell) return;
         if (!roads && !lifts) { this.cells.delete(key); return; } // no answer: try again later
-        const lines = (f, kind) => (f.geometry.type === 'MultiLineString' ? f.geometry.coordinates : [f.geometry.coordinates]).map(l => ({ kind, pts: l.map(([lon, lat]) => lonLatToWorld(lon, lat)) }));
+        const lines = (f, kind) => (f.geometry.type === 'MultiLineString' ? f.geometry.coordinates : [f.geometry.coordinates]).map(l => ({ kind, name: f.properties.toponyme || f.properties.nature || null, pts: l.map(([lon, lat]) => lonLatToWorld(lon, lat)) }));
         cell.ways = [
           ...(roads?.features ?? []).flatMap(f => lines(f, f.properties.nature === 'Chemin' ? 'track' : 'path')),
           ...(lifts?.features ?? []).flatMap(f => lines(f, 'lift'))
         ].filter(w => w.pts.length > 1);
+        cell.grid = gridOf(cell.ways);
         const huts = (zones?.features ?? []).filter(f => f.properties.toponyme).map(f => {
           const ring = (f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates[0][0] : f.geometry.type === 'Polygon' ? f.geometry.coordinates[0] : [f.geometry.coordinates]);
           const lon = ring.reduce((s, p) => s + p[0], 0) / ring.length, lat = ring.reduce((s, p) => s + p[1], 0) / ring.length;
@@ -52,6 +67,33 @@ export class TrailsLayer {
       }).catch(() => this.cells.delete(key));
     }
   }
+  // ----- where the paths are (to tell walking from off-path, mountaineering or a lift) -----
+  cellOf(x, z) { const [lon, lat] = worldToLonLat(x, z); return this.cells.get(`${Math.floor(lat / CELL)}/${Math.floor(lon / CELL)}`); }
+  // distance (m) from a point to the nearest footpath or track: up to NEAR, Infinity beyond, null where the paths
+  // of that place are not loaded yet
+  pathDist(x, z) {
+    const cell = this.cellOf(x, z); if (!cell?.grid) return null;
+    let best = Infinity; const gx = Math.floor(x / G), gz = Math.floor(z / G);
+    for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) for (const s of this.segsAt(gx + i, gz + j, x, z)) {
+      const [ax, az, bx, bz] = s, dx = bx - ax, dz = bz - az, L = dx * dx + dz * dz, t = L ? Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / L)) : 0;
+      best = Math.min(best, Math.hypot(ax + dx * t - x, az + dz * t - z));
+    }
+    return best <= NEAR ? best : Infinity;
+  }
+  // the segments of a grid square, whatever cell they were filed in (a path crosses cell borders)
+  segsAt(gx, gz, x, z) {
+    const out = [], key = `${gx},${gz}`;
+    for (const c of this.cellsAround(x, z)) { const l = c.grid?.get(key); if (l) out.push(...l); }
+    return out;
+  }
+  cellsAround(x, z) {
+    const [lon, lat] = worldToLonLat(x, z), a = Math.floor(lat / CELL), b = Math.floor(lon / CELL), out = [];
+    for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) { const c = this.cells.get(`${a + j}/${b + i}`); if (c) out.push(c); }
+    return out;
+  }
+  // the lifts loaded: name and both ends (scene metres)
+  lifts() { const out = []; for (const c of this.cells.values()) for (const w of c.ways ?? []) if (w.kind === 'lift') out.push({ name: w.name, a: w.pts[0], b: w.pts[w.pts.length - 1] }); return out; }
+
   // (re)lay a cell's lines on the relief: once loaded, then when finer tiles have arrived
   drape(cell) {
     for (const m of cell.meshes) { this.group.remove(m); m.geometry.dispose(); } cell.meshes = [];

@@ -3,8 +3,8 @@
 // cascade), and the terrain shader turns the photo inside them into ice where it is not covered by snow:
 // blue-grey bare ice, deep blue crevasses, a sheen in the sun.
 import * as THREE from 'three';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610031428';
-import { cachedFetch } from './net.js?v=202610031428';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610031435';
+import { cachedFetch } from './net.js?v=202610031435';
 
 const CELL = 0.1; // degrees (≈ 8 × 11 km): few requests, a massif's glaciers in a handful of cells
 const WFS = (s, w, n, e) => 'https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=BDTOPO_V3:plan_d_eau&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=2000'
@@ -15,6 +15,7 @@ export class Glaciers {
     this.group = new THREE.Group(); // painted into the masks only, never added to the scene
     this.material = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
     this.cells = new Set(); this.ids = new Set(); this.version = 0; this.count = 0;
+    this.shapes = []; // outlines in scene metres with their bounding box, for "is this point on a glacier?"
   }
   // fetch the glaciers of the cells around a point (once per cell; kept for offline use)
   ensure(x, z, radius = 15000) {
@@ -29,6 +30,11 @@ export class Glaciers {
       }).catch(() => this.cells.delete(key)); // no answer: asked again later
     }
   }
+  // a point of the scene inside a glacier outline (and not in one of its holes)
+  contains(x, z) {
+    const inRing = r => { let c = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const a = r[i], b = r[j]; if ((a.y > z) !== (b.y > z) && x < (b.x - a.x) * (z - a.y) / (b.y - a.y) + a.x) c = !c; } return c; };
+    return this.shapes.some(s => x >= s.minx && x <= s.maxx && z >= s.minz && z <= s.maxz && inRing(s.contour) && !s.holes.some(inRing));
+  }
   add(f) {
     const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates : [];
     const pos = [], idx = [];
@@ -36,6 +42,8 @@ export class Glaciers {
       const ring = r => r.map(([lon, lat]) => { const [x, z] = lonLatToWorld(lon, lat); return new THREE.Vector2(x, z); });
       const contour = ring(poly[0]), holes = poly.slice(1).map(ring), base = pos.length / 3;
       if (contour.length < 3) continue;
+      const xs = contour.map(v => v.x), zs = contour.map(v => v.y);
+      this.shapes.push({ minx: Math.min(...xs), maxx: Math.max(...xs), minz: Math.min(...zs), maxz: Math.max(...zs), contour, holes });
       const tri = THREE.ShapeUtils.triangulateShape(contour, holes);
       [...contour, ...holes.flat()].forEach(v => pos.push(v.x, 0, v.y));
       tri.forEach(t => idx.push(base + t[0], base + t[1], base + t[2]));

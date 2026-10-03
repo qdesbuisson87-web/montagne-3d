@@ -4,8 +4,8 @@
 // The channel name is 24 random characters: only those who have the link can find it. Nothing else is sent than
 // what the person following needs: position, accuracy, altitude, time, first name, battery when the phone tells.
 import * as THREE from 'three';
-import { lonLatToWorld } from './geo.js?v=202610031428';
-import { timedFetch } from './net.js?v=202610031428';
+import { lonLatToWorld } from './geo.js?v=202610031435';
+import { timedFetch } from './net.js?v=202610031435';
 
 const HOST = 'https://ntfy.sh', STORE = 'midi3d-share', DAY_CAP = 230; // below the service's 250, keeping a margin
 const EVERY = 120e3, EVERY_STILL = 300e3, MOVED = 50; // ms between sends (moving / standing still), metres that count as moving

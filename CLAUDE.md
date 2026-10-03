@@ -217,6 +217,60 @@ Relecture de tous les modules ; défauts trouvés et corrigés :
 - Retesté après tout ça, sans erreur dans la console : tracé Flégère → Lac Blanc (double toucher ignoré), neige du jour (362 tuiles sur 403), mise en page 390×844 sans chevauchement, coupure réseau simulée (météo gardée affichée avec l'avertissement).
 - PAS testé : vraie montagne sans réseau sur un téléphone, réseau très lent réel.
 
+### Douze ajouts (03/10/2026, « fais tout sauf la 13 » ; la 13 = appli privée, pas faite)
+1. **Bulletin d'avalanche sur la carte** :
+   - Le bulletin se lit maintenant sans clé : fichier public `api.meteofrance.com/files/mountain/bulletins/BRAnn.xml`, CORS `*`, vérifié. La clé Météo-France devient facultative (API officielle si elle est saisie).
+   - Case « Bulletin sur la carte » (uniforms `bera*`, shader du relief) : pentes ≥ 30° (pente du sol, pas exagérée) dont l'orientation (secteurs de 45°) fait partie des « pentes les plus exposées » du bulletin, à la couleur du risque à leur altitude (`RISQUE1` sous `ALTITUDE`, `RISQUE2` au-dessus, fondu sur 50 m). Sans orientation signalée : toutes les orientations, et la légende le dit.
+   - Légende `#beraLegend` avec la date. Hors saison (plus de 3 jours sans bulletin) : rien n'est dessiné, et la légende le dit.
+   - Fiche d'un point : risque à son altitude, et si son orientation est parmi les plus exposées.
+   - Testé avec le vrai bulletin public du 7 juin (Mont-Blanc : 2 au-dessus de 3 400 m, 1 en dessous, N/NE/NO), avancé à aujourd'hui pour le test.
+2. **Neige mesurée** (`scripts/nivo.py` dans la tâche quotidienne → `data/nivo.json`) :
+   - Source : archive du réseau nivo-météorologique Météo-France (data.gouv.fr, `nivo_<année>.csv.gz`, mis à jour chaque matin, pas de CORS d'où la copie quotidienne) ; dernière mesure de chaque station (113), hauteur, neige fraîche, température.
+   - Écarté : le jeu « Modèle de simulation nivologique » (c'est un modèle, pas une mesure).
+   - Conditions : les 8 stations à moins de 40 km de la vue, altitude, distance, date (en orange au-delà de 3 jours). Étiquettes ❄ sur la carte pour les mesures de moins de 4 jours.
+3. **Radar** :
+   - RainViewer (mosaïque des radars nationaux, CORS `*`, gratuit, tuiles jusqu'au zoom 7 seulement ≈ 1,2 km, 2 dernières heures toutes les 10 min) ; surcouche `radar` du moteur, prémultipliée et filtrée en B-spline, sur le relief éclairé.
+   - Case « Radar pluie et neige », légende avec l'heure de l'image, animation des 2 dernières heures.
+   - Testé sur les pluies de l'Hérault (03/10) : rendu lisse, du bleu au rose.
+   - **Alerte orage** pendant une sortie (enregistrement ou position partagée) : toutes les 30 min, prévision Météo-France à la position et à l'altitude, codes 95/96/99 dans les 3 h → message, vibreur (une fois par orage), ligne rouge dans la carte de sortie. Testé avec une prévision simulée.
+4. **Position partagée en direct** (`js/share.js`) :
+   - Envoi par ntfy.sh (public, gratuit, CORS ouvert ; anonyme : 250 envois par jour, messages gardés 12 h ; vérifié) sur un canal secret de 24 caractères aléatoires ; toutes les 2 min en marchant, 5 min à l'arrêt, au plus 230 par jour ; arrêt automatique au bout de 14 h ; écran gardé allumé.
+   - Envoyés : position, précision, altitude, heure, prénom, batterie (si le téléphone la donne). Tout est expliqué dans l'appli.
+   - Le lien `?suivre=m3d-…` ouvre l'appli sur la personne : point orange avec son prénom et l'heure, trace parcourue, carte « vu il y a… », alerte au-delà de 15 min sans nouvelle, « partage terminé ».
+   - Testé de bout en bout entre deux onglets.
+5. **Mes itinéraires et comparaison** (`js/routebook.js`, localStorage `midi3d-routes`) :
+   - Bouton « Garder dans mes itinéraires » ; on peut cocher jusqu'à 3 itinéraires.
+   - Tableau comparatif : distance, temps, D+, D−, point haut, raideur max du tracé, longueur traversée sur des pentes ≥ 30°, nombre de jours ; la valeur la plus basse en bleu.
+6. **Quand partir** (fiche de l'itinéraire) :
+   - Prévision Météo-France au point haut. Aujourd'hui et demain : départ entre le lever du soleil et l'heure qui fait arriver au point haut 1 h avant la première heure de mauvais temps (code ≥ 45 : brouillard, pluie, neige, orage), ou rentrer 30 min avant le coucher.
+   - Temps DIN sans pauses, et l'appli le dit.
+7. **En plusieurs jours** :
+   - Nuits possibles : refuges et abris à moins de 250 m du tracé, ainsi que les étapes posées. On coche les nuits (gardées avec l'itinéraire, `route.nights`) et on obtient un tableau par jour.
+   - Testé : Flégère → Lac Blanc → Chéserys, nuit au refuge du Lac Blanc.
+8. **Ciel réel** (`js/sky.js`, `data/sky.json` = d3-celestial, licence BSD) :
+   - 5 044 étoiles jusqu'à la magnitude 6, couleur d'après B−V ; Voie lactée (5 niveaux de contour peints sur une carte du ciel floutée).
+   - Planètes d'après les éléments JPL : écart au JPL Horizons 0,00–0,08° (vérifié le 03/10). Leur nom s'affiche au-dessus de l'horizon.
+   - Rotation par le temps sidéral local. Les fausses étoiles aléatoires du ciel sont retirées.
+   - Case « Course du soleil » : courbes du soleil et de la lune pour le jour affiché, heures marquées.
+   - Fiche d'un point : lever et coucher du soleil, avec leur direction (horizon plat, dit).
+   - Testé : 03/10 22 h, Saturne ESE 28° (juste) ; Jupiter et Mars pas encore levés.
+9. **Webcams** (`scripts/webcams.py` → `data/webcams-<site>.json`) :
+   - OpenStreetMap (surveillance:type=webcam, contact:webcam, webcam), sans les balises de vent (monitoring_station).
+   - Étiquettes 📷 qui ouvrent la page de la webcam (images non copiées). Case « Webcams ».
+   - Midi 9, Buet 44, Sassière 23, Écrins 2, Vanoise 15, Belledonne 6.
+10. **Trois massifs** : `ecrins` (Barre des Écrins 4 102 m, BRA 16 Pelvoux), `vanoise` (Grande Casse 3 855 m, BRA 10), `belledonne` (Grand Pic de Belledonne 2 977 m, BRA 8).
+    - Construits avec le code « Faire un massif » ; altitudes RGE ALTI au point le plus haut à 40 m (la grille de 5 m rabotait les sommets : 4 073 m au lieu de 4 102), altitude officielle du sommet principal.
+    - Géoïde EGM2008 par GeographicLib (contrôle : 53,45 m au Midi, comme avant) ; numéros de bulletin vérifiés dans les fichiers publics.
+    - Catalogues de randos construits d'avance (`data/hikes-<id>.json`) ; topos, pistes et webcams dans la tâche quotidienne.
+11. **Mémoire graphique** :
+    - Le KTX2 demanderait d'encoder chaque photo sur le téléphone, trop lent pour des tuiles qui arrivent en continu : non fait.
+    - À la place, les surcouches ne gardent que les canaux lus : neige du jour en RG (moitié), masque des nuages en R (quart). Aucune perte.
+12. **Google 3D garde sa session** : revenir à l'IGN met les tuiles Google de côté 10 min (pas de nouvelle session payante, retour instantané) ; libérées sur refus de la clé, effacement de la clé ou au bout de 10 min. PAS testé (pas de clé ici).
+- Au passage :
+  - noms qui ne se recachaient plus quand la vue restait immobile (vérification décalée sur les images, alors qu'immobile une image sur 15 seulement passe) : vérification complète à chaque passage immobile ;
+  - noms remesurés ensuite : au plus 2 changements par nom en 20 s de rotation.
+- PAS testé : vrai téléphone, vrai partage entre deux téléphones, vraie alerte orage, vue Google.
+
 ### Noms de sommets qui clignotaient (03/10/2026, « ça donne mal à la tête »)
 - Cause : `classList.toggle('hidden', … || (p.hut && !trails.on))`. Pour un sommet, `p.hut` vaut undefined, donc l'expression valait undefined ; or `toggle(nom, undefined)` inverse la classe au lieu de la fixer. Chaque nom de sommet visible s'allumait et s'éteignait à chaque image.
 - Mesure : vue en rotation lente pendant 25 s, changements visible/caché comptés (MutationObserver) :

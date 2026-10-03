@@ -1,5 +1,5 @@
-# Every morning: fresh camptocamp.org topos and outings (conditions reported by climbers) for each massif,
-# copied into data/ (the app cannot ask camptocamp from the browser: CORS), then the site is rebuilt.
+# Every morning: fresh camptocamp.org topos and outings (conditions reported by climbers), ski pistes and webcams
+# (OpenStreetMap) for each massif, and the snow measured by Météo-France's mountain stations, copied into data/ (the app cannot ask camptocamp from the browser: CORS), then the site is rebuilt.
 name: camptocamp quotidien
 on:
   schedule:
@@ -18,6 +18,10 @@ jobs:
         run: python3 scripts/c2c.py
       - name: Pistes de ski (OpenStreetMap)
         run: python3 scripts/pistes.py
+      - name: Webcams (OpenStreetMap)
+        run: python3 scripts/webcams.py
+      - name: Hauteur de neige mesurée (Météo-France, réseau nivo)
+        run: python3 scripts/nivo.py
       - name: Publier si changé
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -25,9 +29,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/c2c-*.json
-          git add data/pistes-*.json 2>/dev/null || true   # none yet if Overpass never answered
+          git add data/pistes-*.json data/webcams-*.json data/nivo.json 2>/dev/null || true   # none yet if a source never answered
           if git diff --cached --quiet; then echo "rien de neuf"; exit 0; fi
-          git commit -m "Données camptocamp et pistes du jour"
+          git commit -m "Données du jour : camptocamp, pistes, webcams, neige mesurée"
           # the app may have been published meanwhile: take those commits first (only data/ changes here)
           for i in 1 2 3; do git pull --rebase -q && git push && break; sleep 10; done
           # a push made with this token does not start the Pages build by itself

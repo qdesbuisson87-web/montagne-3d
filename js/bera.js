@@ -1,12 +1,13 @@
-// Avalanche risk bulletin (BERA) of Météo-France, official API "DonneesPubliquesBRA", with the owner's own key
-// (typed in the app, stored on the device only, sent only to Météo-France). The bulletin is issued daily around
+// Avalanche risk bulletin (BERA) of Météo-France: the public file meteofrance.com publishes for each massif (open to
+// other sites, no key needed: checked 03/10/2026), or the official API "DonneesPubliquesBRA" when the owner has
+// typed his own key (stored on the device only, sent only to Météo-France). The bulletin is issued daily around
 // 16:00 from early November to late May. Besides the risk it carries what the forecasters know of the snow:
 // depth by altitude on north and south slopes, snow line, fresh snow of the last days. Nothing is computed or
 // guessed here: every figure is the bulletin's, with its date. The last bulletin is kept for offline use.
-import { timedFetch } from './net.js?v=202610031153';
+import { timedFetch } from './net.js?v=202610031254';
 
 const API = id => `https://public-api.meteofrance.fr/public/DPBRA/v1/massif/BRA?id-massif=${id}&format=xml`;
-// the same bulletin as published on meteofrance.com (used only if the API answer cannot be read)
+// the same bulletin as published on meteofrance.com (without a key, or when the API answer cannot be read)
 const PUBLIC = id => `https://api.meteofrance.com/files/mountain/bulletins/BRA${String(id).padStart(2, '0')}.xml`;
 const KEY = 'midi3d-mf-key', STORE = id => `midi3d-bera-${id}`;
 
@@ -59,13 +60,19 @@ function parse(text) {
 
 // latest bulletin of a massif; falls back to the stored copy (flagged) when offline
 export async function fetchBera(massifId) {
-  const key = beraKey.get(); if (!key) throw new BeraError('nokey', 'clé Météo-France absente');
+  const key = beraKey.get();
   let r;
-  try { r = await timedFetch(API(massifId), { headers: { apikey: key } }, 20000); }
+  try { r = await timedFetch(key ? API(massifId) : PUBLIC(massifId), key ? { headers: { apikey: key } } : {}, 20000); }
   catch {
     const saved = (() => { try { return localStorage.getItem(STORE(massifId)); } catch { return null; } })();
     if (saved) return { ...parse(saved), offline: true };
     throw new BeraError('network', 'pas de connexion');
+  }
+  if (!key) { // the public file: as it is
+    if (!r.ok) throw new BeraError(r.status === 404 ? 'none' : 'server', `code ${r.status}`);
+    const pub = await r.text(), b = { ...parse(pub), source: 'public' };
+    try { localStorage.setItem(STORE(massifId), pub); } catch { }
+    return b;
   }
   if (!r.ok || r.status === 204) {
     // keep Météo-France's own words: they tell apart a wrong key, a missing subscription and "no bulletin"

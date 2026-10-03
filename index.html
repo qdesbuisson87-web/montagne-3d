@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202610031153">
+<link rel="stylesheet" href="css/app.css?v=202610031254">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -39,8 +39,16 @@
   <h1><span id="siteName">Aiguille du Midi</span> <span class="alt" id="siteAlt"></span></h1>
   <button id="epochBadge" type="button" class="epochb" hidden>Photos 1950–1965 · revenir à aujourd'hui</button>
   <div id="tripCard" class="trip" hidden aria-live="polite"></div>
+  <div id="followCard" class="trip follow" hidden aria-live="polite"></div>
   <div id="status" class="status" hidden><i></i>Chargement · <span id="statusN">0</span></div>
 </header>
+<aside id="radarLegend" class="legend glass radar-leg" hidden aria-label="Radar de pluie et de neige">
+  <div class="lt">Radar · pluie et neige</div>
+  <p id="radarTime">Chargement…</p>
+  <button id="radarPlay" type="button" class="mini">Animer les 2 dernières heures</button>
+  <p>Mesures des radars météo, mosaïque RainViewer (pixels ≈ 1 km), mises à jour toutes les 10 min. Plus la couleur est vive, plus ça tombe fort.</p>
+</aside>
+<aside id="beraLegend" class="legend glass bera-leg" hidden aria-label="Légende du bulletin d'avalanche sur la carte"></aside>
 <aside id="slopeLegend" class="legend glass" hidden aria-label="Légende des pentes">
   <div class="lt">Pentes</div>
   <ul id="slopeRows"></ul>
@@ -114,9 +122,11 @@
   <h3>Risque d'avalanche — bulletin Météo-France</h3>
   <div id="bera"></div>
   <div id="beraKeyBlock" class="gkey" hidden>
-    <p class="cline small">Le bulletin officiel demande ta clé Météo-France (portail-api.meteofrance.fr, API « DonneesPubliquesBRA »). Elle reste sur cet appareil et n'est envoyée qu'à Météo-France.</p>
+    <p class="cline small">Facultatif : le bulletin public de meteofrance.com s'affiche sans clé. Avec ta clé Météo-France (portail-api.meteofrance.fr, API « DonneesPubliquesBRA »), il est lu par l'API officielle. Elle reste sur cet appareil et n'est envoyée qu'à Météo-France.</p>
     <div class="row"><label class="sr" for="mfKey">Clé API Météo-France</label><input id="mfKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Clé API Météo-France"><button id="mfKeySave" type="button" class="mini go">OK</button></div>
   </div>
+  <h3>Hauteur de neige mesurée (stations Météo-France)</h3>
+  <div id="nivo"></div>
   <h3>Météo</h3>
   <div id="wx"></div>
   <details class="sec" id="altBlock">
@@ -153,14 +163,18 @@
     <label for="c-streams"><input id="c-streams" type="checkbox" checked><span>Torrents<small>et cascades</small></span></label>
     <label for="c-labels"><input id="c-labels" type="checkbox" checked><span>Noms<small>sommets, lieux</small></span></label>
     <label for="c-slopes"><input id="c-slopes" type="checkbox"><span>Pentes<small>27° et plus</small></span></label>
+    <label for="c-bera"><input id="c-bera" type="checkbox"><span>Bulletin sur la carte<small>avalanche, pentes ≥ 30°</small></span></label>
     <label for="c-snowtoday"><input id="c-snowtoday" type="checkbox" checked><span>Neige du jour<small>satellite</small></span></label>
     <label for="c-trees"><input id="c-trees" type="checkbox" checked><span>Forêts 3D<small>LiDAR IGN</small></span></label>
     <label for="c-buildings"><input id="c-buildings" type="checkbox" checked><span>Bâtiments 3D<small>BD TOPO IGN</small></span></label>
     <label for="c-pistes"><input id="c-pistes" type="checkbox"><span>Pistes de ski<small>OpenStreetMap</small></span></label>
+    <label for="c-radar"><input id="c-radar" type="checkbox"><span>Radar pluie et neige<small>2 dernières heures</small></span></label>
     <label for="c-clpa"><input id="c-clpa" type="checkbox"><span>Avalanches passées<small>carte CLPA</small></span></label>
     <label for="c-photos"><input id="c-photos" type="checkbox"><span>Photos 360°<small>Panoramax</small></span></label>
     <label for="c-freeze"><input id="c-freeze" type="checkbox"><span>Isotherme 0 °C<small>altitude du gel</small></span></label>
     <label for="c-wind"><input id="c-wind" type="checkbox"><span>Vent en altitude<small>vers 3 000 m</small></span></label>
+    <label for="c-webcams"><input id="c-webcams" type="checkbox" checked><span>Webcams<small>OpenStreetMap</small></span></label>
+    <label for="c-sunpath"><input id="c-sunpath" type="checkbox"><span>Course du soleil<small>et de la lune, avec les heures</small></span></label>
     <label for="c-cable"><input id="c-cable" type="checkbox" checked><span>Téléphérique</span></label>
     <label for="c-lidar"><input id="c-lidar" type="checkbox"><span>Points LiDAR<small>de près</small></span></label>
     <label for="c-spin"><input id="c-spin" type="checkbox"><span>Rotation auto</span></label>
@@ -220,7 +234,7 @@
     <p class="cline small" id="ptStore"></p>
     <button id="ptClear" type="button" class="mini">Vider les points LiDAR</button>
   </details>
-  <p class="cnote">Sources : relief © IGN (LiDAR HD, RGE ALTI), photos © IGN (BD ORTHO), hors France Sentinel-2 cloudless © EOX (CC BY-NC-SA 4.0) et relief Mapzen/AWS Terrain Tiles · Satellite du jour : Copernicus Sentinel-2 via Microsoft Planetary Computer · Météo : Météo-France via Open-Meteo · Sentiers, refuges, remontées, bâtiments et lacs : IGN BD TOPO · Itinéraires : service d'itinéraire IGN Géoplateforme · Pistes de ski : © contributeurs OpenStreetMap (ODbL) · Avalanches passées : CLPA (INRAE, IGN), Géorisques · Refuges, points d'eau, passages délicats : refuges.info (CC BY-SA 2.0) · Topos : camptocamp.org (CC BY-SA 4.0) · Forêts : IGN BD Forêt V2 · Nuage de points : IGN LiDAR HD (Licence ouverte Etalab 2.0), décodé avec laz-perf (Hobu, Apache 2.0) · Vue Google 3D : Google Photorealistic 3D Tiles (© Google et fournisseurs affichés en bas de l'écran).</p>
+  <p class="cnote">Sources : relief © IGN (LiDAR HD, RGE ALTI), photos © IGN (BD ORTHO), hors France Sentinel-2 cloudless © EOX (CC BY-NC-SA 4.0) et relief Mapzen/AWS Terrain Tiles · Satellite du jour : Copernicus Sentinel-2 via Microsoft Planetary Computer · Météo : Météo-France via Open-Meteo · Sentiers, refuges, remontées, bâtiments et lacs : IGN BD TOPO · Itinéraires : service d'itinéraire IGN Géoplateforme · Pistes de ski et webcams : © contributeurs OpenStreetMap (ODbL), images des webcams à leurs propriétaires · Neige mesurée : Météo-France, réseau nivo-météorologique (Licence Ouverte 2.0) · Bulletin d'avalanche : Météo-France · Radar : RainViewer · Position partagée : service ntfy.sh · Avalanches passées : CLPA (INRAE, IGN), Géorisques · Refuges, points d'eau, passages délicats : refuges.info (CC BY-SA 2.0) · Topos : camptocamp.org (CC BY-SA 4.0) · Forêts : IGN BD Forêt V2 · Nuage de points : IGN LiDAR HD (Licence ouverte Etalab 2.0), décodé avec laz-perf (Hobu, Apache 2.0) · Ciel étoilé : d3-celestial (Olaf Frohn, licence BSD), planètes d'après les éléments du JPL (NASA) · Vue Google 3D : Google Photorealistic 3D Tiles (© Google et fournisseurs affichés en bas de l'écran).</p>
 </section>
 
 <section id="sheet-route" class="sheet glass" hidden aria-label="Rando">
@@ -243,6 +257,9 @@
       <button id="routeClear" type="button" class="mini">Effacer</button>
     </div>
     <p class="cline small" id="routePackInfo"></p>
+    <button id="bookSave" type="button" class="mini wide">Garder dans mes itinéraires</button>
+    <details class="sec" id="d-when"><summary>Quand partir ?</summary><div id="whenOut"></div></details>
+    <details class="sec" id="d-days"><summary>En plusieurs jours <span class="cnt" id="daysCnt"></span></summary><div id="daysOut"></div></details>
   </div>
 
   <div class="bigacts">
@@ -252,6 +269,25 @@
     <button id="trkGo" type="button" class="bigact"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle class="dot" cx="12" cy="12" r="3.6"/></svg><b id="trkGoT">Enregistrer ma sortie</b><span id="trkGoS">Ma trace GPS, distance, dénivelé</span></button>
   </div>
   <p class="cline small" id="trkInfo"></p>
+
+  <details class="sec" id="d-book">
+    <summary>Mes itinéraires <span class="cnt" id="bookCnt"></span></summary>
+    <p class="cline small">Les itinéraires gardés sur cet appareil (bouton « Garder dans mes itinéraires » de la fiche). Coche-en deux ou trois pour les comparer.</p>
+    <div id="bookOut"></div>
+    <div id="bookCmp"></div>
+  </details>
+
+  <details class="sec" id="d-share">
+    <summary>Partager ma position en direct <span class="cnt" id="shareCnt"></span></summary>
+    <p class="cline small">Un proche suit ta position sur sa propre carte 3D grâce au lien que tu lui envoies (il n'a rien à installer). Ta position, sa précision, ton altitude, l'heure, ton prénom et la batterie du téléphone sont envoyés toutes les 2 minutes (5 à l'arrêt) au service public gratuit ntfy.sh, sur un canal secret que seuls ceux qui ont le lien connaissent ; chaque envoi y reste 12 h. Le partage s'arrête tout seul au bout de 14 h. Écran verrouillé, le téléphone met l'appli en pause : plus d'envoi.</p>
+    <div class="row"><label class="sr" for="shareName">Ton prénom</label><input id="shareName" class="in-text" type="text" maxlength="30" autocomplete="given-name" placeholder="Ton prénom (affiché sur sa carte)"></div>
+    <button id="shareGo" type="button" class="btn">Commencer le partage</button>
+    <div id="shareOn" hidden>
+      <p class="cline" id="shareInfo"></p>
+      <div class="btns"><button id="shareSend" type="button" class="mini go">Envoyer le lien</button><button id="shareStop" type="button" class="mini">Arrêter le partage</button></div>
+      <p class="cline small" id="shareLink"></p>
+    </div>
+  </details>
 
   <details class="sec" id="d-plan">
     <summary>Aller à un lieu</summary>
@@ -337,6 +373,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202610031153"></script>
+<script type="module" src="js/app.js?v=202610031254"></script>
 </body>
 </html>

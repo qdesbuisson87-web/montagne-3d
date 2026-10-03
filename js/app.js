@@ -1,37 +1,40 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610031153';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610031153';
-import { SITE, SITE_LIST } from './sites.js?v=202610031153';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610031153';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610031153';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610031153';
-import { searchPlaces } from './search.js?v=202610031153';
-import { TerrainShadows } from './shadows.js?v=202610031153';
-import { PostFX } from './post.js?v=202610031153';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610031153';
-import { Forest } from './forest.js?v=202610031153';
-import { Lakes } from './water.js?v=202610031153';
-import { Glaciers } from './glaciers.js?v=202610031153';
-import { makeSite, removeSite } from './custom.js?v=202610031153';
-import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610031153';
-import { Streams } from './streams.js?v=202610031153';
-import { Refuges } from './refuges.js?v=202610031153';
-import { NightLights } from './lights.js?v=202610031153';
-import { Buildings } from './buildings.js?v=202610031153';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610031153';
-import { TrackRecorder, progressOn } from './track.js?v=202610031153';
-import { GpsTracker } from './gps.js?v=202610031153';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610031153';
-import { walkingRoute } from './planner.js?v=202610031153';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610031153';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610031153';
-import { TrailsLayer } from './trails.js?v=202610031153';
-import { Weather3D } from './weather3d.js?v=202610031153';
-import { Sight } from './sight.js?v=202610031153';
-import { Photos360 } from './photos360.js?v=202610031153';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610031153';
-import { fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610031153';
-import { VolumeClouds } from './clouds.js?v=202610031153';
+import { EarthControls } from './controls.js?v=202610031254';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610031254';
+import { SITE, SITE_LIST } from './sites.js?v=202610031254';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610031254';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610031254';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610031254';
+import { searchPlaces } from './search.js?v=202610031254';
+import { TerrainShadows } from './shadows.js?v=202610031254';
+import { PostFX } from './post.js?v=202610031254';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610031254';
+import { Forest } from './forest.js?v=202610031254';
+import { Lakes } from './water.js?v=202610031254';
+import { Glaciers } from './glaciers.js?v=202610031254';
+import { makeSite, removeSite } from './custom.js?v=202610031254';
+import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610031254';
+import { Streams } from './streams.js?v=202610031254';
+import { Refuges } from './refuges.js?v=202610031254';
+import { NightLights } from './lights.js?v=202610031254';
+import { Buildings } from './buildings.js?v=202610031254';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610031254';
+import { TrackRecorder, progressOn } from './track.js?v=202610031254';
+import { GpsTracker } from './gps.js?v=202610031254';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610031254';
+import { walkingRoute } from './planner.js?v=202610031254';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610031254';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610031254';
+import { TrailsLayer } from './trails.js?v=202610031254';
+import { Weather3D } from './weather3d.js?v=202610031254';
+import { Sight } from './sight.js?v=202610031254';
+import { Photos360 } from './photos360.js?v=202610031254';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610031254';
+import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610031254';
+import { VolumeClouds } from './clouds.js?v=202610031254';
+import { LiveShare, LiveFollow } from './share.js?v=202610031254';
+import { NightSky } from './sky.js?v=202610031254';
+import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise } from './routebook.js?v=202610031254';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -86,7 +89,10 @@ const U = {
   historic: { value: 0 }, // 1 with an old aerial photo: today's snow, ice and season colours are not drawn on it
   doy: { value: 180 }, // day of the year shown (1–366): colours of the season (forests)
   night: { value: 0 }, // 0 by day, 1 at night under the real-sun light: lit windows, village lights
-  light: { value: 0 }, vivid: { value: 0.2 }, snowToday: { value: 1 }, visToday: { value: 0 }, slopes: { value: state.slopes ? 1 : 0 }, fogDensity: { value: 0.000016 }, haze: { value: 0 }, time: { value: 0 }
+  light: { value: 0 }, vivid: { value: 0.2 }, snowToday: { value: 1 }, visToday: { value: 0 }, slopes: { value: state.slopes ? 1 : 0 },
+  // the avalanche bulletin on the relief: on/off, altitude limit, risk colours below / above it, orientations (bits N…NW)
+  beraOn: { value: 0 }, beraAlt: { value: 0 }, beraMask: { value: 255 }, beraColLo: { value: new THREE.Vector3() }, beraColHi: { value: new THREE.Vector3() },
+  fogDensity: { value: 0.000016 }, haze: { value: 0 }, time: { value: 0 }
 };
 U.clTime = U.time; // the clouds' clock under its own name (several shaders already declare "time")
 // slope classes (degrees, lower bound) and their colours; the shader and the on-screen legend both read this
@@ -176,8 +182,9 @@ vec3 aerial(vec3 col, vec3 w){
   return mix(pow(fogC, vec3(2.2)), col, max(T, vec3(0.07)));
 }`;
 const terrainFS = `
-uniform sampler2D map, slopeMap, ndsiMap, cloudMap, visMap, forestMap, clpaMap, noiseTex; uniform vec4 ovRect, clpaRect;
-uniform float historic, hasNdsi, hasCloud, hasVis, hasForest, hasClpa, tileSize, snowToday, visToday, slopes, vivid, time;
+uniform sampler2D map, slopeMap, ndsiMap, cloudMap, visMap, forestMap, clpaMap, radarMap, noiseTex; uniform vec4 ovRect, clpaRect, radarRect;
+uniform float historic, hasNdsi, hasCloud, hasVis, hasForest, hasClpa, hasRadar, tileSize, snowToday, visToday, slopes, vivid, time;
+uniform float beraOn, beraAlt, beraMask; uniform vec3 beraColLo, beraColHi;
 ${SCENE_GLSL}
 varying vec2 vUv; varying vec3 vN, vW; varying float vAlt;
 const vec3 LUM = vec3(0.2126, 0.7152, 0.0722);
@@ -248,7 +255,7 @@ void main(){
   float todaySnow = 0.0;
   if (snowToday > 0.5 && hasNdsi > 0.5 && historic < 0.5) {
     vec4 nd = cubic(ndsiMap, ou);
-    float valid = smoothstep(0.6, 0.95, nd.a) * (1.0 - cloud);
+    float valid = smoothstep(0.6, 0.95, nd.g) * (1.0 - cloud); // (R: snow index, G: data there)
     float fsc = clamp(1.45*(nd.r*2.0 - 1.0) - 0.01, 0.0, 1.0);
     float nz = vnoise(vW.xz/2.3)*0.5 + vnoise(vW.xz/8.0)*0.35 + vnoise(vW.xz/0.7)*0.15;
     float s = fsc + (nz - 0.5)*0.4 - smoothstep(0.42, 0.8, slope)*0.85 + smoothstep(0.3, 0.7, plum)*0.12;
@@ -326,6 +333,25 @@ void main(){
     // tinted by the lit ground so the relief stays readable under the colour
     col = mix(col, sc * (0.6 + 0.5*sqrt(dot(col, LUM))), cover * 0.8);
   }
+  // rain and snow seen by the radars, over the lit ground (readable as a map, not shaded); B-spline filtered: a
+  // 1.2 km radar pixel becomes a smooth patch
+  if (hasRadar > 0.5) {
+    vec4 rd = cubic(radarMap, radarRect.xy + vUv * radarRect.zw);
+    if (rd.a > 0.01) col = mix(col, pow(rd.rgb / rd.a, vec3(2.2)), smoothstep(0.0, 0.6, rd.a) * 0.7);
+  }
+  // the avalanche bulletin laid on the relief: slopes of 30° and more that face the directions it names as the
+  // most exposed, in the colour of its risk at their altitude (its limit blended over 50 m). Ground slope, never
+  // the exaggerated one; aspect = the direction the slope faces, sectors of 45° centred on N, NE…
+  if (beraOn > 0.5) {
+    vec2 g = texture2D(slopeMap, (vUv*${GRID}.0 + 0.5) / ${GRID + 1}.0).rg;
+    float deg = degrees(atan(length(g))), aa = max(fwidth(deg), 0.02) * 0.7;
+    float asp = mod(degrees(atan(-g.x, g.y)) + 360.0, 360.0);
+    int sector = int(floor(mod(asp + 22.5, 360.0) / 45.0)) % 8;
+    float facing = float((int(beraMask + 0.5) >> sector) & 1);
+    float k = smoothstep(30.0 - aa, 30.0 + aa, deg) * facing;
+    vec3 rc = mix(beraColLo, beraColHi, smoothstep(beraAlt - 25.0, beraAlt + 25.0, vAlt));
+    col = mix(col, rc * (0.6 + 0.5*sqrt(dot(col, LUM))), k * 0.75);
+  }
   col = aerial(col, vW);
   gl_FragColor = vec4(pow(max(col, 0.0), vec3(1.0/2.2)), 1.0);
 }`;
@@ -342,18 +368,12 @@ const skyU = { sunDir: U.sunDir, sunCol: U.sunCol, time: U.time, stars: { value:
 const sky = new THREE.Mesh(new THREE.SphereGeometry(200000, 48, 24), new THREE.ShaderMaterial({
   uniforms: skyU, side: THREE.BackSide, depthWrite: false,
   vertexShader: `varying vec3 vD; void main(){ vD = position; gl_Position = projectionMatrix*viewMatrix*modelMatrix*vec4(position,1.0); }`,
-  fragmentShader: `uniform vec3 sunDir, sunCol, ovGrey; uniform float overcast, stars, time; uniform sampler2D skyTex; varying vec3 vD;
+  fragmentShader: `uniform vec3 sunDir, sunCol, ovGrey; uniform float overcast; uniform sampler2D skyTex; varying vec3 vD;
     ${SKY_LOOKUP_GLSL}
     void main(){ vec3 d = normalize(vD);
       vec3 c = texture2D(skyTex, skyUv(d)).rgb;
       c = max(c, vec3(0.010, 0.014, 0.032));                                  // night: a deep blue, never pure black
-      // stars once the sun is well below the horizon: one in ~300 sky cells, of varied brightness, twinkling
-      if (stars > 0.0 && d.y > 0.0) {
-        vec3 q = d * 380.0, cell = floor(q);
-        float h = fract(sin(dot(cell, vec3(12.9898, 78.233, 37.719))) * 43758.5453), b = fract(h * 91.7);
-        float star = step(0.9967, h) * smoothstep(0.42, 0.1, length(fract(q) - 0.5)) * (0.35 + 0.65 * b * b);
-        c += vec3(0.9, 0.95, 1.0) * star * stars * smoothstep(0.0, 0.15, d.y) * (0.8 + 0.2 * sin(time * 3.0 + h * 60.0)) * (1.0 - overcast);
-      }
+      // (the stars are the real ones, drawn over this sky: sky.js)
       float sg = dot(d, sunDir);                                              // the sun's disk, 0.53° across, tinted by the air
       // the sun's disk is written brighter than white: the final pass makes it glow (clipped to white without it)
       vec3 disk = min(sunCol, vec3(1.0)) * 3.0 * smoothstep(0.99994, 0.99998, sg) * step(-0.01, sunDir.y) * (1.0 - overcast);
@@ -361,6 +381,8 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(200000, 48, 24), new THREE.S
       gl_FragColor = vec4(min(c, 1.0) + disk, 1.0); }`
 }));
 sky.renderOrder = -1; sky.frustumCulled = false; scene.add(sky);
+// the real stars, Milky Way, planets, and the course of the Sun and Moon (sky.js)
+const nightSky = new NightSky({ scene, labels: $('labels') });
 const lakes = new Lakes({ scene, engine, uniforms: U, sceneGLSL: SCENE_GLSL, skyGLSL: SKY_LOOKUP_GLSL, skyTex: skyBaker.texture });
 const buildings = new Buildings({ scene, uniforms: U, sceneGLSL: SCENE_GLSL });
 const lidar = new PointCloud({ scene, uniforms: U, sceneGLSL: SCENE_GLSL, renderer });
@@ -546,6 +568,8 @@ function openPlace(p) {
   const at = () => ({ x: p.x, z: p.z, h: groundAt(p.x, p.z) ?? p.h, name: p.name });
   if (draw.on) { drawStep(p.x, p.z); return; }
   if (pickMode) { picked(at()); return; }
+  if (p.cam) { window.open(p.cam, '_blank', 'noopener'); return; } // a webcam: its own page
+  if (p.nivo) { openSheet('cond', true); $('nivo').scrollIntoView({ block: 'start' }); return; } // a snow station: the measures
   flyToPlace(p); if (p.rinfo) showRefuge(p.rinfo);
 }
 // refuges.info: their sheet joins the label of the same hut (within 200 m), or gets its own label; water points
@@ -898,15 +922,73 @@ function aspectRose(aspects, color) {
   });
   return `<svg class="rose" viewBox="0 0 86 86" role="img" aria-label="Orientations les plus exposées : ${aspects.map(a => ({ W: 'O', SW: 'SO', NW: 'NO' }[a] ?? a)).join(', ') || 'aucune signalée'}">${g}</svg>`;
 }
+// The bulletin on the map (Affichage → « Bulletin d'avalanche sur la carte »): its own figures placed on the relief,
+// nothing added. Off season (no bulletin for more than 3 days) nothing is drawn and the legend says why.
+const RISK_ORDER = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'], FR_ASPECT = { W: 'O', SW: 'SO', NW: 'NO' };
+const linColor = hex => { const c = new THREE.Color(hex); return [c.r, c.g, c.b].map(v => Math.pow(v, 2.2)); };
+function applyBeraMap() {
+  const b = state.bera, want = $('c-bera').checked && !google.on, leg = $('beraLegend');
+  const offSeason = b && Date.now() - b.validUntil > 3 * 864e5, top = b?.riskMax ?? b?.risk1;
+  const on = want && !!b && !offSeason && top != null;
+  U.beraOn.value = on ? 1 : 0; leg.hidden = !want;
+  if (!want) return;
+  if (!b) { leg.innerHTML = `<div class="lt">Bulletin d'avalanche</div><p>${SITE.bra ? 'Bulletin pas encore reçu (ou indisponible : voir Conditions).' : 'Pas de bulletin Météo-France pour ce massif.'}</p>`; return; }
+  if (offSeason || top == null) { leg.innerHTML = `<div class="lt">Bulletin d'avalanche</div><p>Pas de bulletin en cours (le dernier date du ${b.issued.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}) : rien n'est dessiné.</p>`; return; }
+  const lo = b.risk1 ?? top, hi = b.altitude != null ? (b.risk2 ?? lo) : lo;
+  U.beraAlt.value = b.altitude ?? -1e5; U.beraColLo.value.set(...linColor(RISK[lo].color)); U.beraColHi.value.set(...linColor(RISK[hi].color));
+  U.beraMask.value = b.aspects.length ? b.aspects.reduce((m, a) => m | 1 << RISK_ORDER.indexOf(a), 0) : 255;
+  const row = (r, txt) => `<li><i style="background:${RISK[r].color}"></i>${r} ${RISK[r].name.toLowerCase()}${txt}</li>`;
+  leg.innerHTML = `<div class="lt">Bulletin d'avalanche</div><ul>${b.altitude != null && hi !== lo ? row(hi, ` > ${fmt(b.altitude)} m`) + row(lo, ` < ${fmt(b.altitude)} m`) : row(lo, '')}</ul>
+    <p>Pentes de 30° et plus ${b.aspects.length ? `orientées ${b.aspects.map(a => FR_ASPECT[a] ?? a).join(', ')} (les plus exposées selon le bulletin)` : "(le bulletin ne signale pas d'orientation particulière)"}. Bulletin du ${b.issued.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}${b.validUntil < Date.now() ? ', échu' : ''}. Ne remplace ni le bulletin complet ni l'observation sur place.</p>`;
+}
+$('c-bera').addEventListener('change', applyBeraMap);
+// legends fold on phones (CSS): a touch on one opens or closes its explanations (not its own buttons)
+document.querySelectorAll('.legend').forEach(l => l.addEventListener('click', e => { if (!e.target.closest('button')) l.classList.toggle('open'); }));
+$('c-sunpath').addEventListener('change', e => { nightSky.showPaths = e.target.checked; });
+// ---------- weather radar on the relief (RainViewer): the latest frame, or the last 2 hours played in a loop ----------
+const radar = { frames: [], i: -1, play: null, at: 0 };
+const radarShow = i => {
+  const f = radar.frames[i]; if (!f) return; radar.i = i; engine.setRadar(f.path);
+  const late = (Date.now() - f.time) / 60e3;
+  $('radarTime').innerHTML = `Image de <b>${hhmm(f.time)}</b>${radar.play ? ` (${i + 1}/${radar.frames.length})` : late > 30 ? ` <span class="stale">(il y a ${Math.round(late)} min : pas d'image plus récente)</span>` : ''}`;
+};
+async function radarLoad() {
+  try { radar.frames = await radarFrames(); radar.at = Date.now(); }
+  catch (e) { $('radarTime').textContent = `Radar indisponible (${why(e)}).`; return; }
+  if (!radar.frames.length) { $('radarTime').textContent = 'Pas d’image radar disponible.'; return; }
+  if (!radar.play) radarShow(radar.frames.length - 1);
+}
+function radarStop() { clearInterval(radar.play); radar.play = null; $('radarPlay').textContent = 'Animer les 2 dernières heures'; }
+$('c-radar').addEventListener('change', e => {
+  $('radarLegend').hidden = !e.target.checked;
+  if (e.target.checked) radarLoad(); else { radarStop(); engine.setRadar(null); }
+});
+$('radarPlay').addEventListener('click', () => {
+  if (radar.play) { radarStop(); radarShow(radar.frames.length - 1); return; }
+  if (!radar.frames.length) return;
+  $('radarPlay').textContent = 'Revenir à la dernière image';
+  let k = 0; radar.play = setInterval(() => { radarShow(k); k = (k + 1) % radar.frames.length; }, 1500); // time for the frame's tiles to arrive
+});
+setInterval(() => { if ($('c-radar').checked && document.visibilityState === 'visible') radarLoad(); }, 10 * 60e3);
+// what the bulletin says for one point: the risk at its altitude, and whether its slope faces a direction it names
+function beraAtText(alt, s) {
+  const b = state.bera; if (!b || Date.now() - b.validUntil > 3 * 864e5) return '';
+  const top = b.riskMax ?? b.risk1; if (top == null) return '';
+  const r = b.altitude != null ? (alt >= b.altitude ? b.risk2 ?? top : b.risk1 ?? top) : (b.risk1 ?? top);
+  const dir = s && s.deg >= 3 ? RISK_ORDER[Math.round(s.aspect / 45) % 8] : null, exposed = dir && b.aspects.includes(dir);
+  return `<p class="cline"><span class="cnd" style="--c:${RISK[r].color}">${r} ${RISK[r].name.toLowerCase()}</span> bulletin d'avalanche à ${fmt(alt)} m${dir ? ` · pente orientée ${FR_ASPECT[dir] ?? dir}${exposed ? ', parmi les plus exposées selon le bulletin' : ''}` : ''} <span class="small">· bulletin du ${b.issued.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}${b.validUntil < Date.now() ? ', échu' : ''}</span></p>`;
+}
+// the key is optional (the public file needs none): offered quietly
+const keyButton = () => `<button type="button" class="mini wide" data-bera-key>${beraKey.get() ? 'Changer la clé Météo-France' : 'Utiliser ma clé Météo-France (facultatif)'}</button>`;
 async function loadBera() {
   const el = $('bera');
   if (!SITE.bra) { el.innerHTML = '<p class="cline small">Pas de bulletin Météo-France pour ce massif.</p>'; return; }
-  if (!beraKey.get()) { el.innerHTML = ''; $('beraKeyBlock').hidden = false; return; }
   el.innerHTML = '<p class="cmeta">Récupération du bulletin…</p>';
-  try { renderBera(await fetchBera(SITE.bra)); }
+  try { state.bera = await fetchBera(SITE.bra); renderBera(state.bera); }
   catch (e) {
-    const msg = { key: "Météo-France refuse la clé : vérifie que c'est bien une « API Key » (pas un jeton OAuth, qui expire en 1 h), copiée en entier, et que l'API « DonneesPubliquesBRA » est souscrite.", none: "Météo-France n'a pas de bulletin pour ce massif en ce moment (ils paraissent de novembre à mai) : la clé fonctionne.", network: 'Bulletin indisponible : pas de connexion et aucun bulletin gardé sur cet appareil.' }[e.kind] ?? 'Bulletin indisponible.';
-    el.innerHTML = `<p class="cline">${msg}</p><p class="cline small">Réponse de Météo-France : ${esc(e.message)}</p><button type="button" class="mini wide" data-bera-key>Changer la clé Météo-France</button>`;
+    state.bera = null;
+    const msg = { key: "Météo-France refuse la clé : vérifie que c'est bien une « API Key » (pas un jeton OAuth, qui expire en 1 h), copiée en entier, et que l'API « DonneesPubliquesBRA » est souscrite.", none: `Météo-France n'a pas de bulletin pour ce massif en ce moment (ils paraissent de novembre à mai)${beraKey.get() ? ' : la clé fonctionne' : ''}.`, network: 'Bulletin indisponible : pas de connexion et aucun bulletin gardé sur cet appareil.' }[e.kind] ?? 'Bulletin indisponible.';
+    el.innerHTML = `<p class="cline">${msg}</p><p class="cline small">Réponse de Météo-France : ${esc(e.message)}</p>${keyButton()}`;
     if (e.kind === 'key') $('beraKeyBlock').hidden = false;
   }
 }
@@ -938,8 +1020,9 @@ function renderBera(b) {
     h += `<h3>Neige fraîche sur 24 h${b.fresh.alt ? ` (à ${fmt(b.fresh.alt)} m)` : ''}</h3><div class="tw"><table><tbody>${b.fresh.days.map(d => `<tr><th>${dayName(d.date)}</th><td class="n">${d.min == null ? '—' : d.min === d.max ? `${d.min} cm` : `${d.min} à ${d.max} cm`}</td></tr>`).join('')}</tbody></table></div>`;
   }
   const link = SITE.links.find(([u]) => /meteo-montagne/.test(u))?.[0];
-  h += `<p class="cnote">Bulletin d'estimation du risque d'avalanche de Météo-France, reproduit tel quel. Il ne remplace ni la lecture du bulletin complet${link ? ` (<a href="${link}" target="_blank" rel="noopener">voir sur Météo-France</a>)` : ''}, ni l'observation sur le terrain.</p><button type="button" class="mini wide" data-bera-key>Changer la clé Météo-France</button></div>`;
+  h += `<p class="cnote">Bulletin d'estimation du risque d'avalanche de Météo-France, reproduit tel quel. Il ne remplace ni la lecture du bulletin complet${link ? ` (<a href="${link}" target="_blank" rel="noopener">voir sur Météo-France</a>)` : ''}, ni l'observation sur le terrain.</p>${keyButton()}</div>`;
   $('bera').innerHTML = h;
+  applyBeraMap();
 }
 $('mfKeySave').addEventListener('click', () => {
   const k = $('mfKey').value.trim();
@@ -1098,7 +1181,7 @@ const gps = new GpsTracker({ scene, onChange: renderGps });
 const route = new RouteLayer({ scene, groundAt });
 const track = new TrackRecorder({ scene, groundAt });
 let gpsCentered = false, flyRoute = null;
-const ago2 = d => { const s = (Date.now() - d) / 1000; return s < 60 ? `il y a ${Math.round(s)} s` : `il y a ${Math.round(s / 60)} min`; };
+const ago2 = d => { const s = Math.max(0, (Date.now() - d) / 1000); return s < 60 ? `il y a ${Math.round(s)} s` : s < 3600 ? `il y a ${Math.round(s / 60)} min` : `il y a ${Math.floor(s / 3600)} h ${String(Math.round(s % 3600 / 60)).padStart(2, '0')}`; };
 function centerOnGps() {
   const p = gps.pos; if (!p) return;
   const g = groundAt(p.x, p.z) ?? p.gpsAlt ?? controls.target.y, t = new THREE.Vector3(p.x, g * state.exag, p.z);
@@ -1123,12 +1206,25 @@ function renderGps() {
 }
 
 // ---------- following an outing: recording, what remains, alerts ----------
-const trip = { off: 0, offAlert: false, sunAlert: false, sun: null, sunDay: '' };
+const trip = { off: 0, offAlert: false, sunAlert: false, sun: null, sunDay: '', stormAt: 0, storm: null, stormSaid: null };
+// During an outing (recording, or position shared): every 30 minutes the Météo-France forecast at the walker's
+// place and altitude is read for the next 3 hours; a thunderstorm in it (codes 95, 96, 99) is said, with its hour,
+// the phone buzzes once for each new storm. A forecast, not a detection: the radar shows what falls now.
+async function stormCheck(p) {
+  trip.stormAt = Date.now();
+  try {
+    const f = await pointForecast(p.lat, p.lon, p.ground ?? p.gpsAlt ?? 1500), h = f.hourly;
+    let at = null; for (let k = f.k0; k < Math.min(h.time.length, f.k0 + 4); k++) if ([95, 96, 99].includes(h.weather_code[k])) { at = new Date(h.time[k]); break; }
+    trip.storm = at;
+    if (at && trip.stormSaid !== +at) { trip.stormSaid = +at; buzz([400, 150, 400]); toast(`Orage prévu ici vers ${hhmm(at)} (Météo-France) : redescends des crêtes et des sommets.`, true, 8000); }
+  } catch { trip.stormAt = Date.now() - 25 * 60e3; } // no network: asked again in 5 minutes
+  renderTrip();
+}
 const hhmm = d => d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 const buzz = p => { try { navigator.vibrate?.(p); } catch { } };
 function tripFix() {
   const p = gps.pos; if (!p) { renderTrip(); return; }
-  track.addFix(p);
+  track.addFix(p); liveShare.fix(p);
   const prog = route.samples.length > 1 ? progressOn(route.samples, p.x, p.z) : null;
   // off the itinerary: farther than 60 m beyond the GPS uncertainty on three fixes in a row
   if (prog && prog.off > 60 + p.acc) { if (++trip.off >= 3 && !trip.offAlert) { trip.offAlert = true; buzz([200, 100, 200]); } }
@@ -1136,10 +1232,13 @@ function tripFix() {
   trip.prog = prog;
   // the day's sunset where one stands (computed once a day)
   const day = new Date().toDateString(); if (trip.sunDay !== day) { trip.sun = sunTimes(new Date(), p.lat, p.lon); trip.sunDay = day; }
+  if ((track.recording || liveShare.on) && Date.now() - trip.stormAt > 30 * 60e3) stormCheck(p);
   renderTrip();
 }
 function renderTrip() {
   const lines = [], st = track.stats(), prog = trip.prog, p = gps.pos;
+  if (trip.storm && (track.recording || liveShare.on)) lines.push(`<span class="bad">Orage prévu ici vers ${hhmm(trip.storm)}</span> (prévision Météo-France à ta position)`);
+  if (liveShare.on) lines.push(`<span class="rec">●</span> Position partagée${liveShare.state.last ? ` · envoyée ${ago2(liveShare.state.last.t)}` : ''}`);
   if (track.recording && st) lines.push(`<span class="rec">● Enregistrement</span> · ${t1(st.dist / 1000)} km · +${fmt(st.up)} m · ${hm(st.hours)}${st.speed != null ? ` · ${t1(st.speed)} km/h` : ''}`);
   if (prog && gps.on) {
     // own pace: the time taken so far against the standard time of the part walked (once it means something)
@@ -1190,12 +1289,16 @@ const hm = h => { const m = Math.round(h * 60 / 5) * 5; return `${Math.floor(m /
 const km = d => (d / 1000).toLocaleString('fr-FR', { maximumFractionDigits: d < 10000 ? 2 : 1 });
 // the itinerary laid on the relief again, and its card in "Rando"
 function renderRoute() { route.drape(state.exag); renderRouteCard(); }
-let routeSig = '';
+let routeSig = '', routeKey = '';
 function renderRouteCard() {
   const st = route.stats(), has = route.pts.length >= 2 && !route.drawing;
   routeSig = st ? `${Math.round(st.dist)}|${Math.round(st.up)}|${st.complete}` : '';
   $('routeCard').hidden = !has;
   if (draw.on) renderDraw();
+  // another itinerary: its "when to leave" is asked again when opened, its days laid out again
+  const key = `${route.name}|${route.pts.length}|${route.pts[0]?.join()}`;
+  if (key !== routeKey) { routeKey = key; $('d-when').open = false; $('whenOut').innerHTML = ''; delete $('whenOut').dataset.key; }
+  if (has) renderDays();
   if (!has) { $('routeOut').innerHTML = ''; return; }
   const name = `<p class="rname">${esc(route.name || 'Mon itinéraire')}</p>`;
   if (!st) { $('routeOut').innerHTML = `${name}<p class="cline small">Relief en cours de chargement sous le tracé…</p>`; return; }
@@ -1206,7 +1309,7 @@ function renderRouteCard() {
       <div><span>Dénivelé +</span><b>${fmt(st.up)} m</b></div>
       <div><span>Dénivelé −</span><b>${fmt(st.down)} m</b></div>
       <div><span>Point haut / bas</span><b>${fmt(st.max)} / ${fmt(st.min)} m</b></div>
-      <div><span>Pente la plus raide</span><b>${Math.round(st.steepDeg)}°</b></div>
+      <div><span>Raideur max du tracé</span><b>${Math.round(st.steepDeg)}°</b></div>
     </div>
     ${route.profileSVG()}
     <p class="cnote">Altitudes du relief LiDAR IGN sous le tracé${st.complete ? '' : ' (partiel : une partie du relief n\'est pas encore chargée)'}. Temps selon la norme DIN 33466 (randonneur moyen, sans pauses) ; pente maxi mesurée sur 30 m.</p>`;
@@ -1343,6 +1446,177 @@ $('drawMe').addEventListener('click', () => {
   if (gps.pos) { drawStep(gps.pos.x, gps.pos.z); return; }
   draw.wantGps = true; if (!gps.on) { gpsCentered = true; gps.start(); } renderDraw();
 });
+// ---------- my itineraries, an outing in several days, when to leave (routebook.js) ----------
+const bookPick = new Set();
+const factsLine = f => `${km(f.dist)} km · ${hm(f.hours)} · +${fmt(f.up)} m / −${fmt(f.down)} m · point haut ${fmt(f.max)} m${f.steep30 > 20 ? ` · ${fmt(f.steep30)} m à travers des pentes ≥ 30°` : ''}`;
+function renderBook() {
+  const list = loadBook(); $('bookCnt').textContent = list.length ? fmt(list.length) : '';
+  $('bookOut').innerHTML = list.length ? `<div class="book">${list.map(r => `<div class="item"><input type="checkbox" data-cmp="${r.id}" ${bookPick.has(r.id) ? 'checked' : ''} aria-label="Comparer ${esc(r.name)}"><b>${esc(r.name)}</b>
+    <span class="meta">${r.facts ? factsLine(r.facts) : ''}${r.nights?.length ? ` · ${r.nights.length + 1} jours` : ''} · gardé le ${new Date(r.saved).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+    <div class="btns"><button type="button" class="mini" data-open="${r.id}">Ouvrir</button><button type="button" class="mini" data-del="${r.id}">Supprimer</button></div></div>`).join('')}</div>`
+    : "<p class=\"cline small\">Aucun itinéraire gardé pour l’instant.</p>";
+  const pick = list.filter(r => bookPick.has(r.id) && r.facts);
+  if (pick.length < 2) { $('bookCmp').innerHTML = pick.length ? '<p class="cline small">Coche un deuxième itinéraire pour comparer.</p>' : ''; return; }
+  // each row: the value of every itinerary, the lowest one highlighted
+  const rows = [['Distance', f => f.dist, v => `${km(v)} km`], ['Temps de marche', f => f.hours, hm], ['Dénivelé +', f => f.up, v => `${fmt(v)} m`], ['Dénivelé −', f => f.down, v => `${fmt(v)} m`],
+    ['Point haut', f => f.max, v => `${fmt(v)} m`], ['Raideur max du tracé', f => f.steepDeg, v => `${Math.round(v)}°`], ['Traverse des pentes ≥ 30°', f => f.steep30, v => `${fmt(v)} m`]];
+  $('bookCmp').innerHTML = `<h3>Comparaison</h3><div class="tw"><table class="cmp"><thead><tr><th></th>${pick.map(r => `<th>${esc(r.name)}</th>`).join('')}</tr></thead><tbody>
+    ${rows.map(([label, get, show]) => { const vals = pick.map(r => get(r.facts)), lo = Math.min(...vals); return `<tr><th>${label}</th>${vals.map(v => `<td class="${v === lo && vals.some(x => x !== lo) ? 'best' : ''}">${show(v)}</td>`).join('')}</tr>`; }).join('')}
+    <tr><th>Jours</th>${pick.map(r => `<td>${(r.nights?.length ?? 0) + 1}</td>`).join('')}</tr></tbody></table></div>
+    <p class="cnote">En bleu : la valeur la plus basse de la ligne. Temps DIN 33466 sans pauses, relief LiDAR IGN au moment où l'itinéraire a été gardé${pick.some(r => !r.facts.complete) ? ' (relief partiel pour certains)' : ''}.</p>`;
+}
+$('bookSave').addEventListener('click', () => {
+  const f = routeFacts(route.samples, (x, z) => engine.slopeAt(x, z));
+  if (!f) { toast('Relief pas encore chargé sous le tracé : attends un instant.', true); return; }
+  const list = loadBook(), ll = route.pts.map(([x, z]) => worldToLonLat(x, z).map(v => +v.toFixed(6))), name = route.name || 'Mon itinéraire';
+  const same = list.findIndex(r => r.name === name && r.ll.length === ll.length);
+  const entry = { id: same >= 0 ? list[same].id : Date.now().toString(36), name, ll, ends: route.ends, keep: route.keep, nights: route.nights, facts: f, saved: Date.now() };
+  if (same >= 0) list[same] = entry; else list.unshift(entry);
+  if (!saveBook(list)) { toast("Mémoire de l'appareil pleine : itinéraire non gardé.", true); return; }
+  toast(same >= 0 ? 'Itinéraire mis à jour dans « Mes itinéraires ».' : 'Gardé dans « Mes itinéraires » (Rando).'); renderBook();
+});
+$('bookOut').addEventListener('click', e => {
+  const open = e.target.closest('[data-open]'), del = e.target.closest('[data-del]');
+  if (open) {
+    const r = loadBook().find(x => x.id === open.dataset.open); if (!r) return;
+    route.setPath(r.ll.map(([lon, lat]) => lonLatToWorld(lon, lat)), r.name, r.nights ?? []); route.ends = r.ends ?? []; route.keep = r.keep ?? 0; route.save();
+    routeReady(`« ${r.name} » ouvert`);
+  }
+  if (del) {
+    if (del.dataset.armed !== '1') { del.dataset.armed = '1'; del.textContent = 'Confirmer'; setTimeout(() => { del.dataset.armed = ''; del.textContent = 'Supprimer'; }, 4000); return; }
+    saveBook(loadBook().filter(x => x.id !== del.dataset.del)); bookPick.delete(del.dataset.del); renderBook();
+  }
+});
+$('bookOut').addEventListener('change', e => {
+  const c = e.target.closest('[data-cmp]'); if (!c) return;
+  if (c.checked) { if (bookPick.size >= 3) { c.checked = false; toast('Trois itinéraires au plus à la fois.', true); return; } bookPick.add(c.dataset.cmp); } else bookPick.delete(c.dataset.cmp);
+  renderBook();
+});
+renderBook();
+// several days: the huts within 250 m of the line, and the steps drawn, can each be a night; the numbers per day follow
+function renderDays() {
+  const S = route.samples; if (S.length < 2) { $('daysOut').innerHTML = ''; return; }
+  let acc = 0; const dAt = []; route.pts.forEach((p, i) => { if (i) acc += Math.hypot(p[0] - route.pts[i - 1][0], p[1] - route.pts[i - 1][1]); dAt.push(acc); });
+  const total = S[S.length - 1].d, spots = nightSpots(S, PLACES);
+  route.ends.slice(1, -1).forEach((e, k) => { const d = dAt[e]; if (!spots.some(s => Math.abs(s.d - d) < 300)) spots.push({ d, name: `Étape ${k + 2} du tracé`, alt: groundAt(...route.pts[e]) }); });
+  spots.sort((a, b) => a.d - b.d);
+  const nights = route.nights.filter(n => n < total);
+  $('daysCnt').textContent = nights.length ? `${nights.length + 1} jours` : '';
+  const days = stages(S, nights);
+  $('daysOut').innerHTML = (spots.length ? `<p class="cline small">Coche où tu dors : refuges et abris à moins de 250 m du tracé (et les étapes que tu as posées).</p><div class="days">${spots.map(s => `<label class="night"><input type="checkbox" data-night="${s.d.toFixed(0)}" ${nights.some(n => Math.abs(n - Math.round(s.d)) < 1) ? 'checked' : ''}><span>${esc(s.name)}${s.alt ? ` · ${fmt(s.alt)} m` : ''} <span class="small">· km ${km(s.d)}</span></span></label>`).join('')}</div>`
+    : "<p class=\"cline small\">Pas de refuge ni d’abri à moins de 250 m du tracé : pour une sortie de plusieurs jours, trace-la en posant une étape à chaque nuit.</p>")
+    + (days.length > 1 ? `<div class="tw"><table><thead><tr><th></th><th class="n">km</th><th class="n">D+</th><th class="n">D−</th><th class="n">Temps</th></tr></thead><tbody>${days.map((d, i) => `<tr><th>Jour ${i + 1}</th><td class="n">${km(d.dist)}</td><td class="n">${fmt(d.up)}</td><td class="n">${fmt(d.down)}</td><td class="n">${hm(d.hours)}</td></tr>`).join('')}</tbody></table></div>` : '');
+}
+$('daysOut').addEventListener('change', e => {
+  const c = e.target.closest('[data-night]'); if (!c) return;
+  const d = +c.dataset.night; route.nights = c.checked ? [...route.nights.filter(n => Math.abs(n - d) >= 1), d] : route.nights.filter(n => Math.abs(n - d) >= 1);
+  route.save(); renderDays();
+});
+// when to leave: forecast at the highest point (Météo-France) and daylight; asked when the section is opened
+$('d-when').addEventListener('toggle', async () => {
+  if (!$('d-when').open || $('whenOut').dataset.key === routeKey) return;
+  const S = route.samples, hi = S.reduce((b, s) => (s.h != null && s.h > (b?.h ?? -Infinity) ? s : b), null);
+  if (!hi) { $('whenOut').innerHTML = '<p class="cline small">Relief pas encore chargé sous le tracé.</p>'; return; }
+  $('whenOut').innerHTML = '<p class="cmeta">Prévision au point haut…</p>';
+  try {
+    const [lon, lat] = worldToLonLat(hi.x, hi.z), f = await pointForecast(lat, lon, hi.h), w = whenToLeave(S, f.hourly, lat, lon);
+    const lines = w.days.map((d, k) => {
+      const name = k ? 'Demain' : "Aujourd'hui", bad = d.bad ? (WMO[d.bad.code] || 'mauvais temps').toLowerCase() : '';
+      const reason = d.reason === 'weather' ? `pour être au point haut une heure avant « ${bad} » prévu vers ${hhmm(d.bad.at)}` : `pour rentrer avant le coucher du soleil (${hhmm(d.set)})`;
+      if (!d.ok) return `<p class="cline"><b>${name}</b> : pas assez de temps${d.bad && d.bad.at < d.earliest ? ` (${bad} prévu dès ${hhmm(d.bad.at)})` : k === 0 ? " (trop tard pour partir aujourd’hui)" : ''}.</p>`;
+      return `<p class="cline"><b>${name}</b> : départ entre <b>${hhmm(d.earliest)}</b>${+d.earliest === +d.rise ? ' (lever du soleil)' : ''} et <b>${hhmm(d.latest)}</b>, ${reason}.</p>`;
+    });
+    $('whenOut').innerHTML = lines.join('') + `<p class="cnote">Point haut ${fmt(w.hiAlt)} m atteint en ${hm(w.toTop)}, itinéraire complet en ${hm(w.total)} : temps DIN 33466 sans pauses (ajoute les tiennes). Prévision Météo-France au point haut, reçue à ${hhmm(new Date())} ; les orages de montagne arrivent souvent plus tôt que prévu.</p>`;
+    $('whenOut').dataset.key = routeKey;
+  } catch (e) { $('whenOut').innerHTML = `<p class="cline">Prévision indisponible (${esc(why(e))}).</p>`; }
+});
+
+// ---------- snow measured at the mountain stations, webcams (daily copies in data/, see scripts/) ----------
+// Météo-France's nivo-meteorological network: the latest measure of each station near the view, with its date;
+// stations of the last 4 days also as labels on the map. Mostly winter: off season the dates say how old it is.
+const nivo = { data: null, ids: new Set() };
+const kmTo = (lat, lon) => { const [tl, ta] = worldToLonLat(controls.target.x, controls.target.z), r = Math.PI / 180; return Math.hypot((lon - tl) * Math.cos(lat * r), lat - ta) * 111.2; };
+fetch('data/nivo.json').then(r => r.ok ? r.json() : null).catch(() => null).then(d => { nivo.data = d; renderNivo(); nivoLabels(); });
+function renderNivo() {
+  const d = nivo.data, el = $('nivo');
+  if (!d) { el.innerHTML = '<p class="cline small">Mesures indisponibles (pas encore copiées, ou hors ligne sans copie).</p>'; return; }
+  const near = d.stations.filter(s => s.lat != null).map(s => ({ ...s, km: kmTo(s.lat, s.lon), at: new Date(s.time) })).filter(s => s.km < 40).sort((a, b) => a.km - b.km).slice(0, 8);
+  if (!near.length) { el.innerHTML = '<p class="cline small">Pas de station de mesure de la neige à moins de 40 km de la vue.</p>'; return; }
+  el.innerHTML = `<div class="tw"><table class="cmp"><thead><tr><th>Station</th><th class="n">Neige</th><th class="n">Fraîche</th><th class="n">Mesure</th></tr></thead><tbody>${near.map(s => {
+    const old = Date.now() - s.at > 3 * 864e5;
+    return `<tr><th>${esc(s.name)}<br><span class="small">${s.alt != null ? fmt(s.alt) + ' m · ' : ''}${t1(s.km)} km</span></th><td class="n"><b>${s.snow_cm} cm</b></td><td class="n">${s.fresh_cm != null ? s.fresh_cm + ' cm' : '—'}</td><td class="n${old ? ' stale' : ''}">${s.at.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}${old ? '' : ' ' + hhmm(s.at)}</td></tr>`;
+  }).join('')}</tbody></table></div>
+    <p class="cnote">Mesures au sol des stations de montagne du réseau nivo-météorologique (Météo-France et ses partenaires), surtout en hiver ; en orange, une mesure de plus de 3 jours. Une station mesure la neige à son endroit seulement (souvent un domaine skiable, à plat). ${esc(d.source)}, copie du ${new Date(d.fetched + 'T12:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}.</p>`;
+}
+$('tab-cond').addEventListener('click', renderNivo); // the stations nearest to wherever the view is now
+function nivoLabels() {
+  for (const s of nivo.data?.stations ?? []) {
+    if (s.lat == null || Date.now() - new Date(s.time) > 4 * 864e5 || nivo.ids.has(s.name)) continue; nivo.ids.add(s.name);
+    const [x, z] = lonLatToWorld(s.lon, s.lat), p = { name: s.name, alt: s.alt, x, z, h: s.alt ?? 1500, small: true, nivo: s };
+    const el = document.createElement('button'); el.type = 'button'; el.className = 'label small nivo hidden';
+    el.innerHTML = `<span class="t"><span class="n">❄ ${esc(s.name)}</span><span class="h">${s.snow_cm} cm</span></span>`;
+    el.addEventListener('click', () => openPlace(p));
+    labelsEl.appendChild(el); p.el = el; PLACES.push(p);
+  }
+}
+// webcams mapped in OpenStreetMap: their own page opens (the pictures belong to their owners)
+const camName = (c) => c.name || (() => { try { const u = new URL(c.url); return `${u.hostname.replace(/^(www|m|app)\./, '').split('.')[0]} · ${decodeURIComponent(u.pathname.split('/').filter(Boolean).pop() || '').replace(/[-_]/g, ' ')}`.trim(); } catch { return 'Webcam'; } })();
+fetch(`data/webcams-${SITE.id}.json`).then(r => r.ok ? r.json() : null).catch(() => null).then(d => {
+  for (const c of d?.webcams ?? []) {
+    const [x, z] = lonLatToWorld(c.lon, c.lat), p = { name: camName(c), x, z, h: groundAt(x, z) ?? 1500, small: true, cam: c.url };
+    const el = document.createElement('button'); el.type = 'button'; el.className = 'label small cam hidden';
+    el.innerHTML = `<span class="t"><span class="n">📷 ${esc(p.name)}</span></span>`; el.title = 'Ouvrir la webcam';
+    el.addEventListener('click', () => openPlace(p));
+    labelsEl.appendChild(el); p.el = el; PLACES.push(p);
+  }
+});
+state.webcams = true; $('c-webcams').addEventListener('change', e => { state.webcams = e.target.checked; });
+
+// ---------- sharing my position live, following someone's (share.js) ----------
+const liveShare = new LiveShare(renderShare);
+let shareWake = null;
+try { $('shareName').value = localStorage.getItem('midi3d-share-name') || ''; } catch { }
+const followBase = () => `${location.origin}${location.pathname}?site=${SITE.id}`;
+function renderShare() {
+  const on = liveShare.on, s = liveShare.state;
+  $('shareGo').hidden = on; $('shareName').disabled = on; $('shareOn').hidden = !on; $('shareCnt').textContent = on ? 'en cours' : '';
+  if (on) {
+    const last = s.last ? `dernier envoi ${ago2(s.last.t)}` : gps.pos ? 'premier envoi en cours…' : 'en attente de ta position GPS…';
+    $('shareInfo').innerHTML = `<b>Partage en cours</b> · ${last} · ${s.sent} envoi${s.sent > 1 ? 's' : ''} aujourd'hui (limite du service : 250)${s.error ? ` · <span class="stale">échec du dernier envoi : ${esc(s.error)}</span>` : ''} · s'arrête à ${hhmm(new Date(s.until))}.`;
+    $('shareLink').textContent = liveShare.link(followBase());
+    if (!shareWake) navigator.wakeLock?.request('screen').then(w => { shareWake = w; w.addEventListener('release', () => { shareWake = null; }); }).catch(() => { });
+  } else { shareWake?.release().catch(() => { }); shareWake = null; }
+  renderTrip();
+}
+$('shareGo').addEventListener('click', () => {
+  const name = $('shareName').value.trim(); try { localStorage.setItem('midi3d-share-name', name); } catch { }
+  liveShare.start(name); if (!gps.on) { gpsCentered = false; gps.start(); } else if (gps.pos) liveShare.fix(gps.pos);
+  toast("Partage démarré : envoie maintenant le lien à ton proche.", false, 4000);
+});
+$('shareStop').addEventListener('click', async () => { await liveShare.stop(); toast('Partage arrêté : ton proche voit « partage terminé ».'); });
+$('shareSend').addEventListener('click', async () => {
+  const url = liveShare.link(followBase()), text = `Suis ma position en montagne en direct${liveShare.state.name ? ` (${liveShare.state.name})` : ''} :`;
+  try { if (navigator.share) { await navigator.share({ title: 'Ma position en direct', text, url }); return; } } catch (e) { if (e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(url); toast('Lien copié : colle-le dans un message.'); } catch { toast('Copie impossible : le lien est affiché sous les boutons.', true); }
+});
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && liveShare.on) renderShare(); });
+renderShare();
+// someone else's position, from a shared link (?suivre=…): a marker and the way walked, and a card with the news
+const followChannel = new URLSearchParams(location.search).get('suivre');
+const follow = /^m3d-[a-z0-9]{10,40}$/.test(followChannel ?? '') ? new LiveFollow({ scene, channel: followChannel, onChange: renderFollow }) : null;
+let followFlown = false;
+function renderFollow() {
+  const f = follow, p = f.last, card = $('followCard');
+  if (!p) { card.innerHTML = f.error ? `Suivi : pas de réponse du service (${esc(f.error)}), nouvel essai dans 30 s.` : f.ended ? `Le partage de position de <b>${esc(f.name ?? '')}</b> est terminé.` : "Suivi d'une position partagée : en attente d'un premier envoi…"; card.hidden = false; return; }
+  const age = (Date.now() - p.t) / 60e3;
+  card.innerHTML = `<div><b>${esc(p.name || 'Position partagée')}</b> · vu ${ago2(p.t)}${p.alt != null ? ` · ${fmt(p.alt)} m` : ''} · ±${fmt(p.acc)} m${p.batt != null ? ` · batterie ${p.batt} %` : ''}</div>`
+    + (f.ended ? '<div>Partage terminé.</div>' : age > 15 ? `<div class="warn">Pas de nouvelle position depuis ${Math.round(age)} min (pas de réseau là-haut, ou écran verrouillé).</div>` : '')
+    + `<button type="button" class="mini" id="followGo">Centrer sur ${esc(p.name || 'la position')}</button>`;
+  card.hidden = false;
+  $('followGo').onclick = () => flyToLonLat(p.lon, p.lat);
+  if (!followFlown && started) { followFlown = true; flyToLonLat(p.lon, p.lat); pin = null; } // (before the relief is there, the opening view takes it: see drawFrame)
+}
+if (follow) setInterval(() => { if (follow.last) renderFollow(); }, 30e3); // "vu il y a…" keeps counting
 // the steps on screen: start (D), steps, end (A), and the touches still being worked out
 const marks = { els: [], n: 0 };
 function updateRouteMarks() {
@@ -1780,7 +2054,7 @@ function setView(v) {
     if (state.exag !== 1) { $('exag').value = 1; $('exag').dispatchEvent(new Event('input')); }
     applyScale();
     google.start(googleKey.get(), async err => {
-      setView('ign'); $('gNote').textContent = GERR[err];
+      setView('ign'); google.dispose(); // a refused session is not kept for later $('gNote').textContent = GERR[err];
       if (err !== 'key') return;
       $('gKeyBlock').hidden = false;
       const why = await whyRefused(googleKey.get()); // Google's own reason, when it gives one
@@ -1789,8 +2063,8 @@ function setView(v) {
     scene.fog = gFog;
   } else { google.stop(); scene.fog = null; }
   // layers computed on the IGN terrain are not drawn over Google's tiles
-  for (const id of ['c-slopes', 'c-snowtoday', 'c-lidar', 'exag']) $(id).disabled = g;
-  $('slopeLegend').hidden = g || !state.slopes;
+  for (const id of ['c-slopes', 'c-bera', 'c-snowtoday', 'c-lidar', 'exag']) $(id).disabled = g;
+  $('slopeLegend').hidden = g || !state.slopes; applyBeraMap();
   $('gNote').textContent = g ? 'Vue Google 3D (photos et relief Google, en ligne seulement). La carte des pentes, la neige du jour, les points LiDAR et le relief exagéré restent dans la vue IGN : touche « IGN (LiDAR) » pour les retrouver.' : '';
   try { localStorage.setItem('midi3d-view', v); } catch { }
 }
@@ -1805,7 +2079,7 @@ $('gKeySave').addEventListener('click', () => {
   googleKey.set(k); $('gKey').value = ''; setView('google');
 });
 $('gKey').addEventListener('keydown', e => { if (e.key === 'Enter') $('gKeySave').click(); });
-$('gKeyClear').addEventListener('click', () => { googleKey.set(''); setView('ign'); $('gNote').textContent = 'Clé effacée de cet appareil.'; });
+$('gKeyClear').addEventListener('click', () => { googleKey.set(''); setView('ign'); google.dispose(); $('gNote').textContent = 'Clé effacée de cet appareil.'; });
 let savedView = 'ign'; try { savedView = localStorage.getItem('midi3d-view') || 'ign'; } catch { }
 $('c-spin').addEventListener('change', e => { controls.autoRotate = e.target.checked; });
 $('home').addEventListener('click', home);
@@ -1955,7 +2229,7 @@ async function pointReport(hit) {
   const where = hit.surface === 'google' ? 'altitude de la surface Google 3D (arbres, bâtiments et neige compris, ±quelques m)' : `relief ${SRC[s?.src] ?? 'IGN'}`;
   const meta = `<p class="cmeta">${lat.toFixed(5)}° N · ${lon.toFixed(5)}° E · ${where}</p>`
     + (s ? `<p class="cline"><b>${s.deg < 3 ? 'Terrain plat' : `Pente ${Math.round(s.deg)}°`}</b>${s.deg >= 3 ? ` orientée ${compass16(s.aspect)}` : ''} <span class="small">· mesurée sur ${s.step < 10 ? t1(s.step) : fmt(s.step)} m, terrain nu</span></p>` : '')
-    + sunlitText(hit.x, hit.z);
+    + sunlitText(hit.x, hit.z) + riseSetText(hit.x, hit.z) + beraAtText(hit.h, s);
   $('ptTitle').textContent = `${fmt(hit.h)} m`;
   $('ptOut').innerHTML = meta + '<p class="cmeta">Récupération des conditions…</p>';
   const [f, sat] = await Promise.all([pointForecast(lat, lon, hit.h).catch(e => ({ error: why(e) })), satSnowAt(lat, lon).catch(() => null)]);
@@ -2009,6 +2283,13 @@ function sunlitIntervals(x, z) {
   }
   if (cur) { cur.to = new Date(+day + 1320 * 60e3); out.push(cur); }
   return out;
+}
+// sunrise and sunset there on the day shown, with the direction they come from (for photos), horizon flat
+function riseSetText(x, z) {
+  const [lon, lat] = worldToLonLat(x, z), day = lightingNow(), rise = sunrise(day, lat, lon), set = sunTimes(day, lat, lon).sunset;
+  if (!rise || !set) return '';
+  const dirOf = t => { const a = sunPosition(t, lat, lon).az * 180 / Math.PI; return `${compass16(a)}, ${Math.round(a)}°`; };
+  return `<p class="cline small">Lever du soleil ${hhmm(rise)} (${dirOf(rise)}) · coucher ${hhmm(set)} (${dirOf(set)}) <span class="small">· sur un horizon plat ; les montagnes le cachent plus tôt ou plus tard (plages « au soleil » ci-dessus)</span></p>`;
 }
 function sunlitText(x, z) {
   const iv = sunlitIntervals(x, z); if (!iv) return '';
@@ -2172,7 +2453,7 @@ $('cacheClear').addEventListener('click', async () => {
 
 // labels
 const proj = new THREE.Vector3();
-const labView = { cam: new THREE.Matrix4(), proj: new THREE.Matrix4(), w: 0, h: 0 };
+const labView = { cam: new THREE.Matrix4(), proj: new THREE.Matrix4(), w: 0, h: 0, pass: 0 };
 let frameN = 0;
 function updateLabels() {
   updateRouteMarks();
@@ -2185,16 +2466,17 @@ function updateLabels() {
   if (!state.labels) return;
   const w = stage.clientWidth, h = stage.clientHeight, cam = camera.position;
   // the view still: the names stay where they are (hundreds of them, a real cost on phones); looked at again now and then
-  const still = labView.cam.equals(camera.matrixWorld) && labView.proj.equals(camera.projectionMatrix) && labView.w === w && labView.h === h && frameN % 15 !== 0;
+  const still0 = labView.cam.equals(camera.matrixWorld) && labView.proj.equals(camera.projectionMatrix) && labView.w === w && labView.h === h, still = still0 && frameN % 15 !== 0;
   labView.cam.copy(camera.matrixWorld); labView.proj.copy(camera.projectionMatrix); labView.w = w; labView.h = h;
   if (still) return;
+  labView.pass++; // checks spread over the passes (not the frames: while still, only one frame in 15 runs this)
   PLACES.forEach((p, i) => {
-    if ((frameN + i) % 20 === 0 && (p.area || (p.hut && !p.alt))) { const g = groundAt(p.x, p.z); if (g != null) p.h = g + (p.area ? 80 : 0); }
+    if ((labView.pass + i) % 20 === 0 && (p.area || ((p.hut || p.cam) && !p.alt))) { const g = groundAt(p.x, p.z); if (g != null) p.h = g + (p.area ? 80 : 0); }
     if (p.fall && !streams.on) { p.el.classList.add('hidden'); return; }
     const y = p.h * state.exag;
     proj.set(p.x, y, p.z).project(camera);
     const on = proj.z < 1 && Math.abs(proj.x) < 1.1 && Math.abs(proj.y) < 1.1;
-    if (on && (frameN + i) % 10 === 0) {
+    if (on && (labView.pass + i) % (still0 ? 1 : 10) === 0) {
       const dx = p.x - cam.x, dy = y - cam.y, dz = p.z - cam.z, L = Math.hypot(dx, dy, dz);
       // water points, tricky passages and waterfalls only close by (like on a paper map), huts within 9 km
       const far = p.rinfo?.kind === 'eau' || p.rinfo?.kind === 'passage' || p.fall ? 3000 : p.small ? 9000 : p.area ? 14000 : 40000;
@@ -2209,7 +2491,7 @@ function updateLabels() {
     }
     // always a true/false: toggle(name, undefined) flips the class instead, and every summit name (p.hut undefined)
     // blinked at the frame rate
-    p.el.classList.toggle('hidden', !on || !!p.hidden || !!(p.hut && !trails.on));
+    p.el.classList.toggle('hidden', !on || !!p.hidden || !!(p.hut && !trails.on) || !!(p.cam && !state.webcams));
     if (on) p.el.style.transform = `translate(${(proj.x * 0.5 + 0.5) * w}px, ${(-proj.y * 0.5 + 0.5) * h}px)`;
   });
 }
@@ -2318,6 +2600,7 @@ function drawFrame() {
   // at night the red paths would outshine everything: dimmed (still there to follow)
   for (const mat of Object.values(trails.mats)) mat.opacity = 0.95 * (1 - 0.7 * U.night.value);
   gps.update(camera, groundAt, state.exag); if (gps.on && frameN % 60 === 0) renderGps();
+  follow?.update(camera, groundAt, state.exag, stage.clientWidth, stage.clientHeight);
   // the numbers shown follow the relief as it arrives under the line (re-written only when they change)
   if (route.update(frameN, state.exag, engine.busy)) { const st = route.stats(); if ((st ? `${Math.round(st.dist)}|${Math.round(st.up)}|${st.complete}` : '') !== routeSig) renderRouteCard(); }
   track.update(frameN, state.exag); lap('itineraire');
@@ -2328,6 +2611,7 @@ function drawFrame() {
   photos.update(controls.target, frameN, state.exag, google.on);
   if (flyRoute) flyAlongRoute(dt);
   if (hoverNDC && frameN % (google.on ? 10 : 3) === 0) showPoint(pick(...hoverNDC));
+  nightSky.update(camera, lightingNow(), ORIGIN.lat, ORIGIN.lon, skyU.stars.value, state.clouds ? overcast : 0, stage.clientWidth, stage.clientHeight, renderer.getPixelRatio());
   lap('divers'); updateLabels(); lap('etiquettes'); frameN++;
   if (frameN % 600 === 0 && state.hourOffset === 0) updateSky();
   if (frameN % 45 === 0) updatePrecipForView();
@@ -2340,7 +2624,9 @@ function drawFrame() {
   lap('rendu'); if (prof) { prof.calls = renderer.info.render.calls; prof.tris = renderer.info.render.triangles; }
   // start when the IGN relief is there, or when the Google view was chosen during loading (IGN then paused)
   if (!started && (engine.roots.filter(r => r.state === 'ready').length >= engine.roots.length * 0.6 || (google.on && t > 3))) {
-    started = true; $('loader').classList.add('done'); if (!sharedView()) home();
+    started = true; $('loader').classList.add('done');
+    // a followed position is the first thing to show; then a shared view; else the summit
+    if (follow?.last) { followFlown = true; flyToLonLat(follow.last.lon, follow.last.lat); pin = null; } else if (!sharedView()) home();
     // the first opening on a device: how to move around, said once
     let seen = true; try { seen = localStorage.getItem('midi3d-hello') === '1'; localStorage.setItem('midi3d-hello', '1'); } catch { }
     if (!seen) setTimeout(() => toast(matchMedia('(pointer: coarse)').matches ? 'Un doigt déplace la carte, deux doigts zooment, tournent et inclinent. Touche le relief pour sa météo.' : 'Glisser : déplacer · molette : zoomer · clic droit : tourner et incliner. Clique le relief pour sa météo.', false, 8000), 3500);
@@ -2381,7 +2667,7 @@ $('linesBtn').addEventListener('click', () => {
 });
 for (const id of ['c-trails', 'c-streams']) $(id).addEventListener('change', syncLinesBtn);
 syncLinesBtn();
-window.midi3d = { engine, google, camera, controls, adapt, places: PLACES, applyScale, forest, lakes, shadows, gps, route, sight, lidar, post, U, state, prof,
+window.midi3d = { engine, google, camera, controls, adapt, places: PLACES, sky: nightSky, applyScale, forest, lakes, shadows, gps, route, sight, lidar, post, U, state, prof,
   set overcast(v) { overcast = v; U.haze.value = v; updateSky(); } }; // handy for debugging from the console
 updateSky(); frame(); refreshLive();
 // every 15 minutes while on screen, and at once when the app comes back after being away that long

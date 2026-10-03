@@ -39,15 +39,23 @@ export class GoogleTiles {
   // origin: {lat, lon} of the scene origin; geoidN: geoid height there, so that y = altitude above sea level
   constructor({ scene, camera, renderer, origin, geoidN }) {
     this.scene = scene; this.camera = camera; this.renderer = renderer; this.origin = origin; this.geoidN = geoidN;
-    this.tiles = null; this.error = null; this.errorTarget = 12;
+    this.tiles = null; this.shown = false; this.error = null; this.errorTarget = 12; this.parkTimer = null;
     // the plugin puts the origin at (0,0,0) with x west and z north; our scene has x east and z south
     this.holder = new THREE.Group(); this.holder.rotation.y = Math.PI;
     this.draco = new DRACOLoader().setDecoderPath(DRACO);
   }
-  get on() { return !!this.tiles; }
+  get on() { return this.shown; }
 
+  // Google bills one session per root request (a session lasts 3 hours): going back to the IGN view parks the
+  // tiles out of sight for a while instead of freeing them, so that coming back soon costs no new session and
+  // shows at once. Parked longer than PARK, they are freed (graphics memory on a phone).
   start(key, onError) {
-    this.stop(); this.error = null;
+    const PARK_SESSION = 2.5 * 3600e3;
+    if (this.tiles && this.key === key && Date.now() - this.since < PARK_SESSION) {
+      clearTimeout(this.parkTimer); this.onError = onError;
+      this.scene.add(this.holder); this.shown = true; return;
+    }
+    this.dispose(); this.error = null; this.key = key; this.since = Date.now(); this.onError = onError;
     const t = this.tiles = new TilesRenderer(ROOT);
     t.registerPlugin(new GoogleCloudAuthPlugin({ apiToken: key, autoRefreshToken: true }));
     t.registerPlugin(new GLTFExtensionsPlugin({ dracoLoader: this.draco }));
@@ -66,18 +74,25 @@ export class GoogleTiles {
       if (e.tile) return;
       const m = String(e.error?.message ?? e.error ?? '');
       this.error = /40[013]/.test(m) ? 'key' : 'network';
-      onError?.(this.error, m);
+      this.onError?.(this.error, m);
     });
-    this.holder.add(t.group); this.scene.add(this.holder);
+    this.holder.add(t.group); this.scene.add(this.holder); this.shown = true;
   }
+  // back to the IGN view: out of sight, kept PARK minutes (see start)
   stop() {
+    if (!this.shown) return;
+    this.scene.remove(this.holder); this.shown = false;
+    clearTimeout(this.parkTimer); this.parkTimer = setTimeout(() => { if (!this.shown) this.dispose(); }, 10 * 60e3);
+  }
+  dispose() {
+    clearTimeout(this.parkTimer);
     if (!this.tiles) return;
     this.holder.remove(this.tiles.group); this.scene.remove(this.holder);
-    this.tiles.dispose(); this.tiles = null;
+    this.tiles.dispose(); this.tiles = null; this.shown = false;
   }
   setErrorTarget(e) { this.errorTarget = e; if (this.tiles) this.tiles.errorTarget = e; }
   update() {
-    const t = this.tiles; if (!t) return;
+    const t = this.tiles; if (!t || !this.shown) return;
     this.camera.updateMatrixWorld();
     t.setResolutionFromRenderer(this.camera, this.renderer);
     t.update();
@@ -91,7 +106,7 @@ export class GoogleTiles {
   }
   // first hit of a ray on the Google surface (x, y altitude, z in scene metres)
   raycast(raycaster) {
-    if (!this.tiles) return null;
+    if (!this.tiles || !this.shown) return null;
     raycaster.firstHitOnly = true;
     const hit = raycaster.intersectObject(this.tiles.group, true)[0];
     return hit ? hit.point : null;

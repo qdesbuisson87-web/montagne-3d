@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610031153';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610031254';
 
 const STEP = 10, STORE = 'midi3d-route'; // metres between resampled points
 
@@ -40,7 +40,7 @@ export function pathStats(samples) {
 // (ends: index in pts where each step lies), so the last step and the stretch leading to it can be taken back.
 export class RouteLayer {
   constructor({ scene, groundAt }) {
-    this.groundAt = groundAt; this.pts = []; this.ends = []; this.keep = 0; this.name = ''; this.drawing = false; this.samples = []; this.dirty = true;
+    this.groundAt = groundAt; this.pts = []; this.ends = []; this.keep = 0; this.nights = []; this.name = ''; this.drawing = false; this.samples = []; this.dirty = true;
     this.mat = new LineMaterial({ color: 0xff3b30, linewidth: 4, transparent: true, depthTest: true });
     this.under = new LineMaterial({ color: 0x3a0a08, linewidth: 7, transparent: true, opacity: 0.6, depthTest: true });
     // the parts hidden behind the relief: dashes drawn over it, so the line is never cut
@@ -56,11 +56,12 @@ export class RouteLayer {
         this.pts = s.ll.map(([lon, lat]) => lonLatToWorld(lon, lat)); this.name = s.name || '';
         this.ends = Array.isArray(s.ends) && s.ends.every(i => i < this.pts.length) ? s.ends : [];
         this.keep = this.ends.length ? Math.min(+s.keep || 0, this.ends.length) : 0;
+        this.nights = Array.isArray(s.nights) ? s.nights.filter(d => typeof d === 'number') : [];
       }
     } catch { }
   }
   setResolution(w, h) { for (const m of [this.mat, this.under, this.hidden]) m.resolution.set(w, h); }
-  save() { try { localStorage.setItem(STORE, JSON.stringify({ ll: this.pts.map(([x, z]) => worldToLonLat(x, z).map(v => +v.toFixed(6))), name: this.name, ends: this.ends, keep: this.keep })); } catch { } }
+  save() { try { localStorage.setItem(STORE, JSON.stringify({ ll: this.pts.map(([x, z]) => worldToLonLat(x, z).map(v => +v.toFixed(6))), name: this.name, ends: this.ends, keep: this.keep, nights: this.nights })); } catch { } }
 
   // ----- drawing step by step -----
   // the steps of the line: those touched, or for a line from elsewhere (GPX, planner) its two ends, so that
@@ -70,10 +71,10 @@ export class RouteLayer {
   // start drawing: a new line (the one there is kept aside, to come back to if the drawing is abandoned), or
   // carrying on the one there is
   beginDraw(fresh) {
-    this.backup = { pts: this.pts, ends: this.ends, keep: this.keep, name: this.name };
+    this.backup = { pts: this.pts, ends: this.ends, keep: this.keep, nights: this.nights, name: this.name };
     // a line from elsewhere (GPX, planner, topo) stays whole: "undo" only takes back the steps added to it
     // (keep = how many steps are kept, remembered with the line)
-    if (fresh) { this.pts = []; this.ends = []; this.keep = 0; this.name = ''; }
+    if (fresh) { this.pts = []; this.ends = []; this.keep = 0; this.nights = []; this.name = ''; }
     else if (!this.ends.length && this.pts.length) { this.ends = [0, this.pts.length - 1]; this.keep = 2; }
     this.drawing = true; this.dirty = true;
   }
@@ -102,13 +103,13 @@ export class RouteLayer {
     else { this.ends = this.ends.slice(0, -1); this.pts = this.pts.slice(0, this.ends[this.ends.length - 1] + 1); }
     this.dirty = true; this.save();
   }
-  clear() { this.pts = []; this.ends = []; this.keep = 0; this.name = ''; this.dirty = true; this.save(); }
+  clear() { this.pts = []; this.ends = []; this.keep = 0; this.nights = []; this.name = ''; this.dirty = true; this.save(); }
   importGPX(text, fileName) {
     const doc = new DOMParser().parseFromString(text, 'application/xml');
     if (doc.querySelector('parsererror')) throw new Error("ce fichier n'est pas un GPX lisible");
     let nodes = [...doc.getElementsByTagName('trkpt')]; if (!nodes.length) nodes = [...doc.getElementsByTagName('rtept')];
     if (nodes.length < 2) throw new Error('aucun tracé dans ce fichier (il faut des points de trace ou de route)');
-    this.pts = nodes.map(n => lonLatToWorld(+n.getAttribute('lon'), +n.getAttribute('lat'))); this.ends = []; this.keep = 0;
+    this.pts = nodes.map(n => lonLatToWorld(+n.getAttribute('lon'), +n.getAttribute('lat'))); this.ends = []; this.keep = 0; this.nights = [];
     this.name = doc.querySelector('trk > name, rte > name, metadata > name')?.textContent.trim() || fileName.replace(/\.gpx$/i, '');
     this.dirty = true; this.save();
   }
@@ -122,7 +123,8 @@ export class RouteLayer {
   // ----- geometry and numbers -----
   resample() { return resamplePath(this.pts, this.groundAt); }
   stats() { return pathStats(this.samples); }
-  setPath(pts, name) { this.pts = pts; this.ends = []; this.keep = 0; this.name = name; this.drawing = false; this.dirty = true; this.save(); }
+  // nights: distances along the line (m) where an outing of several days stops for the night
+  setPath(pts, name, nights = []) { this.pts = pts; this.ends = []; this.keep = 0; this.nights = nights; this.name = name; this.drawing = false; this.dirty = true; this.save(); }
   pointAt(d) {
     const s = this.samples; if (!s.length) return null;
     let i = 1; while (i < s.length - 1 && s[i].d < d) i++;

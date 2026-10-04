@@ -1,43 +1,43 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610042116';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610042116';
-import { SITE, SITE_LIST } from './sites.js?v=202610042116';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610042116';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610042116';
-import { GoogleMap3D, googleKey, keyChanged } from './google3d.js?v=202610042116';
-import { searchPlaces } from './search.js?v=202610042116';
-import { TerrainShadows } from './shadows.js?v=202610042116';
-import { PostFX } from './post.js?v=202610042116';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610042116';
-import { Forest } from './forest.js?v=202610042116';
-import { Lakes } from './water.js?v=202610042116';
-import { Glaciers } from './glaciers.js?v=202610042116';
-import { makeSite, removeSite } from './custom.js?v=202610042116';
-import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610042116';
-import { Streams } from './streams.js?v=202610042116';
-import { Refuges } from './refuges.js?v=202610042116';
-import { NightLights } from './lights.js?v=202610042116';
-import { Buildings } from './buildings.js?v=202610042116';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610042116';
-import { loadPlanned, savePlanned, scheduleReminders, cancelReminders, reminderTopic, leaveAt } from './planned.js?v=202610042116';
-import { junctions, say } from './guide.js?v=202610042116';
-import { TrackRecorder, progressOn } from './track.js?v=202610042116';
-import { GpsTracker } from './gps.js?v=202610042116';
-import { RouteLayer, resamplePath, pathStats, netString } from './route.js?v=202610042116';
-import { liftPlans, altitudes } from './liftplan.js?v=202610042116';
-import { walkingRoute } from './planner.js?v=202610042116';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610042116';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610042116';
-import { TrailsLayer } from './trails.js?v=202610042116';
-import { Weather3D } from './weather3d.js?v=202610042116';
-import { Sight } from './sight.js?v=202610042116';
-import { Photos360 } from './photos360.js?v=202610042116';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610042116';
-import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, routeForecast, cloudProfile, SPOTS } from './live.js?v=202610042116';
-import { VolumeClouds } from './clouds.js?v=202610042116';
-import { LiveShare, LiveFollow } from './share.js?v=202610042116';
-import { NightSky } from './sky.js?v=202610042116';
-import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise, walkability, exposure, skiStats, SKI_BINS } from './routebook.js?v=202610042116';
+import { EarthControls } from './controls.js?v=202610042122';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610042122';
+import { SITE, SITE_LIST } from './sites.js?v=202610042122';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610042122';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610042122';
+import { GoogleMap3D, googleKey, keyChanged } from './google3d.js?v=202610042122';
+import { searchPlaces } from './search.js?v=202610042122';
+import { TerrainShadows } from './shadows.js?v=202610042122';
+import { PostFX } from './post.js?v=202610042122';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610042122';
+import { Forest } from './forest.js?v=202610042122';
+import { Lakes } from './water.js?v=202610042122';
+import { Glaciers } from './glaciers.js?v=202610042122';
+import { makeSite, removeSite } from './custom.js?v=202610042122';
+import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610042122';
+import { Streams } from './streams.js?v=202610042122';
+import { Refuges } from './refuges.js?v=202610042122';
+import { NightLights } from './lights.js?v=202610042122';
+import { Buildings } from './buildings.js?v=202610042122';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610042122';
+import { loadPlanned, savePlanned, scheduleReminders, cancelReminders, reminderTopic, leaveAt } from './planned.js?v=202610042122';
+import { junctions, say } from './guide.js?v=202610042122';
+import { TrackRecorder, progressOn } from './track.js?v=202610042122';
+import { GpsTracker } from './gps.js?v=202610042122';
+import { RouteLayer, resamplePath, pathStats, netString } from './route.js?v=202610042122';
+import { liftPlans, altitudes } from './liftplan.js?v=202610042122';
+import { walkingRoute } from './planner.js?v=202610042122';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610042122';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610042122';
+import { TrailsLayer } from './trails.js?v=202610042122';
+import { Weather3D } from './weather3d.js?v=202610042122';
+import { Sight } from './sight.js?v=202610042122';
+import { Photos360 } from './photos360.js?v=202610042122';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610042122';
+import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, routeForecast, cloudProfile, SPOTS } from './live.js?v=202610042122';
+import { VolumeClouds } from './clouds.js?v=202610042122';
+import { LiveShare, LiveFollow } from './share.js?v=202610042122';
+import { NightSky } from './sky.js?v=202610042122';
+import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise, walkability, exposure, skiStats, SKI_BINS } from './routebook.js?v=202610042122';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -662,7 +662,10 @@ $('makeSite').addEventListener('click', async () => {
 // ---------- camera moves ----------
 let fly = null;
 const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-function startFly(target, pos, dur = 2200) { fly = { t0: performance.now(), dur, fT: controls.target.clone(), fP: camera.position.clone(), tT: target, tP: pos }; controls.autoRotate = false; }
+function startFly(target, pos, dur = 2200) {
+  if (google.on) { controls.target.copy(target); camera.position.copy(pos); camera.lookAt(target); camera.updateMatrixWorld(); google.flyTo(camOf(target, pos), dur); return; }
+  fly = { t0: performance.now(), dur, fT: controls.target.clone(), fP: camera.position.clone(), tT: target, tP: pos }; controls.autoRotate = false;
+}
 function flyToPlace(p) {
   const y = (p.area ? (engine.heightAt(p.x, p.z) ?? p.h) : p.h) * state.exag;
   const t = new THREE.Vector3(p.x, y - (p.area ? 0 : 60 * state.exag), p.z);
@@ -1249,6 +1252,7 @@ async function stormCheck(p) {
 const hhmm = d => d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 const buzz = p => { try { navigator.vibrate?.(p); } catch { } };
 function tripFix() {
+  if (google.on) google.setMe(gps.on && gps.pos ? { lat: gps.pos.lat, lng: gps.pos.lon } : null);
   const p = gps.pos; if (!p) { renderTrip(); return; }
   track.addFix(p); liveShare.fix(p);
   const prog = route.samples.length > 1 ? progressOn(route.samples, p.x, p.z) : null;
@@ -1315,7 +1319,7 @@ $('gpsFab').addEventListener('click', () => { if (!gps.on) { gpsCentered = false
 const hm = h => { const m = Math.round(h * 60 / 5) * 5; return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`; };
 const km = d => (d / 1000).toLocaleString('fr-FR', { maximumFractionDigits: d < 10000 ? 2 : 1 });
 // the itinerary laid on the relief again, and its card in "Rando"
-function renderRoute() { route.drape(state.exag); renderRouteCard(); }
+function renderRoute() { route.drape(state.exag); renderRouteCard(); if (google.on) google.setPath(googlePath()); }
 let routeSig = '', routeKey = '';
 // on foot or on skis (ski touring): the numbers, the verdict and the colours on the map follow (kept on the device)
 const activity = { v: (() => { try { return localStorage.getItem('midi3d-activity') || 'foot'; } catch { return 'foot'; } })() };
@@ -2433,10 +2437,24 @@ const GERR = {
 };
 // our camera for Google's map: centre on the point looked at, distance, heading (ours turns the other way) and tilt
 // (0 = looking straight down for both)
-function googleCam() {
-  const c = controls.cur, [lng, lat] = worldToLonLat(c.t.x, c.t.z), deg = 180 / Math.PI;
-  return { lat, lng, range: c.d, heading: ((360 - c.h * deg) % 360 + 360) % 360, tilt: Math.min(85, c.p * deg) };
+const googleCam = () => camOf(controls.target, camera.position);
+function camOf(target, pos) {
+  const o = pos.clone().sub(target), d = Math.max(o.length(), 1), [lng, lat] = worldToLonLat(target.x, target.z), deg = 180 / Math.PI;
+  return { lat, lng, range: d, heading: ((-Math.atan2(o.x, o.z) * deg) % 360 + 360) % 360, tilt: Math.min(85, Math.acos(Math.min(1, o.y / d)) * deg) };
 }
+// a touch on Google's map does what a touch on ours does; the altitude is IGN's (our relief where loaded, otherwise
+// the IGN altimetry service), never Google's surface (trees, buildings)
+google.onTap = async ({ lat, lng }) => {
+  const [x, z] = lonLatToWorld(lng, lat);
+  let h = groundAt(x, z);
+  if (h == null) h = (await altitudes([{ lon: lng, lat }]).catch(() => [null]))[0];
+  if (h == null) { toast("Altitude indisponible à cet endroit (relief pas chargé, et pas de réseau).", true); return; }
+  const hit = { x, z, h };
+  if (draw.on) { drawStep(x, z); return; }
+  if (pickMode) { picked(hit); return; }
+  pointReport(hit);
+};
+const googlePath = () => { const S = route.samples, step = Math.max(1, Math.ceil(S.length / 600)); return S.filter((_, i) => i % step === 0 || i === S.length - 1).map(s => { const [lng, lat] = worldToLonLat(s.x, s.z); return { lat, lng }; }); };
 // and back: the same place, seen the same way, in our view
 function fromGoogleCam(g) {
   const [x, z] = lonLatToWorld(g.lng, g.lat), r = Math.PI / 180, h = -g.heading * r, p = g.tilt * r;
@@ -2450,9 +2468,7 @@ function googleExtras() {
   const marks = PLACES.filter(p => p.name && !p.area && (p.alt || p.hut) && !p.fall && !p.cam && !p.nivo && Math.hypot(p.x - T.x, p.z - T.z) < 20000)
     .sort((a, b) => Math.hypot(a.x - T.x, a.z - T.z) - Math.hypot(b.x - T.x, b.z - T.z)).slice(0, 60)
     .map(p => { const [lng, lat] = worldToLonLat(p.x, p.z); return { name: p.alt ? `${p.name} ${fmt(p.alt)} m` : p.name, lat, lng, small: !!p.hut }; });
-  const S = route.samples, step = Math.max(1, Math.ceil(S.length / 600));
-  const path = S.filter((_, i) => i % step === 0 || i === S.length - 1).map(s => { const [lng, lat] = worldToLonLat(s.x, s.z); return { lat, lng }; });
-  return { marks, path };
+  return { marks, path: googlePath() };
 }
 function setView(v) {
   if (v === 'google' && !googleKey.get()) { $('gKeyBlock').hidden = false; $('gKey').focus(); $('gNote').textContent = ''; return; }
@@ -2468,7 +2484,7 @@ function setView(v) {
       document.body.classList.remove('google'); state.view = 'ign'; markSeg('view', 'ign'); $('gKeyBlock').hidden = false;
       const t = GERR[kind] ?? GERR.map; $('gNote').textContent = t + (msg ? ` (${msg})` : ''); toast(t, true, 9000);
     };
-    google.open(googleKey.get(), googleCam(), googleExtras(), fail).catch(e => fail(e.message === 'key' ? 'key' : 'network'));
+    google.open(googleKey.get(), googleCam(), googleExtras(), fail).then(() => { if (gps.on && gps.pos) google.setMe({ lat: gps.pos.lat, lng: gps.pos.lon }); }).catch(e => fail(e.message === 'key' ? 'key' : 'network'));
   } else {
     const c = google.close(); if (c) fromGoogleCam(c);
   }

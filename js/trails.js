@@ -6,8 +6,8 @@ import * as THREE from 'three';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
 import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610042116';
-import { cachedFetch } from './net.js?v=202610042116';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610042122';
+import { cachedFetch } from './net.js?v=202610042122';
 
 const CELL = 0.04, RANGE = 5000, SHOW = 6500; // metres: fat lines cost on phones, the far ones were barely visible
 const WFS = (layer, cql, [s, w, n, e]) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=${layer}&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=5000`

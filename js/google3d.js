@@ -43,24 +43,44 @@ export class GoogleMap3D {
     if (!this.map) {
       this.map = new Map3DElement({ mode: MapMode.SATELLITE, defaultUIHidden: true });
       this.map.addEventListener('gmp-error', e => this.fail('map', e?.error?.message ?? ''));
+      // a touch on Google's map: its place goes to the app (point sheet, drawing, choosing a point), as on ours
+      this.map.addEventListener('gmp-click', e => { const p = e.position; if (p) this.onTap?.({ lat: p.lat, lng: p.lng }); });
       this.map.addEventListener('gmp-steadychange', e => { if (e.isSteady) { this.steady = true; clearTimeout(this.slowTimer); } });
       this.host.appendChild(this.map);
     }
     Object.assign(this.map, { center: { lat: cam.lat, lng: cam.lng, altitude: 0 }, range: cam.range, heading: cam.heading, tilt: cam.tilt });
-    // our names and line, as Google's markers (the nearest, so that the map stays readable) and 3D line
+    // our names, as Google's markers (the nearest, so that the map stays readable), and the itinerary
     for (const el of this.extras) el.remove(); this.extras = [];
     for (const m of marks) {
       const el = new Marker3DElement({ position: { lat: m.lat, lng: m.lng }, altitudeMode: AltitudeMode.CLAMP_TO_GROUND, label: m.name, extruded: !m.small, sizePreserved: true, collisionPriority: m.small ? 0 : 1 });
       this.map.appendChild(el); this.extras.push(el);
     }
-    if (path.length > 1) {
-      const line = new Polyline3DElement({ path, altitudeMode: AltitudeMode.CLAMP_TO_GROUND, strokeColor: '#ff3b30', strokeWidth: 6, outerColor: '#3a0a08', outerWidth: 0.35, drawsOccludedSegments: true });
-      this.map.appendChild(line); this.extras.push(line);
-    }
+    this.lib = { Polyline3DElement, Marker3DElement, AltitudeMode }; this.setPath(path); this.me?.remove(); this.me = null;
     this.host.hidden = false; this.shown = true;
     // nothing drawn after 30 s (refused without a word, or no connection): back to our view rather than a black screen
     clearTimeout(this.slowTimer);
     if (!this.steady) this.slowTimer = setTimeout(() => { if (!this.steady) this.fail('slow', ''); }, 30e3);
+  }
+  // the itinerary on Google's map (again when it changes: drawing, planner…); parts hidden by the relief stay seen
+  setPath(path) {
+    if (!this.map || !this.lib) return;
+    this.line?.remove(); this.line = null;
+    if (path.length < 2) return;
+    const { Polyline3DElement, AltitudeMode } = this.lib;
+    this.line = new Polyline3DElement({ path, altitudeMode: AltitudeMode.CLAMP_TO_GROUND, strokeColor: '#ff3b30', strokeWidth: 6, outerColor: '#3a0a08', outerWidth: 0.35, drawsOccludedSegments: true });
+    this.map.appendChild(this.line);
+  }
+  // my GPS position on Google's map (null: none)
+  setMe(pos) {
+    if (!this.map || !this.lib) return;
+    if (!pos) { this.me?.remove(); this.me = null; return; }
+    if (!this.me) { this.me = new this.lib.Marker3DElement({ altitudeMode: this.lib.AltitudeMode.CLAMP_TO_GROUND, label: 'Ma position', sizePreserved: true, collisionPriority: 2 }); this.map.appendChild(this.me); }
+    this.me.position = { lat: pos.lat, lng: pos.lng };
+  }
+  // our camera moves (a place searched, back to the summit, my position…) made by Google's camera
+  flyTo(cam, ms) {
+    if (!this.map || !this.shown) return;
+    this.map.flyCameraTo({ endCamera: { center: { lat: cam.lat, lng: cam.lng, altitude: 0 }, range: cam.range, heading: cam.heading, tilt: cam.tilt }, durationMillis: Math.max(300, ms) });
   }
   // back to our view: the camera as Google has it now (null if the map never showed)
   close() {

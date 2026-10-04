@@ -7,7 +7,7 @@
 // The sky is drawn on a sphere around the camera, rotated from equatorial coordinates to the place's horizon by the
 // local sidereal time (precession since 2000 neglected: about 0.3°).
 import * as THREE from 'three';
-import { sunPosition, moonPosition } from './live.js?v=202610042110';
+import { sunPosition, moonPosition } from './live.js?v=202610042116';
 
 const R = 180000, RAD = Math.PI / 180;
 const days2000 = date => date / 864e5 - 10957.5; // days since J2000 (as in live.js)

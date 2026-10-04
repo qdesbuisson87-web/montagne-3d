@@ -401,11 +401,9 @@ tbody th { font-weight: 600; text-transform: capitalize; }
 #gKey, #mfKey { flex: 1; min-width: 0; min-height: 44px; appearance: none; background: rgba(255,255,255,.06); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; font: 400 16px/1 "IBM Plex Mono", ui-monospace, monospace; color: var(--ink); }
 
 /* Google 3D view: logo and data attributions along the bottom (required by Google); what is at the bottom moves up */
-.gattrib { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--safe-b) + 2px); z-index: 3; display: flex; align-items: center; gap: 8px; max-width: calc(100vw - 16px); padding: 3px 8px; border-radius: 4px; background: rgba(10,14,20,.55); pointer-events: none; }
-.gattrib .glogo { font: 500 13px/1 "Barlow", system-ui, sans-serif; color: #fff; }
-.gattrib img { height: 16px; width: auto; flex: none; }
-.gattrib span { font: 400 10px/1.3 "Barlow", system-ui, sans-serif; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-body.google { --sb: calc(max(8px, calc(env(safe-area-inset-bottom, 0px) - 4px)) + 22px); }
+/* Google's 3D map over the scene (it draws its own logo and data credits); our labels and point sheet are ours */
+.gmap { position: fixed; inset: 0; z-index: 1; background: #000; } .gmap gmp-map-3d { width: 100%; height: 100%; display: block; }
+body.google #labels, body.google #routeMarks, body.google .coords { display: none; }
 
 #loader { position: fixed; inset: 0; display: grid; place-items: center; background: #0b1018; z-index: 7; transition: opacity .7s; padding-inline: 16px; }
 #loader.done { opacity: 0; pointer-events: none; }

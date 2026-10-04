@@ -1,43 +1,43 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610042110';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610042110';
-import { SITE, SITE_LIST } from './sites.js?v=202610042110';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610042110';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610042110';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610042110';
-import { searchPlaces } from './search.js?v=202610042110';
-import { TerrainShadows } from './shadows.js?v=202610042110';
-import { PostFX } from './post.js?v=202610042110';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610042110';
-import { Forest } from './forest.js?v=202610042110';
-import { Lakes } from './water.js?v=202610042110';
-import { Glaciers } from './glaciers.js?v=202610042110';
-import { makeSite, removeSite } from './custom.js?v=202610042110';
-import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610042110';
-import { Streams } from './streams.js?v=202610042110';
-import { Refuges } from './refuges.js?v=202610042110';
-import { NightLights } from './lights.js?v=202610042110';
-import { Buildings } from './buildings.js?v=202610042110';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610042110';
-import { loadPlanned, savePlanned, scheduleReminders, cancelReminders, reminderTopic, leaveAt } from './planned.js?v=202610042110';
-import { junctions, say } from './guide.js?v=202610042110';
-import { TrackRecorder, progressOn } from './track.js?v=202610042110';
-import { GpsTracker } from './gps.js?v=202610042110';
-import { RouteLayer, resamplePath, pathStats, netString } from './route.js?v=202610042110';
-import { liftPlans, altitudes } from './liftplan.js?v=202610042110';
-import { walkingRoute } from './planner.js?v=202610042110';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610042110';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610042110';
-import { TrailsLayer } from './trails.js?v=202610042110';
-import { Weather3D } from './weather3d.js?v=202610042110';
-import { Sight } from './sight.js?v=202610042110';
-import { Photos360 } from './photos360.js?v=202610042110';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610042110';
-import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, routeForecast, cloudProfile, SPOTS } from './live.js?v=202610042110';
-import { VolumeClouds } from './clouds.js?v=202610042110';
-import { LiveShare, LiveFollow } from './share.js?v=202610042110';
-import { NightSky } from './sky.js?v=202610042110';
-import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise, walkability, exposure, skiStats, SKI_BINS } from './routebook.js?v=202610042110';
+import { EarthControls } from './controls.js?v=202610042116';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610042116';
+import { SITE, SITE_LIST } from './sites.js?v=202610042116';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610042116';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610042116';
+import { GoogleMap3D, googleKey, keyChanged } from './google3d.js?v=202610042116';
+import { searchPlaces } from './search.js?v=202610042116';
+import { TerrainShadows } from './shadows.js?v=202610042116';
+import { PostFX } from './post.js?v=202610042116';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610042116';
+import { Forest } from './forest.js?v=202610042116';
+import { Lakes } from './water.js?v=202610042116';
+import { Glaciers } from './glaciers.js?v=202610042116';
+import { makeSite, removeSite } from './custom.js?v=202610042116';
+import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610042116';
+import { Streams } from './streams.js?v=202610042116';
+import { Refuges } from './refuges.js?v=202610042116';
+import { NightLights } from './lights.js?v=202610042116';
+import { Buildings } from './buildings.js?v=202610042116';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610042116';
+import { loadPlanned, savePlanned, scheduleReminders, cancelReminders, reminderTopic, leaveAt } from './planned.js?v=202610042116';
+import { junctions, say } from './guide.js?v=202610042116';
+import { TrackRecorder, progressOn } from './track.js?v=202610042116';
+import { GpsTracker } from './gps.js?v=202610042116';
+import { RouteLayer, resamplePath, pathStats, netString } from './route.js?v=202610042116';
+import { liftPlans, altitudes } from './liftplan.js?v=202610042116';
+import { walkingRoute } from './planner.js?v=202610042116';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610042116';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610042116';
+import { TrailsLayer } from './trails.js?v=202610042116';
+import { Weather3D } from './weather3d.js?v=202610042116';
+import { Sight } from './sight.js?v=202610042116';
+import { Photos360 } from './photos360.js?v=202610042116';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610042116';
+import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, routeForecast, cloudProfile, SPOTS } from './live.js?v=202610042116';
+import { VolumeClouds } from './clouds.js?v=202610042116';
+import { LiveShare, LiveFollow } from './share.js?v=202610042116';
+import { NightSky } from './sky.js?v=202610042116';
+import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise, walkability, exposure, skiStats, SKI_BINS } from './routebook.js?v=202610042116';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -704,16 +704,9 @@ $('searchForm').addEventListener('submit', async e => {
 
 // ---------- terrain queries ----------
 const groundAt = (x, z) => engine.heightAt(x, z);
-const google = new GoogleTiles({ scene, camera, renderer, origin: ORIGIN, geoidN: SITE.geoidN ?? 50 });
-const rayG = new THREE.Raycaster();
-// aerial perspective for the Google tiles (their materials take three.js fog), same horizon colour as the sky
-const gFog = new THREE.FogExp2(0xc8d2dc, 2.3e-5);
+const google = new GoogleMap3D($('gmap'));
 // cam: the camera to cast from (the controls measure gestures in the view they are heading to)
 function pick(ndcX, ndcY, cam = camera) {
-  if (google.on) { // Google view: the surface actually on screen (buildings, trees and snow included)
-    rayG.setFromCamera(new THREE.Vector2(ndcX, ndcY), cam);
-    const p = google.raycast(rayG); return p ? { x: p.x, z: p.z, h: p.y, surface: 'google' } : null;
-  }
   const r = new THREE.Raycaster(); r.setFromCamera(new THREE.Vector2(ndcX, ndcY), cam);
   const o = r.ray.origin, d = r.ray.direction, gapAt = t => { const g = groundAt(o.x + d.x * t, o.z + d.z * t); return g == null ? null : o.y + d.y * t - g * state.exag; };
   let t = 0, prev = 0;
@@ -802,7 +795,6 @@ function updateSky() {
     // moonlight brightens the night sky a little (bluish)
     U.skyCol.value.set(skyC[0] + 0.02 * k, skyC[1] + 0.03 * k, skyC[2] + 0.06 * k);
   }
-  gFog.color.setRGB(...hor); gFog.density = 2.3e-5 * (1 + overcast * 1.1);
   const hh = date.getHours(), mm = date.getMinutes();
   const live = state.hourOffset === 0 && state.dayOffset === 0;
   if (state.weather) updateCloudProfile();
@@ -2434,30 +2426,52 @@ $('epochBadge').addEventListener('click', () => { $('epoch').value = 'current'; 
 // ---------- view: IGN terrain or Google Photorealistic 3D Tiles, never both at once (see google3d.js) ----------
 state.view = 'ign';
 const GERR = {
-  key: "Google refuse la clé. Vérifie qu'elle est copiée en entier, que la Map Tiles API est activée, que la facturation est configurée et que la clé autorise le site qdesbuisson87-web.github.io.",
-  quota: "Google 3D : quota atteint (le plafond du jour réglé dans ton projet Google, ou trop de demandes d'un coup). Retour à la vue IGN.",
-  network: 'Google 3D ne répond pas (connexion). Retour à la vue IGN.'
+  key: "Google refuse la clé pour la carte 3D. Dans la console Google : active « Maps JavaScript API », et dans les restrictions de la clé autorise cette API et le site https://qdesbuisson87-web.github.io/*. La facturation doit être configurée.",
+  map: "Google n'a pas pu afficher sa carte 3D (peut-être pas disponible pour ton compte ou ta région). Retour à la vue IGN.",
+  slow: "La carte 3D de Google ne s'affiche pas après 30 s (clé refusée sans message, « Maps JavaScript API » pas activée, ou connexion trop lente). Retour à la vue IGN.",
+  network: 'Google ne répond pas (connexion). Retour à la vue IGN.'
 };
+// our camera for Google's map: centre on the point looked at, distance, heading (ours turns the other way) and tilt
+// (0 = looking straight down for both)
+function googleCam() {
+  const c = controls.cur, [lng, lat] = worldToLonLat(c.t.x, c.t.z), deg = 180 / Math.PI;
+  return { lat, lng, range: c.d, heading: ((360 - c.h * deg) % 360 + 360) % 360, tilt: Math.min(85, c.p * deg) };
+}
+// and back: the same place, seen the same way, in our view
+function fromGoogleCam(g) {
+  const [x, z] = lonLatToWorld(g.lng, g.lat), r = Math.PI / 180, h = -g.heading * r, p = g.tilt * r;
+  const t = new THREE.Vector3(x, (groundAt(x, z) ?? controls.target.y / state.exag) * state.exag, z);
+  engine.ensureRoots(x, z, 45000);
+  startFly(t, t.clone().add(new THREE.Vector3(Math.sin(p) * Math.sin(h), Math.cos(p), Math.sin(p) * Math.cos(h)).multiplyScalar(g.range)), 10);
+}
+// what of ours goes onto Google's map: the summits and huts near the view (the nearest 60) and the itinerary
+function googleExtras() {
+  const T = controls.target;
+  const marks = PLACES.filter(p => p.name && !p.area && (p.alt || p.hut) && !p.fall && !p.cam && !p.nivo && Math.hypot(p.x - T.x, p.z - T.z) < 20000)
+    .sort((a, b) => Math.hypot(a.x - T.x, a.z - T.z) - Math.hypot(b.x - T.x, b.z - T.z)).slice(0, 60)
+    .map(p => { const [lng, lat] = worldToLonLat(p.x, p.z); return { name: p.alt ? `${p.name} ${fmt(p.alt)} m` : p.name, lat, lng, small: !!p.hut }; });
+  const S = route.samples, step = Math.max(1, Math.ceil(S.length / 600));
+  const path = S.filter((_, i) => i % step === 0 || i === S.length - 1).map(s => { const [lng, lat] = worldToLonLat(s.x, s.z); return { lat, lng }; });
+  return { marks, path };
+}
 function setView(v) {
   if (v === 'google' && !googleKey.get()) { $('gKeyBlock').hidden = false; $('gKey').focus(); $('gNote').textContent = ''; return; }
   if (v === 'google' && !navigator.onLine) { $('gNote').textContent = "La vue Google 3D demande une connexion : Google interdit de la garder hors ligne. La vue IGN marche hors ligne."; return; }
+  if (v === 'google' && keyChanged(googleKey.get())) { $('gNote').textContent = 'Nouvelle clé : recharge la page pour que Google la prenne.'; toast('Recharge la page pour utiliser la nouvelle clé.', true); return; }
   const g = v === 'google';
+  if (g === google.on) return;
   state.view = v; markSeg('view', v);
-  document.body.classList.toggle('google', g);
-  engine.group.visible = !g; $('gAttrib').hidden = !g; $('gKeyBlock').hidden = !g;
+  document.body.classList.toggle('google', g); $('gKeyBlock').hidden = !g;
   if (g) {
-    // Google's surface cannot be exaggerated: back to true relief
-    if (state.exag !== 1) { $('exag').value = 1; $('exag').dispatchEvent(new Event('input')); }
-    applyScale();
-    google.start(googleKey.get(), async err => {
-      setView('ign'); google.dispose(); // a refused session is not kept for later
-      $('gNote').textContent = GERR[err]; toast(GERR[err], true, 7000);
-      if (err === 'key') $('gKeyBlock').hidden = false;
-      const why = await whyRefused(googleKey.get()); // Google's own reason, when it gives one (key, quota…)
-      if (why) { $('gNote').textContent = 'Google refuse : ' + why; toast('Google 3D : ' + why, true, 9000); }
-    });
-    scene.fog = gFog;
-  } else { google.stop(); scene.fog = null; }
+    if (state.exag !== 1) { $('exag').value = 1; $('exag').dispatchEvent(new Event('input')); } // Google's relief is the true one
+    const fail = (kind, msg) => {
+      document.body.classList.remove('google'); state.view = 'ign'; markSeg('view', 'ign'); $('gKeyBlock').hidden = false;
+      const t = GERR[kind] ?? GERR.map; $('gNote').textContent = t + (msg ? ` (${msg})` : ''); toast(t, true, 9000);
+    };
+    google.open(googleKey.get(), googleCam(), googleExtras(), fail).catch(e => fail(e.message === 'key' ? 'key' : 'network'));
+  } else {
+    const c = google.close(); if (c) fromGoogleCam(c);
+  }
   // layers computed on the IGN terrain are not drawn over Google's tiles
   for (const id of ['c-slopes', 'c-bera', 'c-snowtoday', 'c-lidar', 'exag']) $(id).disabled = g;
   $('slopeLegend').hidden = g || !state.slopes; applyBeraMap();
@@ -2465,9 +2479,6 @@ function setView(v) {
   try { localStorage.setItem('midi3d-view', v); } catch { }
 }
 document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
-// if the official logo (icons/google-maps-logo.svg, from Google's attribution assets) fails to load, at least name Google
-const noLogo = () => $('gLogo')?.replaceWith(Object.assign(document.createElement('b'), { textContent: 'Google', className: 'glogo' }));
-if ($('gLogo').complete && !$('gLogo').naturalWidth) noLogo(); else $('gLogo').addEventListener('error', noLogo);
 $('gKeySave').addEventListener('click', () => {
   const k = $('gKey').value.trim();
   // Google API keys: 39 characters starting with "AIza"
@@ -2475,7 +2486,7 @@ $('gKeySave').addEventListener('click', () => {
   googleKey.set(k); $('gKey').value = ''; setView('google');
 });
 $('gKey').addEventListener('keydown', e => { if (e.key === 'Enter') $('gKeySave').click(); });
-$('gKeyClear').addEventListener('click', () => { googleKey.set(''); setView('ign'); google.dispose(); $('gNote').textContent = 'Clé effacée de cet appareil.'; });
+$('gKeyClear').addEventListener('click', () => { googleKey.set(''); setView('ign'); $('gNote').textContent = 'Clé effacée de cet appareil.'; });
 let savedView = 'ign'; try { savedView = localStorage.getItem('midi3d-view') || 'ign'; } catch { }
 $('c-spin').addEventListener('change', e => { controls.autoRotate = e.target.checked; });
 $('home').addEventListener('click', home);
@@ -2496,7 +2507,7 @@ $('refresh').addEventListener('click', refreshLive);
 // Both come back, detail first, after several seconds of comfortable frame rate.
 const adapt = { res: 1, detail: 1, good: 0, since: 0, level: 0, noClouds: false, noPost: false };
 function applyScale() {
-  const Q = QUAL[state.quality]; engine.splitK = Q.k * adapt.detail; google.setErrorTarget(Q.gErr / adapt.detail);
+  const Q = QUAL[state.quality]; engine.splitK = Q.k * adapt.detail; 
   lidar.setQuality(Q.pts * adapt.detail * adapt.detail, Q.ptPx); // fewer LiDAR points along with the terrain detail
   // pixel budget: a foldable's or a tablet's large screen at full density is several times a phone's pixels
   const css = Math.max(1, stage.clientWidth * stage.clientHeight), cap = Math.sqrt(Q.px / css);
@@ -2909,7 +2920,7 @@ applyQuality(state.quality);
 // the frame clock; connected to the page so that time spent hidden does not come back as one huge step (not with
 // ?debugloop, whose whole point is to keep drawing in a hidden tab)
 const timer = new THREE.Timer(); if (!location.search.includes('debugloop')) timer.connect(document);
-let fpsAcc = 0, fpsN = 0, adAcc = 0, adN = 0, started = false, gGround = null;
+let fpsAcc = 0, fpsN = 0, adAcc = 0, adN = 0, started = false;
 // ?debugloop keeps rendering in a hidden tab (for automated checks); normal use follows the display refresh
 const nextFrame = location.search.includes("debugloop") ? cb => setTimeout(cb, 16) : cb => requestAnimationFrame(cb);
 // Pace: at most 60 images/s (120 Hz screens would draw twice as often for nothing but heat and battery), and 30
@@ -2924,7 +2935,7 @@ for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown']) addEventLis
 function paceOk(now) {
   if (lastTick) { const d = now - lastTick; if (d < 60) tickMs += (d - tickMs) * 0.05; }
   lastTick = now;
-  idle = now - lastActive > 3000 && !fly && !flyRoute && !sight.on && !snow.visible && !rain.visible && !(google.on ? google.loading : engine.busy) && !draw.busy;
+  idle = now - lastActive > 3000 && !fly && !flyRoute && !sight.on && !snow.visible && !rain.visible && !engine.busy && !draw.busy;
   const every = Math.max(1, Math.floor(1000 / tickMs / (idle ? 30 : 60) + 0.25));
   if (++ticks < every) return false;
   ticks = 0; return true;
@@ -2932,6 +2943,7 @@ function paceOk(now) {
 // one failing frame must never freeze the app: report it once and keep drawing
 let frameError = null;
 function frame() {
+  if (google.on) { nextFrame(frame); return; } // Google's map draws itself: ours rests (battery)
   if (paceOk(performance.now())) {
     try { drawFrame(); } catch (e) { if (String(e) !== frameError) { frameError = String(e); console.error(e); } }
     if (!camWas.equals(camera.matrixWorld)) { camWas.copy(camera.matrixWorld); wake(); } // the view moving (inertia, easing) counts as activity
@@ -2960,24 +2972,18 @@ function drawFrame() {
   }
   if (sight.on) sightFrame(); else controls.update(Math.min(dt, 0.1)); // in the viewfinder the phone drives the camera
   const c = camera.position;
-  // ground under the camera (keeps it above the surface, sets the near plane): Google's own surface in that view,
-  // probed a few times per second since a ray through the tiles costs more than a grid lookup
   const T = controls.target;
-  if (google.on && frameN % 6 === 0) {
-    const down = (x, z) => { rayG.set(new THREE.Vector3(x, 9000, z), new THREE.Vector3(0, -1, 0)); rayG.far = 20000; const y = google.raycast(rayG)?.y ?? null; rayG.far = Infinity; return y; };
-    gGround = down(c.x, c.z);
-  }
   // the sky darkens and turns bluer as one climbs: re-bake it when the altitude has changed noticeably
   if (frameN % 20 === 0 && Math.abs(c.y / state.exag - skyAlt) > 400) updateSky();
   if (frameN % 60 === 0) {
     engine.ensureRoots(T.x, T.z, 45000);
-    if (!google.on) glaciers.ensure(T.x, T.z);
+    glaciers.ensure(T.x, T.z);
     refuges.ensure(T.x, T.z);
     const far = Math.hypot(T.x, T.z) > 30000; // the weather stations only describe the massif
     if (far !== state.far) { state.far = far; updateCloudProfile(); updatePrecipForView(); }
   }
-  if (pin?.search) pin.h = (google.on ? null : groundAt(pin.x, pin.z)) ?? pin.h;
-  const g = google.on ? (gGround ?? groundAt(c.x, c.z)) : groundAt(c.x, c.z);
+  if (pin?.search) pin.h = groundAt(pin.x, pin.z) ?? pin.h;
+  const g = groundAt(c.x, c.z);
   if (g != null && c.y < g * state.exag + 4) c.y = g * state.exag + 4;
   const above = g != null ? c.y - g * state.exag : 1000, td = c.distanceTo(controls.target);
   camera.near = Math.min(Math.max(Math.min(above, td) * 0.15, 0.3), 200); camera.updateProjectionMatrix(); camera.updateMatrixWorld();
@@ -2985,14 +2991,14 @@ function drawFrame() {
   SU.boxSize.value = Math.min(Math.max(td * 0.9, 40), 9000);
   if (cabins.visible) { const a = cabinGeo.attributes.position.array, ph = (t * 0.02) % 2, f = ph < 1 ? ph : 2 - ph; a.set(cablePoint(0, f), 0); a.set(cablePoint(1, 1 - f), 3); cabinGeo.attributes.position.needsUpdate = true; }
   lap('debut');
-  if (google.on) google.update(); else engine.update(camera);
+  engine.update(camera);
   lap('relief');
-  lidar.update(camera, controls.target, state.exag, google.on);
+  lidar.update(camera, controls.target, state.exag, false);
   const byPoints = (x, z) => lidar.covers(x, z);
-  forest.update(camera, google.on || !state.trees, byPoints); lap('forets');
-  lakes.update(camera, frameN, state.exag, google.on, controls.target); lap('lacs');
-  buildings.update(camera, controls.target, frameN, google.on, byPoints); lap('batiments');
-  nightLights.update(controls.target, frameN, U.night.value, state.exag, google.on); lap('nuit');
+  forest.update(camera, !state.trees, byPoints); lap('forets');
+  lakes.update(camera, frameN, state.exag, false, controls.target); lap('lacs');
+  buildings.update(camera, controls.target, frameN, false, byPoints); lap('batiments');
+  nightLights.update(controls.target, frameN, U.night.value, state.exag, false); lap('nuit');
   // at night the red paths would outshine everything: dimmed (still there to follow)
   for (const mat of Object.values(trails.mats)) mat.opacity = 0.95 * (1 - 0.7 * U.night.value);
   gps.update(camera, groundAt, state.exag); if (gps.on && frameN % 60 === 0) renderGps();
@@ -3000,44 +3006,43 @@ function drawFrame() {
   // the numbers shown follow the relief as it arrives under the line (re-written only when they change)
   if (route.update(frameN, state.exag, engine.busy)) { const st = route.stats(); if ((st ? `${Math.round(st.dist)}|${Math.round(st.up)}|${st.complete}` : '') !== routeSig) renderRouteCard(); }
   track.update(frameN, state.exag); lap('itineraire');
-  trails.update(camera, controls.target, frameN, state.exag, google.on); lap('sentiers');
-  streams.update(camera, controls.target, frameN, state.exag, google.on, dt); lap('torrents');
-  pistes.update(camera, state.exag, google.on); lap('pistes');
+  trails.update(camera, controls.target, frameN, state.exag, false); lap('sentiers');
+  streams.update(camera, controls.target, frameN, state.exag, false, dt); lap('torrents');
+  pistes.update(camera, state.exag, false); lap('pistes');
   weather3d.update(state.exag, state.far);
-  photos.update(controls.target, frameN, state.exag, google.on);
+  photos.update(controls.target, frameN, state.exag, false);
   if (flyRoute) flyAlongRoute(dt);
-  if (hoverNDC && frameN % (google.on ? 10 : 3) === 0) showPoint(pick(...hoverNDC));
+  if (hoverNDC && frameN % 3 === 0) showPoint(pick(...hoverNDC));
   nightSky.update(camera, lightingNow(), ORIGIN.lat, ORIGIN.lon, skyU.stars.value, state.clouds ? overcast : 0, stage.clientWidth, stage.clientHeight, renderer.getPixelRatio());
   lap('divers'); updateLabels(); lap('etiquettes'); frameN++;
   if (frameN % 600 === 0 && state.hourOffset === 0) updateSky();
   if (frameN % 45 === 0) updatePrecipForView();
   // cast shadows only with the real sun on the IGN terrain (photos and Google tiles carry their own)
   // light maps of the relief (sky visibility always, cast shadows with the real sun); Google tiles carry their own
-  if (!google.on && started) shadows.update(controls.target, U.sunDir.value, state.exag, performance.now(), state.light === 'sun');
+  if (started) shadows.update(controls.target, U.sunDir.value, state.exag, performance.now(), state.light === 'sun');
   else shadows.off();
   lap('ombres');
   post.render(scene, camera, t);
   lap('rendu'); if (prof) { prof.calls = renderer.info.render.calls; prof.tris = renderer.info.render.triangles; }
   // start when the IGN relief is there, or when the Google view was chosen during loading (IGN then paused)
-  if (!started && (engine.roots.filter(r => r.state === 'ready').length >= engine.roots.length * 0.6 || (google.on && t > 3))) {
+  if (!started && (engine.roots.filter(r => r.state === 'ready').length >= engine.roots.length * 0.6 )) {
     started = true; $('loader').classList.add('done');
     // a followed position is the first thing to show; then a shared view; else the summit
     if (follow?.last) { followFlown = true; flyToLonLat(follow.last.lon, follow.last.lat); pin = null; } else if (!sharedView()) home();
     // the first opening on a device: how to move around, said once
     let seen = true; try { seen = localStorage.getItem('midi3d-hello') === '1'; localStorage.setItem('midi3d-hello', '1'); } catch { }
     if (!seen) setTimeout(() => toast(matchMedia('(pointer: coarse)').matches ? 'Un doigt déplace la carte, deux doigts zooment, tournent et inclinent. Touche le relief pour sa météo.' : 'Glisser : déplacer · molette : zoomer · clic droit : tourner et incliner. Clique le relief pour sa météo.', false, 8000), 3500);
-    if (savedView === 'google' && googleKey.get()) setView('google'); // each opening of the Google view = one Google session
+    if (savedView === 'google' && googleKey.get()) setView('google'); // each opening of the page with the Google view = one map load billed by Google
   }
-  if (google.on && frameN % 30 === 0) { const a = google.attributions(); $('gAttribTxt').textContent = a.length ? a.join(' ; ') : 'Google'; }
   fpsAcc += dt; fpsN++;
   // the automatic adjustment judges only the frames drawn at full pace (the 30 images/s at rest say nothing)
   if (idle) { adAcc = 0; adN = 0; } else { adAcc += dt; adN++; }
   if (adAcc > 1.5) { adaptTo(adN / adAcc); adAcc = 0; adN = 0; }
   if (fpsAcc > 0.5) {
     const auto = adapt.level > 0 ? ` · allégé ${adapt.level}/${ADAPT_STEPS.length - 1}` : '';
-    $('rFps').textContent = `${Math.round(fpsN / fpsAcc)} i/s${idle ? ' (au repos)' : ''} · ${google.on ? 'Google 3D' : `${engine.tileCount ?? 0} tuiles`}${auto}`;
+    $('rFps').textContent = `${Math.round(fpsN / fpsAcc)} i/s${idle ? ' (au repos)' : ''} · ${engine.tileCount ?? 0} tuiles${auto}`;
     if (!$('sheet-layers').hidden) showQualNote();
-    const busy = google.on ? google.loading : engine.busy;
+    const busy = engine.busy;
     $('status').hidden = busy === 0; $('statusN').textContent = busy;
     renderLidarInfo(); if (!$('sheet-layers').hidden) showPtStore();
     if (engine.epoch !== 'current') showEpochNote();

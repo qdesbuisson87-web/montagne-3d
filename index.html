@@ -19,12 +19,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202610042110">
+<link rel="stylesheet" href="css/app.css?v=202610042116">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/",
-  "3d-tiles-renderer/": "https://cdn.jsdelivr.net/npm/3d-tiles-renderer@0.5.3/build/"
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
 } }
 </script>
 </head>
@@ -195,7 +194,7 @@
   <div class="field"><label>Vue 3D</label>
     <div class="seg"><button type="button" data-view="ign" aria-pressed="true">IGN (LiDAR)</button><button type="button" data-view="google" aria-pressed="false">Google 3D</button></div>
     <div id="gKeyBlock" class="gkey" hidden>
-      <p class="cline small">La vue Google 3D demande ta clé API Google (Map Tiles API). Elle reste sur cet appareil et n'est envoyée qu'à Google.</p>
+      <p class="cline small">La vue Google 3D demande ta clé API Google, avec « Maps JavaScript API » activée. Elle reste sur cet appareil et n'est envoyée qu'à Google.</p>
       <div class="row"><label class="sr" for="gKey">Clé API Google</label><input id="gKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Clé API Google"><button id="gKeySave" type="button" class="mini go">OK</button></div>
       <button id="gKeyClear" type="button" class="mini wide">Effacer la clé de cet appareil</button>
     </div>
@@ -235,7 +234,7 @@
     <p class="cline small" id="ptStore"></p>
     <button id="ptClear" type="button" class="mini">Vider les points LiDAR</button>
   </details>
-  <p class="cnote">Sources : relief © IGN (LiDAR HD, RGE ALTI), photos © IGN (BD ORTHO), hors France Sentinel-2 cloudless © EOX (CC BY-NC-SA 4.0) et relief Mapzen/AWS Terrain Tiles · Satellite du jour : Copernicus Sentinel-2 via Microsoft Planetary Computer · Météo : Météo-France via Open-Meteo · Sentiers, refuges, remontées, bâtiments et lacs : IGN BD TOPO · Itinéraires : service d'itinéraire IGN Géoplateforme · Pistes de ski et webcams : © contributeurs OpenStreetMap (ODbL), images des webcams à leurs propriétaires · Neige mesurée : Météo-France, réseau nivo-météorologique (Licence Ouverte 2.0) · Bulletin d'avalanche : Météo-France · Radar : RainViewer · Position partagée : service ntfy.sh · Avalanches passées : CLPA (INRAE, IGN), Géorisques · Refuges, points d'eau, passages délicats : refuges.info (CC BY-SA 2.0) · Topos : camptocamp.org (CC BY-SA 4.0) · Forêts : IGN BD Forêt V2 · Nuage de points : IGN LiDAR HD (Licence ouverte Etalab 2.0), décodé avec laz-perf (Hobu, Apache 2.0) · Ciel étoilé : d3-celestial (Olaf Frohn, licence BSD), planètes d'après les éléments du JPL (NASA) · Vue Google 3D : Google Photorealistic 3D Tiles (© Google et fournisseurs affichés en bas de l'écran).</p>
+  <p class="cnote">Sources : relief © IGN (LiDAR HD, RGE ALTI), photos © IGN (BD ORTHO), hors France Sentinel-2 cloudless © EOX (CC BY-NC-SA 4.0) et relief Mapzen/AWS Terrain Tiles · Satellite du jour : Copernicus Sentinel-2 via Microsoft Planetary Computer · Météo : Météo-France via Open-Meteo · Sentiers, refuges, remontées, bâtiments et lacs : IGN BD TOPO · Itinéraires : service d'itinéraire IGN Géoplateforme · Pistes de ski et webcams : © contributeurs OpenStreetMap (ODbL), images des webcams à leurs propriétaires · Neige mesurée : Météo-France, réseau nivo-météorologique (Licence Ouverte 2.0) · Bulletin d'avalanche : Météo-France · Radar : RainViewer · Position partagée : service ntfy.sh · Avalanches passées : CLPA (INRAE, IGN), Géorisques · Refuges, points d'eau, passages délicats : refuges.info (CC BY-SA 2.0) · Topos : camptocamp.org (CC BY-SA 4.0) · Forêts : IGN BD Forêt V2 · Nuage de points : IGN LiDAR HD (Licence ouverte Etalab 2.0), décodé avec laz-perf (Hobu, Apache 2.0) · Ciel étoilé : d3-celestial (Olaf Frohn, licence BSD), planètes d'après les éléments du JPL (NASA) · Vue Google 3D : carte 3D de Google Maps (© Google et fournisseurs, affichés par Google sur la carte).</p>
 </section>
 
 <section id="sheet-route" class="sheet glass" hidden aria-label="Rando">
@@ -385,7 +384,7 @@
 </section>
 <div id="pin" class="pin" hidden><i></i></div>
 
-<div id="gAttrib" class="gattrib" hidden><img id="gLogo" src="icons/google-maps-logo.svg" alt="Google Maps"><span id="gAttribTxt"></span></div>
+<div id="gmap" class="gmap" hidden></div>
 
 <div class="readout glass" aria-live="polite">
   <div class="a" id="rAlt"></div>
@@ -395,6 +394,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202610042110"></script>
+<script type="module" src="js/app.js?v=202610042116"></script>
 </body>
 </html>

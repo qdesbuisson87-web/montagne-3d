@@ -2,8 +2,8 @@
 // huts along the way; and when to leave, from the Météo-France forecast at the itinerary's highest point and the
 // daylight. Everything is computed from the relief under the line (route.js samples) and official forecasts; the
 // walking times are the DIN 33466 ones (average hiker, no breaks), said as such on screen.
-import { pathStats } from './route.js?v=202610031428';
-import { sunPosition, sunTimes } from './live.js?v=202610031428';
+import { pathStats } from './route.js?v=202610041847';
+import { sunPosition, sunTimes } from './live.js?v=202610041847';
 
 const BOOK = 'midi3d-routes';
 export const loadBook = () => { try { return JSON.parse(localStorage.getItem(BOOK) || '[]'); } catch { return []; } };
@@ -87,14 +87,18 @@ export function walkability(samples, { slopeAt, onGlacier, pathDist }) {
   for (let i = 1; i < samples.length; i++) {
     const a = samples[i - 1], b = samples[i], len = b.d - a.d, mx = (a.x + b.x) / 2, mz = (a.z + b.z) / 2;
     out.total += len;
-    const s = slopeAt(mx, mz), deg = s?.deg ?? 0, ice = onGlacier(mx, mz), pd = pathDist(mx, mz);
+    const s = slopeAt(mx, mz), deg = s?.deg ?? 0, ice = onGlacier(mx, mz), pd = a.net && b.net ? 0 : pathDist(mx, mz);
     const onPath = pd != null && pd <= 40;
+    // the line's own grade over ~30 m: a "path" that climbs a face at 60 % and more is a climbing line (the IGN
+    // network holds some, the Aiguille du Midi's north face for one)
+    const j0 = Math.max(0, i - 2), j1 = Math.min(samples.length - 1, i + 1), A = samples[j0], Bq = samples[j1];
+    const grade = A.h != null && Bq.h != null && Bq.d > A.d ? Math.abs(Bq.h - A.h) / (Bq.d - A.d) : 0, climbing = deg >= 45 && (!onPath || grade >= 0.6);
     if (pd == null) out.unknown += len; else if (onPath) out.path += len; else out.off += len;
     if (ice) out.glacier += len;
     // steepness counts off the paths only: a path cut into a steep slope is a path (its own grade is measured apart)
-    if (!onPath && deg >= 45) { out.rock += len; out.rockMax = Math.max(out.rockMax, deg); }
+    if (climbing) { out.rock += len; out.rockMax = Math.max(out.rockMax, deg); }
     else if (!onPath && deg >= 35) out.steep += len;
-    const kind = !onPath && deg >= 45 ? 'rock' : ice ? 'glacier' : !onPath && deg >= 35 ? 'steep' : pd != null && !onPath ? 'off' : null;
+    const kind = climbing ? 'rock' : ice ? 'glacier' : !onPath && deg >= 35 ? 'steep' : pd != null && !onPath ? 'off' : null;
     if (kind) push(a.d, b.d, kind);
   }
   if (cur) out.stretches.push(cur);

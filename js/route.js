@@ -7,16 +7,18 @@ import * as THREE from 'three';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610031435';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610041847';
 
 const STEP = 10, STORE = 'midi3d-route'; // metres between resampled points
 
 // points every STEP metres along a path [[x, z], …], with the relief's altitude (null where nothing is loaded)
-export function resamplePath(pts, groundAt) {
+// net (optional): per point, whether the stretch it starts lies on the IGN network of paths and roads (it came
+// from the route service); a sample is "on the network" when both ends of its stretch are
+export function resamplePath(pts, groundAt, net = null) {
   const out = [];
   for (let i = 0; i < pts.length - 1; i++) {
-    const [ax, az] = pts[i], [bx, bz] = pts[i + 1], L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(L / STEP));
-    for (let k = 0; k < n; k++) out.push({ x: ax + (bx - ax) * k / n, z: az + (bz - az) * k / n });
+    const [ax, az] = pts[i], [bx, bz] = pts[i + 1], L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(L / STEP)), on = !!(net?.[i] && net?.[i + 1]);
+    for (let k = 0; k < n; k++) out.push({ x: ax + (bx - ax) * k / n, z: az + (bz - az) * k / n, net: on });
   }
   if (pts.length) { const [x, z] = pts[pts.length - 1]; out.push({ x, z }); }
   let d = 0; out.forEach((p, i) => { if (i) d += Math.hypot(p.x - out[i - 1].x, p.z - out[i - 1].z); p.d = d; p.h = groundAt(p.x, p.z); });
@@ -40,11 +42,21 @@ export function pathStats(samples) {
 // (ends: index in pts where each step lies), so the last step and the stretch leading to it can be taken back.
 export class RouteLayer {
   constructor({ scene, groundAt }) {
-    this.groundAt = groundAt; this.pts = []; this.ends = []; this.keep = 0; this.nights = []; this.name = ''; this.drawing = false; this.samples = []; this.dirty = true;
+    this.groundAt = groundAt; this.pts = []; this.net = []; this.ends = []; this.keep = 0; this.nights = []; this.name = ''; this.drawing = false; this.samples = []; this.dirty = true;
     this.mat = new LineMaterial({ color: 0xff3b30, linewidth: 4, transparent: true, depthTest: true });
     this.under = new LineMaterial({ color: 0x3a0a08, linewidth: 7, transparent: true, opacity: 0.6, depthTest: true });
     // the parts hidden behind the relief: dashes drawn over it, so the line is never cut
     this.hidden = new LineMaterial({ color: 0xff3b30, linewidth: 3, transparent: true, opacity: 0.75, depthTest: false, depthWrite: false, dashed: true, dashSize: 14, gapSize: 10 });
+    // stretches that are not a walk (routebook.js walkability), drawn over the line in their own colour
+    this.hazMats = {
+      rock: new LineMaterial({ color: 0xd61fff, linewidth: 7, transparent: true, depthTest: false, depthWrite: false }),
+      glacier: new LineMaterial({ color: 0x8fdcff, linewidth: 7, transparent: true, depthTest: false, depthWrite: false }),
+      steep: new LineMaterial({ color: 0xff8a00, linewidth: 7, transparent: true, depthTest: false, depthWrite: false }),
+      off: new LineMaterial({ color: 0xffd400, linewidth: 5, transparent: true, depthTest: false, depthWrite: false, dashed: true, dashSize: 10, gapSize: 8 })
+    };
+    // dark edge under them: the slope map uses the same yellow / orange / purple, the line must read as a line
+    this.hazEdge = new LineMaterial({ color: 0x14161c, linewidth: 11, transparent: true, opacity: 0.85, depthTest: false, depthWrite: false });
+    this.hazards = [];
     this.group = new THREE.Group(); scene.add(this.group);
     this.cursor = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false }));
     this.cursor.renderOrder = 11; this.cursor.visible = false; this.group.add(this.cursor);
@@ -54,14 +66,17 @@ export class RouteLayer {
       const s = JSON.parse(localStorage.getItem(STORE) || 'null');
       if (s?.ll?.length) {
         this.pts = s.ll.map(([lon, lat]) => lonLatToWorld(lon, lat)); this.name = s.name || '';
+        this.net = typeof s.net === 'string' && s.net.length === this.pts.length ? [...s.net].map(c => c === '1') : [];
         this.ends = Array.isArray(s.ends) && s.ends.every(i => i < this.pts.length) ? s.ends : [];
         this.keep = this.ends.length ? Math.min(+s.keep || 0, this.ends.length) : 0;
         this.nights = Array.isArray(s.nights) ? s.nights.filter(d => typeof d === 'number') : [];
       }
     } catch { }
   }
-  setResolution(w, h) { for (const m of [this.mat, this.under, this.hidden]) m.resolution.set(w, h); }
-  save() { try { localStorage.setItem(STORE, JSON.stringify({ ll: this.pts.map(([x, z]) => worldToLonLat(x, z).map(v => +v.toFixed(6))), name: this.name, ends: this.ends, keep: this.keep, nights: this.nights })); } catch { } }
+  setResolution(w, h) { for (const m of [this.mat, this.under, this.hidden, ...Object.values(this.hazMats), this.hazEdge]) m.resolution.set(w, h); }
+  // [{ d0, d1, kind }] along the line (metres), shown until the line changes
+  setHazards(list) { this.hazards = list; this.dirty = true; }
+  save() { try { localStorage.setItem(STORE, JSON.stringify({ ll: this.pts.map(([x, z]) => worldToLonLat(x, z).map(v => +v.toFixed(6))), name: this.name, ends: this.ends, keep: this.keep, nights: this.nights, net: this.net.map(v => v ? '1' : '0').join('') })); } catch { } }
 
   // ----- drawing step by step -----
   // the steps of the line: those touched, or for a line from elsewhere (GPX, planner) its two ends, so that
@@ -71,10 +86,10 @@ export class RouteLayer {
   // start drawing: a new line (the one there is kept aside, to come back to if the drawing is abandoned), or
   // carrying on the one there is
   beginDraw(fresh) {
-    this.backup = { pts: this.pts, ends: this.ends, keep: this.keep, nights: this.nights, name: this.name };
+    this.backup = { pts: this.pts, net: this.net, ends: this.ends, keep: this.keep, nights: this.nights, name: this.name };
     // a line from elsewhere (GPX, planner, topo) stays whole: "undo" only takes back the steps added to it
     // (keep = how many steps are kept, remembered with the line)
-    if (fresh) { this.pts = []; this.ends = []; this.keep = 0; this.nights = []; this.name = ''; }
+    if (fresh) { this.pts = []; this.net = []; this.ends = []; this.keep = 0; this.nights = []; this.name = ''; }
     else if (!this.ends.length && this.pts.length) { this.ends = [0, this.pts.length - 1]; this.keep = 2; }
     this.drawing = true; this.dirty = true;
   }
@@ -85,31 +100,34 @@ export class RouteLayer {
     this.backup = null; this.drawing = false; this.dirty = true; this.save();
   }
   // a new step, reached by the stretch "via" (the points from the previous step to this one, both included)
-  addStep(x, z, via) {
-    if (!this.pts.length) { this.pts = [[x, z]]; this.ends = [0]; }
+  // net: per point of "via", whether it is on the IGN network (route service); a straight stretch has none
+  addStep(x, z, via, net = null) {
+    if (!this.pts.length) { this.pts = [[x, z]]; this.net = [false]; this.ends = [0]; }
     else {
       const seg = via?.length ? via : [this.last, [x, z]];
       const skip = Math.hypot(seg[0][0] - this.last[0], seg[0][1] - this.last[1]) < 0.5 ? 1 : 0; // the previous step itself
+      this.net = this.net.concat((net ?? seg.map(() => false)).slice(skip));
+      if (skip && net?.[0]) this.net[this.pts.length - 1] = true; // the previous step lies where the path starts
       this.pts = this.pts.concat(seg.slice(skip)); this.ends = [...this.ends, this.pts.length - 1];
     }
     this.dirty = true; this.save();
   }
   // move the first step (the start, put on the path found from it)
-  moveStart(x, z) { if (this.pts.length) { this.pts = [[x, z], ...this.pts.slice(1)]; this.dirty = true; this.save(); } }
+  moveStart(x, z) { if (this.pts.length) { this.pts = [[x, z], ...this.pts.slice(1)]; this.net[0] = true; this.dirty = true; this.save(); } }
   // take back the last step and the stretch that led to it
   undo() {
     if (this.ends.length <= this.keep) return;
-    if (this.ends.length <= 1) { this.pts = []; this.ends = []; }
-    else { this.ends = this.ends.slice(0, -1); this.pts = this.pts.slice(0, this.ends[this.ends.length - 1] + 1); }
+    if (this.ends.length <= 1) { this.pts = []; this.net = []; this.ends = []; }
+    else { this.ends = this.ends.slice(0, -1); this.pts = this.pts.slice(0, this.ends[this.ends.length - 1] + 1); this.net = this.net.slice(0, this.pts.length); }
     this.dirty = true; this.save();
   }
-  clear() { this.pts = []; this.ends = []; this.keep = 0; this.nights = []; this.name = ''; this.dirty = true; this.save(); }
+  clear() { this.pts = []; this.net = []; this.ends = []; this.keep = 0; this.nights = []; this.name = ''; this.dirty = true; this.save(); }
   importGPX(text, fileName) {
     const doc = new DOMParser().parseFromString(text, 'application/xml');
     if (doc.querySelector('parsererror')) throw new Error("ce fichier n'est pas un GPX lisible");
     let nodes = [...doc.getElementsByTagName('trkpt')]; if (!nodes.length) nodes = [...doc.getElementsByTagName('rtept')];
     if (nodes.length < 2) throw new Error('aucun tracé dans ce fichier (il faut des points de trace ou de route)');
-    this.pts = nodes.map(n => lonLatToWorld(+n.getAttribute('lon'), +n.getAttribute('lat'))); this.ends = []; this.keep = 0; this.nights = [];
+    this.pts = nodes.map(n => lonLatToWorld(+n.getAttribute('lon'), +n.getAttribute('lat'))); this.net = []; this.ends = []; this.keep = 0; this.nights = [];
     this.name = doc.querySelector('trk > name, rte > name, metadata > name')?.textContent.trim() || fileName.replace(/\.gpx$/i, '');
     this.dirty = true; this.save();
   }
@@ -121,10 +139,11 @@ export class RouteLayer {
   }
 
   // ----- geometry and numbers -----
-  resample() { return resamplePath(this.pts, this.groundAt); }
+  resample() { return resamplePath(this.pts, this.groundAt, this.net); }
   stats() { return pathStats(this.samples); }
   // nights: distances along the line (m) where an outing of several days stops for the night
-  setPath(pts, name, nights = []) { this.pts = pts; this.ends = []; this.keep = 0; this.nights = nights; this.name = name; this.drawing = false; this.dirty = true; this.save(); }
+  // onNet: the whole line comes from the IGN route service (planner, catalogue); false for GPS tracks and GPX files
+  setPath(pts, name, nights = [], onNet = false) { this.pts = pts; this.net = pts.map(() => onNet); this.ends = []; this.keep = 0; this.nights = nights; this.name = name; this.drawing = false; this.dirty = true; this.save(); }
   pointAt(d) {
     const s = this.samples; if (!s.length) return null;
     let i = 1; while (i < s.length - 1 && s[i].d < d) i++;
@@ -142,6 +161,11 @@ export class RouteLayer {
     for (const p of this.samples) { const h = p.h ?? last; last = h; pos.push(p.x, h * exag + 2.5, p.z); }
     // dashes first, over everything; then the solid line where the relief does not hide it
     for (const m of [this.hidden, this.under, this.mat]) { const g = new LineGeometry(); g.setPositions(pos); const l = new Line2(g, m); l.computeLineDistances(); l.renderOrder = m === this.mat ? 6 : 5; this.group.add(l); this.lines.push(l); }
+    for (const hz of this.hazards) {
+      const seg = []; this.samples.forEach((p, i) => { if (p.d >= hz.d0 - 5 && p.d <= hz.d1 + 5) seg.push(pos[i * 3], pos[i * 3 + 1] + 1, pos[i * 3 + 2]); });
+      if (seg.length < 6) continue;
+      for (const m of [this.hazEdge, this.hazMats[hz.kind]]) { const g = new LineGeometry(); g.setPositions(seg); const l = new Line2(g, m); l.computeLineDistances(); l.renderOrder = m === this.hazEdge ? 7 : 8; this.group.add(l); this.lines.push(l); }
+    }
   }
   // true when the line was laid again (its numbers may have changed)
   update(frameN, exag, loading) {

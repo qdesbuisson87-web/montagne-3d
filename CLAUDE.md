@@ -284,6 +284,17 @@ Relecture de tous les modules ; défauts trouvés et corrigés :
 - `window.midi3d.places` exposé pour le débogage.
 - Règle : toujours passer un vrai booléen à `classList.toggle`. Toutes les autres bascules de l'appli ont été vérifiées.
 
+### Itinéraires réalistes (04/10/2026, « Chamonix → l'Aiguille, ça me fait monter tout droit, impossible sans escalade : faut dire quand c'est pas possible »)
+- Tracé au doigt : au-delà du bout des sentiers, plus de ligne droite automatique. Le tracé s'arrête au bout du chemin, avec un message (« le chemin s'arrête X m avant : glacier, rocher ou pente raide »), la remontée mécanique la plus proche (< 600 m) si elle existe, et un bouton « Prolonger hors sentier » pour ajouter quand même la ligne droite.
+- Verdict « faisable à pied ? » (`walkability`, routebook.js), sur tout itinéraire (tracé, A → B, catalogue, camptocamp, GPX), dans la fiche de l'itinéraire et dans le bandeau du tracé. Règles, échantillon par échantillon (10 m) :
+  - sur sentier = tronçon venu du service d'itinéraire IGN (`route.net`, un drapeau par point, gardé avec l'itinéraire et dans « Mes itinéraires ») ou chemin BD TOPO à ≤ 40 m (`trails.pathDist`, grille de 100 m) ;
+  - paroi (« Non faisable à pied », magenta) = terrain ≥ 45° (LiDAR) hors sentier, ou sur un « chemin » dont la ligne elle-même monte à ≥ 60 % sur ~30 m : le réseau IGN contient des voies d'escalade (face nord du Midi) ;
+  - glacier (bleu clair) = dans un contour BD TOPO « Glacier, névé » ; pente ≥ 35° hors sentier (orange) ; hors sentier (jaune, tirets) ;
+  - sentiers pas encore chargés : comptés à part, nouvelle vérification toutes les 3 s.
+- Tronçons signalés colorés sur la carte, avec un liseré sombre (la carte des pentes utilise les mêmes couleurs).
+- Testé (service IGN réel) : Chamonix → Aiguille du Midi : « Non faisable à pied : 695 m dans des parois (jusqu'à 80°) », hors sentier 10 m (avant : 4 km, les rues de Chamonix comptaient comme hors sentier). Flégère → lac Blanc et Plan de l'Aiguille → Montenvers : « Sur sentiers et chemins de bout en bout ».
+- Limites dites dans l'appli : rien sur la neige, la glace ou l'état des chemins du jour. PAS testé au doigt sur un vrai téléphone.
+
 ### Plus beau (01/10/2026, « fais tout ça » : creux, lumière, nuages, glaciers, nuit, couleurs)
 1. Ombrage des creux (`shadows.js`, passe `aoFS`) : sur les cartes de hauteur des deux cascades (6 et 48 km), visibilité du ciel = moyenne sur 8/10/16 directions de cos²(horizon au-dessus du plan tangent), recherche jusqu'à 10 km (pas ×1,3). Plan tangent sur ±3 texels et hauteur de départ = max sur ±1 texel (`hTop`) : sinon les jointures de tuiles (sillon d'un texel où la jupe apparaît) faisaient des lignes sombres ; même correction pour les ombres portées. `skyVis(w)` dans SCENE_GLSL : mode Photo ×mix(1, V, 0,45) ; Soleil réel : lumière du ciel ×V, soleil ×mix(1, V, 0,25). Arbres, bâtiments, points LiDAR aussi. Calculé dans les deux lumières, seulement quand la vue bouge ou que des tuiles arrivent.
 2. Image finale (`js/post.js`, qualité Haute et Extrême) : scène dans un tampon demi-flottant (MSAA 4 si écran < 2×), épaule des hautes lumières à 0,72 (teinte gardée, désaturation des très fortes), halo (filtre « dual Kawase » 5 niveaux, seuil 0,95), courbe en S légère, vignettage, tramage anti-bandes. Les matériaux écrivent toujours des valeurs d'affichage : la passe décode/réencode, rien d'autre à changer. Disque du soleil écrit ×3 pour le halo.

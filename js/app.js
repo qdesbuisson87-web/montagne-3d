@@ -1,40 +1,40 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610031435';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610031435';
-import { SITE, SITE_LIST } from './sites.js?v=202610031435';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610031435';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610031435';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610031435';
-import { searchPlaces } from './search.js?v=202610031435';
-import { TerrainShadows } from './shadows.js?v=202610031435';
-import { PostFX } from './post.js?v=202610031435';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610031435';
-import { Forest } from './forest.js?v=202610031435';
-import { Lakes } from './water.js?v=202610031435';
-import { Glaciers } from './glaciers.js?v=202610031435';
-import { makeSite, removeSite } from './custom.js?v=202610031435';
-import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610031435';
-import { Streams } from './streams.js?v=202610031435';
-import { Refuges } from './refuges.js?v=202610031435';
-import { NightLights } from './lights.js?v=202610031435';
-import { Buildings } from './buildings.js?v=202610031435';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610031435';
-import { TrackRecorder, progressOn } from './track.js?v=202610031435';
-import { GpsTracker } from './gps.js?v=202610031435';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610031435';
-import { walkingRoute } from './planner.js?v=202610031435';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610031435';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610031435';
-import { TrailsLayer } from './trails.js?v=202610031435';
-import { Weather3D } from './weather3d.js?v=202610031435';
-import { Sight } from './sight.js?v=202610031435';
-import { Photos360 } from './photos360.js?v=202610031435';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610031435';
-import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610031435';
-import { VolumeClouds } from './clouds.js?v=202610031435';
-import { LiveShare, LiveFollow } from './share.js?v=202610031435';
-import { NightSky } from './sky.js?v=202610031435';
-import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise } from './routebook.js?v=202610031435';
+import { EarthControls } from './controls.js?v=202610041847';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610041847';
+import { SITE, SITE_LIST } from './sites.js?v=202610041847';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610041847';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610041847';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610041847';
+import { searchPlaces } from './search.js?v=202610041847';
+import { TerrainShadows } from './shadows.js?v=202610041847';
+import { PostFX } from './post.js?v=202610041847';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610041847';
+import { Forest } from './forest.js?v=202610041847';
+import { Lakes } from './water.js?v=202610041847';
+import { Glaciers } from './glaciers.js?v=202610041847';
+import { makeSite, removeSite } from './custom.js?v=202610041847';
+import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610041847';
+import { Streams } from './streams.js?v=202610041847';
+import { Refuges } from './refuges.js?v=202610041847';
+import { NightLights } from './lights.js?v=202610041847';
+import { Buildings } from './buildings.js?v=202610041847';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610041847';
+import { TrackRecorder, progressOn } from './track.js?v=202610041847';
+import { GpsTracker } from './gps.js?v=202610041847';
+import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610041847';
+import { walkingRoute } from './planner.js?v=202610041847';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610041847';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610041847';
+import { TrailsLayer } from './trails.js?v=202610041847';
+import { Weather3D } from './weather3d.js?v=202610041847';
+import { Sight } from './sight.js?v=202610041847';
+import { Photos360 } from './photos360.js?v=202610041847';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610041847';
+import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610041847';
+import { VolumeClouds } from './clouds.js?v=202610041847';
+import { LiveShare, LiveFollow } from './share.js?v=202610041847';
+import { NightSky } from './sky.js?v=202610041847';
+import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise, walkability } from './routebook.js?v=202610041847';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -1297,7 +1297,8 @@ function renderRouteCard() {
   if (draw.on) renderDraw();
   // another itinerary: its "when to leave" is asked again when opened, its days laid out again
   const key = `${route.name}|${route.pts.length}|${route.pts[0]?.join()}`;
-  if (key !== routeKey) { routeKey = key; $('d-when').open = false; $('whenOut').innerHTML = ''; delete $('whenOut').dataset.key; }
+  if (key !== routeKey) { routeKey = key; $('d-when').open = false; $('whenOut').innerHTML = ''; delete $('whenOut').dataset.key; walkSig = ''; route.hazards = []; scheduleWalk(true); }
+  else if (route.pts.length >= 2) scheduleWalk(false);
   if (has) renderDays();
   if (!has) { $('routeOut').innerHTML = ''; return; }
   const name = `<p class="rname">${esc(route.name || 'Mon itinéraire')}</p>`;
@@ -1349,7 +1350,7 @@ $('drawSnap').addEventListener('change', e => {
 function startDraw(fresh) {
   if (pickMode) endPick();
   flyRoute = null; route.beginDraw(fresh);
-  Object.assign(draw, { on: true, gen: draw.gen + 1, busy: 0, pending: [], note: '', wantGps: false, quitArmed: 0 });
+  Object.assign(draw, { on: true, gen: draw.gen + 1, busy: 0, pending: [], note: '', wantGps: false, quitArmed: 0, offer: null });
   document.body.classList.add('drawing'); $('drawTop').hidden = $('drawBar').hidden = false;
   closeSheets(); $('sheet-point').hidden = true; pin = null; $('pin').hidden = true; syncSheetOpen();
   $('drawTitle').textContent = fresh ? 'Tracer une rando' : 'Modifier le tracé';
@@ -1372,11 +1373,13 @@ function renderDraw() {
     : n === 0 ? (draw.wantGps ? 'Recherche de ta position GPS…' : "Touche la carte à l'endroit du départ (ou le nom d'un lieu).")
     : n === 1 ? 'Départ posé. Touche la prochaine étape.'
     : 'Touche l\'étape suivante, ou « Terminer ».';
-  $('drawStats').innerHTML = st ? `<span>${km(st.dist)} km</span><span>+${fmt(st.up)} m</span><span>−${fmt(st.down)} m</span><span>${hm(st.hours)}</span>${draw.note ? `<span class="warn">${esc(draw.note)}</span>` : ''}`
+  const wk = route.walk && n >= 2 ? walkText(route.walk)[0] : '';
+  $('drawStats').innerHTML = st ? `<span>${km(st.dist)} km</span><span>+${fmt(st.up)} m</span><span>−${fmt(st.down)} m</span><span>${hm(st.hours)}</span>${wk ? `<span class="verdict">${wk}</span>` : ''}${draw.note ? `<span class="warn">${esc(draw.note)}</span>` : ''}`
     : n === 1 && !busy ? '<span>1 point</span>' : '';
   $('drawUndo').disabled = n <= route.keep && !busy;
   $('drawDone').disabled = n < 2 || busy;
   $('drawMe').hidden = n > 0 || busy;
+  $('drawOff').hidden = !draw.offer || busy;
   measureBars();
 }
 // metres covered by one CSS pixel at a point of the relief (to judge a touch "beside" a path)
@@ -1392,17 +1395,19 @@ async function pathStretch(a, b, tol, firstLeg) {
     const r = await walkingRoute(ll(a), ll(b));
     const via = r.pts.slice(); let start = null, end = via[via.length - 1], note = '';
     // the start touched beside a path is put on it; otherwise a straight line joins it to the path
-    if (r.offStart > 1) { if (firstLeg && r.offStart <= tol) start = via[0]; else via.unshift(a); }
+    const net = via.map(() => true); // what the route service gives is on the IGN network of paths and roads
+    if (r.offStart > 1) { if (firstLeg && r.offStart <= tol) start = via[0]; else { via.unshift(a); net.unshift(false); } }
     // the paths stop short of the point touched: the line stops with them (a straight line beyond went up faces and
     // glaciers no one walks); said, with the lift that serves the place when there is one
     if (r.offEnd > tol) {
+      draw.offer = b; // the point touched, offered as a straight line off the paths (button "Prolonger hors sentier")
       const lift = trails.lifts().map(l => ({ l, d: Math.min(Math.hypot(l.a[0] - b[0], l.a[1] - b[1]), Math.hypot(l.b[0] - b[0], l.b[1] - b[1])) })).sort((p, q) => p.d - q.d)[0];
       note = `Pas de sentier jusqu'au point touché : le chemin s'arrête ${fmt(r.offEnd)} m avant (au-delà : glacier, rocher ou pente raide, terrain d'alpinisme). Le tracé s'arrête au bout du chemin.`
         + (lift && lift.d < 600 ? ` Ce point est desservi par une remontée (${lift.l.name ?? 'téléphérique'}).` : '');
     }
     const len = pathLength(via);
     if (len > 3 * straight && len - straight > 1500) note = `Par les sentiers, ce passage fait ${km(len)} km (${km(straight)} km à vol d'oiseau). Annule le point et pose une étape avant, ou décoche « Suivre les sentiers ».`;
-    return { via, start, end, note };
+    return { via, net, start, end, note };
   } catch (e) {
     const why = !navigator.onLine ? 'Hors ligne : ligne droite (les sentiers demandent du réseau).'
       : /aucun chemin/.test(e.message) ? 'Pas de chemin IGN entre ces deux points : ligne droite.' : `Itinéraire IGN indisponible (${e.message}) : ligne droite.`;
@@ -1416,15 +1421,15 @@ function drawStep(x, z) {
   const prev = draw.pending[draw.pending.length - 1] ?? (route.last && { x: route.last[0], z: route.last[1] });
   if (prev && Math.hypot(prev.x - x, prev.z - z) < 12 * mpp) return;
   const live = () => draw.on && draw.gen === gen; // the same drawing still going on
-  draw.busy++; draw.pending.push(mark); buzz(12); renderDraw();
+  draw.busy++; draw.pending.push(mark); draw.offer = null; buzz(12); renderDraw();
   draw.q = draw.q.then(async () => {
     if (!live()) return;
     if (!route.pts.length || !draw.snap) { route.addStep(x, z); draw.note = ''; return; }
     const s = await pathStretch(route.last, [x, z], tol, route.ends.length === 1);
     if (!live()) return; // abandoned meanwhile
     if (s.start) route.moveStart(s.start[0], s.start[1]);
-    route.addStep(s.end[0], s.end[1], s.via);
-    draw.note = s.note; if (s.note) toast(s.note, true, 4500);
+    route.addStep(s.end[0], s.end[1], s.via, s.net);
+    draw.note = s.note; if (s.note) toast(s.note, true, 6000);
   }).catch(e => console.error(e)).finally(() => {
     draw.busy = Math.max(0, draw.busy - 1); draw.pending = draw.pending.filter(m => m !== mark);
     if (live()) renderRoute();
@@ -1443,6 +1448,11 @@ $('drawUndo').addEventListener('click', () => {
   draw.q = draw.q.then(() => { if (!draw.on || draw.gen !== gen) return; route.undo(); draw.note = ''; renderRoute(); buzz(12); });
 });
 $('drawDone').addEventListener('click', () => stopDraw(true));
+// carry on beyond the end of the paths anyway: a straight line, judged like the rest (rock, glacier, steep ground)
+$('drawOff').addEventListener('click', () => {
+  const b = draw.offer; if (!b) return; draw.offer = null;
+  route.addStep(b[0], b[1]); draw.note = 'Ligne droite hors sentier ajoutée : regarde le verdict (parois, glacier, pentes raides).'; renderRoute();
+});
 // giving up a drawing: a second touch confirms, so a slip of the finger loses nothing
 $('drawQuit').addEventListener('click', () => {
   if (route.ends.length < 2 || performance.now() - draw.quitArmed < 3500) { stopDraw(false); toast('Tracé abandonné.'); return; }
@@ -1452,6 +1462,38 @@ $('drawMe').addEventListener('click', () => {
   if (gps.pos) { drawStep(gps.pos.x, gps.pos.z); return; }
   draw.wantGps = true; if (!gps.on) { gpsCentered = true; gps.start(); } renderDraw();
 });
+// ---------- can it be walked? (routebook.js walkability): verdict, and the stretches coloured on the map ----------
+let walkTimer = null, walkTries = 0, walkSig = '';
+function scheduleWalk(reset) { if (reset) walkTries = 0; clearTimeout(walkTimer); walkTimer = setTimeout(analyseWalk, 300); }
+function analyseWalk() {
+  const S = route.samples;
+  if (S.length < 2) { route.walk = null; if (route.hazards.length) route.setHazards([]); $('walkOut').innerHTML = ''; return; }
+  // the paths and glaciers along the whole line are asked for (kept on the device), then the line is judged again
+  for (let i = 0; i < S.length; i += 150) { trails.ensure(S[i].x, S[i].z); glaciers.ensure(S[i].x, S[i].z); }
+  const w = walkability(S, { slopeAt: (x, z) => engine.slopeAt(x, z), onGlacier: (x, z) => glaciers.contains(x, z), pathDist: (x, z) => trails.pathDist(x, z) });
+  route.walk = w;
+  const sig = JSON.stringify(w.stretches.map(s => [Math.round(s.d0), Math.round(s.d1), s.kind]));
+  if (sig !== walkSig) { walkSig = sig; route.setHazards(w.stretches); }
+  renderWalk();
+  if (w.unknown > 0 && ++walkTries < 20) { clearTimeout(walkTimer); walkTimer = setTimeout(analyseWalk, 3000); } // paths still loading
+}
+const walkText = w => {
+  const m = v => `${fmt(v)} m`, bits = [];
+  if (w.rock > 30) bits.push(`<span class="wk rock">Non faisable à pied</span> : ${m(w.rock)} dans des parois (terrain jusqu'à ${Math.round(w.rockMax)}°) : passages d'escalade. C'est un itinéraire d'alpinisme : matériel, expérience, guide conseillé.`);
+  if (w.glacier > 50) bits.push(`<span class="wk glacier">Glacier</span> sur ${m(w.glacier)} : crevasses, encordement et matériel d'alpinisme.`);
+  if (w.steep > 50) bits.push(`<span class="wk steep">Pentes de 35° et plus</span> hors sentier sur ${m(w.steep)} : terrain très raide, une glissade ne s'arrête pas.`);
+  if (w.off > 200) bits.push(`<span class="wk off">Hors sentier</span> sur ${m(w.off)} (pas de chemin IGN à moins de 40 m).`);
+  if (!bits.length && w.unknown <= w.total * 0.3) bits.push(`<span class="wk path">Sur sentiers et chemins</span> de bout en bout (IGN), sans paroi ni glacier.`);
+  if (w.unknown > 0) bits.push(`<span class="small">Sentiers pas encore chargés sur ${m(w.unknown)} : vérification en cours…</span>`);
+  return bits;
+};
+function renderWalk() {
+  const w = route.walk; if (!w) { $('walkOut').innerHTML = ''; return; }
+  $('walkOut').innerHTML = `<div class="walk">${walkText(w).map(b => `<p class="cline">${b}</p>`).join('')}
+    <p class="cnote">Mesuré sur le relief LiDAR IGN (pente du terrain traversé), les sentiers et les glaciers de la BD TOPO IGN. Ne dit rien de la neige, de la glace ou de l'état des chemins du jour.</p></div>`;
+  if (draw.on) renderDraw();
+}
+
 // ---------- my itineraries, an outing in several days, when to leave (routebook.js) ----------
 const bookPick = new Set();
 const factsLine = f => `${km(f.dist)} km · ${hm(f.hours)} · +${fmt(f.up)} m / −${fmt(f.down)} m · point haut ${fmt(f.max)} m${f.steep30 > 20 ? ` · ${fmt(f.steep30)} m à travers des pentes ≥ 30°` : ''}`;
@@ -1476,7 +1518,7 @@ $('bookSave').addEventListener('click', () => {
   if (!f) { toast('Relief pas encore chargé sous le tracé : attends un instant.', true); return; }
   const list = loadBook(), ll = route.pts.map(([x, z]) => worldToLonLat(x, z).map(v => +v.toFixed(6))), name = route.name || 'Mon itinéraire';
   const same = list.findIndex(r => r.name === name && r.ll.length === ll.length);
-  const entry = { id: same >= 0 ? list[same].id : Date.now().toString(36), name, ll, ends: route.ends, keep: route.keep, nights: route.nights, facts: f, saved: Date.now() };
+  const entry = { id: same >= 0 ? list[same].id : Date.now().toString(36), name, ll, ends: route.ends, keep: route.keep, nights: route.nights, net: route.net.map(v => v ? '1' : '0').join(''), facts: f, saved: Date.now() };
   if (same >= 0) list[same] = entry; else list.unshift(entry);
   if (!saveBook(list)) { toast("Mémoire de l'appareil pleine : itinéraire non gardé.", true); return; }
   toast(same >= 0 ? 'Itinéraire mis à jour dans « Mes itinéraires ».' : 'Gardé dans « Mes itinéraires » (Rando).'); renderBook();
@@ -1485,7 +1527,7 @@ $('bookOut').addEventListener('click', e => {
   const open = e.target.closest('[data-open]'), del = e.target.closest('[data-del]');
   if (open) {
     const r = loadBook().find(x => x.id === open.dataset.open); if (!r) return;
-    route.setPath(r.ll.map(([lon, lat]) => lonLatToWorld(lon, lat)), r.name, r.nights ?? []); route.ends = r.ends ?? []; route.keep = r.keep ?? 0; route.save();
+    route.setPath(r.ll.map(([lon, lat]) => lonLatToWorld(lon, lat)), r.name, r.nights ?? []); if (r.net?.length === r.ll.length) route.net = [...r.net].map(c => c === '1'); route.ends = r.ends ?? []; route.keep = r.keep ?? 0; route.save();
     routeReady(`« ${r.name} » ouvert`);
   }
   if (del) {
@@ -1715,7 +1757,7 @@ async function planGo(from, to) {
   $('plNote').textContent = "Calcul de l'itinéraire par l'IGN…"; $('plGo').disabled = true;
   try {
     const r = await walkingRoute(from, to);
-    route.setPath(r.pts, `${from.name ?? 'Départ'} → ${to.name ?? 'Arrivée'}`);
+    route.setPath(r.pts, `${from.name ?? 'Départ'} → ${to.name ?? 'Arrivée'}`, [], true);
     $('plNote').textContent = ['Itinéraire IGN sur sentiers et chemins : vérifie l\'état (neige, fermetures, difficulté) avant de partir.', offPathNote(r, to.name)].filter(Boolean).join(' ');
     routeReady('Itinéraire tracé');
   } catch (err) { $('plNote').textContent = `Itinéraire impossible : ${why(err)}.`; toast(`Itinéraire impossible : ${why(err)}.`, true, 4500); }
@@ -1752,7 +1794,7 @@ $('plIdeas').addEventListener('click', async () => {
   for (const o of out) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'place';
     b.innerHTML = `<span>${esc(o.name)}</span><span class="pa"><span class="cls ${o.cls}">${CLASS_NAMES[o.cls]}</span>${o.kind} · ${hm(o.st.hours)} · ${(o.st.dist / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km · +${fmt(o.st.up)} m${o.r.offEnd > 60 ? ` · sentier jusqu'à ${fmt(o.r.offEnd)} m du but` : ''}</span>`;
-    b.addEventListener('click', () => { route.setPath(o.r.pts, `${from.name ?? 'Départ'} → ${o.name}`); $('plNote').textContent = offPathNote(o.r, o.name); routeReady(o.name); });
+    b.addEventListener('click', () => { route.setPath(o.r.pts, `${from.name ?? 'Départ'} → ${o.name}`, [], true); $('plNote').textContent = offPathNote(o.r, o.name); routeReady(o.name); });
     $('plIdeasOut').firstChild.appendChild(b);
   }
 });
@@ -1772,7 +1814,7 @@ function renderHikes(done, total) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'place';
     b.innerHTML = `<span>${esc(h.name)}${h.alt ? ` · ${fmt(h.alt)} m` : ''}</span><span class="pa"><span class="cls ${h.cls}">${CLASS_NAMES[h.cls]}</span>${h.kind} · depuis ${h.start === 'parking' ? `un parking à ${fmt(h.startAlt ?? 0)} m` : esc(h.start)} · ${hm(h.hours)} · ${(h.dist / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km · +${fmt(h.up)} m · point haut ${fmt(h.max)} m${h.offEnd > 150 ? ` · les sentiers s'arrêtent à ${fmt(h.offEnd)} m du but, la fin est hors sentier` : ''}</span>`;
     b.addEventListener('click', () => {
-      route.setPath(hikePath(h), `${h.name} depuis ${h.start}`); routeReady(h.name);
+      route.setPath(hikePath(h), `${h.name} depuis ${h.start}`, [], true); routeReady(h.name);
       if (h.cls === 'alpine') setTimeout(() => toast("Haute montagne : glacier ou rocher, crevasses et chutes de pierres possibles. Matériel d'alpinisme, expérience et encordement nécessaires ; guide conseillé. Le tracé s'arrête au bout des sentiers.", true, 7000), 4600);
     });
     box.appendChild(b);

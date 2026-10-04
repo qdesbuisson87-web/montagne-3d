@@ -2,12 +2,12 @@
 // elevation grid and photo. Close to the camera the tree goes down to zoom 19 (IGN photos 20 cm,
 // LiDAR HD elevation); far away it stays coarse. Nothing is pre-packaged: every tile is fetched live.
 import * as THREE from 'three';
-import { tileMerc, mercToWorld, mercToLonLat, worldToLonLat, lonLatToL93, lonLatToTile, K } from './geo.js?v=202610041920';
-import { cachedFetch, TransientError } from './net.js?v=202610041920';
+import { tileMerc, mercToWorld, mercToLonLat, worldToLonLat, lonLatToL93, lonLatToTile, K } from './geo.js?v=202610042100';
+import { cachedFetch, TransientError } from './net.js?v=202610042100';
 // avalanches of the past (CLPA, INRAE/IGN, served by Géorisques): areas seen on aerial photos and in the field
 // (magenta) and from witnesses (orange), as the map draws them
 const CLPA_WMS = ([x0, y0, x1, y1]) => `https://mapsref.brgm.fr/wxs/georisques/risques?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=CLPA_interpretation,CLPA_temoignage&STYLES=&CRS=EPSG:3857&BBOX=${x0},${y0},${x1},${y1}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true`;
-import { FOREST_WMS, decodeForest } from './foresttypes.js?v=202610041920';
+import { FOREST_WMS, decodeForest } from './foresttypes.js?v=202610042100';
 
 // NE: the grid plus a one-sample ring taken beyond the tile edge, so that normals and slopes at the edge
 // use the same central differences as the neighbour tile does (no seam in lighting or slope colours)
@@ -59,6 +59,7 @@ const sharedUV = (() => {
 })();
 // across each edge (north, east, south, west) and corner (NW, NE, SE, SW): tile offsets; rows over which an edge
 // correction fades
+const MORPH = 600; // ms for a tile's relief to slide from the surface drawn before to its own
 const NEIGHBOURS = [[0, -1], [1, 0], [0, 1], [-1, 0]], CORNERS = [[-1, -1], [1, -1], [1, 1], [-1, 1]], STITCH = 8;
 const skirtSrc = (() => { const s = []; const edge = [t => t, t => t * NV + N, t => N * NV + (N - t), t => (N - t) * NV]; for (let e = 0; e < 4; e++) for (let t = 0; t < NV; t++) s.push(edge[e](t)); return s; })();
 
@@ -415,7 +416,7 @@ export class TerrainEngine {
     const [ax, ay] = lonLatToTile(bounds[0], bounds[3], 11), [bx, by] = lonLatToTile(bounds[2], bounds[1], 11);
     this.roots = []; this.rootKeys = new Map();
     for (let y = Math.floor(ay); y <= Math.floor(by); y++) for (let x = Math.floor(ax); x <= Math.floor(bx); x++) this.addRoot(x, y);
-    this.drawn = [];
+    this.drawn = []; this.morphing = new Set();
   }
   addRoot(x, y) { const t = new Tile(this, 11, x, y, null); this.roots.push(t); this.rootKeys.set(`${x}/${y}`, t); }
   // Free navigation: keep zoom-11 tiles loaded within `radius` metres of a point (the view's centre), drop those
@@ -442,7 +443,7 @@ export class TerrainEngine {
   makeMaterial(tex, tileSize, slopeTex) {
     return new THREE.ShaderMaterial({
       uniforms: { ...this.uniforms, map: { value: tex }, slopeMap: { value: slopeTex }, ndsiMap: { value: null }, cloudMap: { value: null }, visMap: { value: null }, forestMap: { value: null }, clpaMap: { value: null }, radarMap: { value: null }, ovRect: { value: new THREE.Vector4(0, 0, 1, 1) }, clpaRect: { value: new THREE.Vector4(0, 0, 1, 1) }, radarRect: { value: new THREE.Vector4(0, 0, 1, 1) },
-        hasNdsi: { value: 0 }, hasCloud: { value: 0 }, hasVis: { value: 0 }, hasForest: { value: 0 }, hasClpa: { value: 0 }, hasRadar: { value: 0 }, tileSize: { value: tileSize } },
+        hasNdsi: { value: 0 }, hasCloud: { value: 0 }, hasVis: { value: 0 }, hasForest: { value: 0 }, hasClpa: { value: 0 }, hasRadar: { value: 0 }, tileSize: { value: tileSize }, morph: { value: 1 } },
       vertexShader: this.vs, fragmentShader: this.fs
     });
   }
@@ -584,8 +585,37 @@ export class TerrainEngine {
     if (this.frame % 30 === 0) this.evict();
     if (this.frame % 600 === 0) this.evictOverlays();
     if (this.frame % 5 === 0) this.pumpOverlays();
+    this.morphIn();
     this.stitch();
     for (const m of this.drawn) m.visible = true;
+  }
+  // Finer or coarser relief comes in smoothly: a tile drawn now in place of its parent (or of its children) starts
+  // from the surface that was drawn there and slides to its own heights over MORPH ms, in the vertex shader (the
+  // heights it starts from are sent once, as the "fromY" attribute; then only the "morph" uniform moves)
+  morphIn() {
+    const now = performance.now(), prev = this.prevOn ?? new Map(), on = new Map();
+    for (const m of this.drawn) { const t = m.userData.tile; on.set(t.z * 2 ** 42 + t.x * 2 ** 21 + t.y, t); }
+    for (const m of this.drawn) {
+      const t = m.userData.tile; if (prev.get(t.z * 2 ** 42 + t.x * 2 ** 21 + t.y) === t) continue;
+      let src = null;
+      for (let s = 1; s <= t.z && !src; s++) { const a = prev.get((t.z - s) * 2 ** 42 + (t.x >> s) * 2 ** 21 + (t.y >> s)); if (a) src = [a]; }
+      if (!src) { const kids = [...prev.values()].filter(c => c.z > t.z && c.x >> (c.z - t.z) === t.x && c.y >> (c.z - t.z) === t.y); if (kids.length) src = kids; }
+      if (!src || !t.mesh) continue; // come into view: nothing was drawn there
+      const sx = t.size / N, sz = (t.z1 - t.z0) / N, from = new Float32Array(NV * NV + SKIRT);
+      for (let j = 0; j < NV; j++) for (let i = 0; i < NV; i++) {
+        const x = t.x0 + i * sx, z = t.z0 + j * sz, s = src.length === 1 ? src[0] : src.find(c => c.contains(x, z)) ?? src[0];
+        from[j * NV + i] = s.mesh ? s.drawnAt(x, z) : t.h[j * NV + i];
+      }
+      skirtSrc.forEach((k, q) => { from[NV * NV + q] = from[k] - t.drop; });
+      t.mesh.geometry.setAttribute('fromY', new THREE.BufferAttribute(from, 1));
+      t.morphStart = now; this.morphing.add(t);
+    }
+    this.prevOn = on;
+    for (const t of this.morphing) {
+      const f = Math.min(1, (now - t.morphStart) / MORPH), u = t.mesh?.material.uniforms.morph;
+      if (!u || f >= 1) { if (u) u.value = 1; t.mesh?.geometry.deleteAttribute('fromY'); this.morphing.delete(t); continue; }
+      u.value = f * f * (3 - 2 * f);
+    }
   }
   // tile edges made to meet (Tile.stitch): coarse tiles first, as finer ones lay their borders on them; a tile is
   // done again when what is drawn around it changes, or when a coarser neighbour moved its own border

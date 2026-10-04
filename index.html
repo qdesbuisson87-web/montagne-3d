@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202610041920">
+<link rel="stylesheet" href="css/app.css?v=202610042100">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -247,6 +247,7 @@
   </div>
   <p class="cline small" id="sosInfo">Le 112 marche sur tous les réseaux, même sans carte SIM ; il oriente vers le secours en montagne (PGHM, CRS).</p>
 
+  <div id="plannedCard" class="rcard planned" hidden aria-live="polite"></div>
   <div id="routeCard" class="rcard" hidden>
     <div id="routeOut"></div>
     <div id="walkOut"></div>
@@ -261,6 +262,24 @@
     <p class="cline small" id="routePackInfo"></p>
     <button id="bookSave" type="button" class="mini wide">Garder dans mes itinéraires</button>
     <details class="sec" id="d-when"><summary>Quand partir ?</summary><div id="whenOut"></div></details>
+    <details class="sec" id="d-rwx"><summary>Météo en route</summary>
+      <label class="cline small rwx-at">Départ <input id="rwxAt" type="datetime-local" class="in-text"></label>
+      <div id="rwxOut"></div>
+    </details>
+    <details class="sec" id="d-plan2"><summary>Prévoir cette sortie</summary>
+      <div class="pvrow"><label>Jour <input id="pvDate" type="date" class="in-text"></label><label>Départ <input id="pvTime" type="time" class="in-text" value="07:00"></label></div>
+      <label class="switch-row"><input id="pvRemind" type="checkbox"> Rappels sur mon téléphone (application ntfy)</label>
+      <button id="pvSave" type="button" class="mini wide">Enregistrer la sortie prévue</button>
+      <div id="pvInfo"></div>
+    </details>
+    <details class="sec" id="d-guide"><summary>Guidage aux croisements <span class="cnt" id="guideCnt"></span></summary>
+      <div class="seg3" role="group" aria-label="Guidage">
+        <button type="button" class="mini" data-guide="off">Désactivé</button>
+        <button type="button" class="mini" data-guide="vibe">Vibreur</button>
+        <button type="button" class="mini" data-guide="voice">Voix</button>
+      </div>
+      <div id="guideOut"></div>
+    </details>
     <details class="sec" id="d-days"><summary>En plusieurs jours <span class="cnt" id="daysCnt"></span></summary><div id="daysOut"></div></details>
   </div>
 
@@ -301,6 +320,7 @@
     <div id="plResults" class="places results"></div>
     <div class="btns"><button id="plToTap" type="button" class="mini">Toucher la carte</button><button id="plGo" type="button" class="mini go">Calculer l'itinéraire</button></div>
     <p class="cline small" id="plNote"></p>
+    <div id="plOpts"></div>
     <button id="plIdeas" type="button" class="mini wide">Idées de sorties autour du départ</button>
     <div id="plIdeasOut"></div>
   </details>
@@ -375,6 +395,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202610041920"></script>
+<script type="module" src="js/app.js?v=202610042100"></script>
 </body>
 </html>

@@ -7,35 +7,55 @@ import * as THREE from 'three';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610041920';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610042100';
 
 const STEP = 10, STORE = 'midi3d-route'; // metres between resampled points
 
+// What each point of a line is (route.net): OFF the IGN network, ON it (the route service's paths and roads), or
+// on a LIFT (a ride: no walking, no climb, no walking time; drawn straight from station to station)
+export const OFF = 0, ON = 1, LIFT = 2;
+export const netString = net => net.map(v => v === LIFT ? '2' : v ? '1' : '0').join('');
+
 // points every STEP metres along a path [[x, z], …], with the relief's altitude (null where nothing is loaded)
-// net (optional): per point, whether the stretch it starts lies on the IGN network of paths and roads (it came
-// from the route service); a sample is "on the network" when both ends of its stretch are
+// net (optional): per point, OFF / ON / LIFT; a sample's stretch (to the next sample) is on the network when both
+// ends of it are, a ride when both ends are on a lift. A ride's altitudes go straight from one station to the other.
 export function resamplePath(pts, groundAt, net = null) {
   const out = [];
   for (let i = 0; i < pts.length - 1; i++) {
-    const [ax, az] = pts[i], [bx, bz] = pts[i + 1], L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(L / STEP)), on = !!(net?.[i] && net?.[i + 1]);
-    for (let k = 0; k < n; k++) out.push({ x: ax + (bx - ax) * k / n, z: az + (bz - az) * k / n, net: on });
+    const [ax, az] = pts[i], [bx, bz] = pts[i + 1], L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(L / STEP));
+    const on = !!(net?.[i] && net?.[i + 1]), lift = net?.[i] === LIFT && net?.[i + 1] === LIFT;
+    for (let k = 0; k < n; k++) out.push({ x: ax + (bx - ax) * k / n, z: az + (bz - az) * k / n, net: on, lift });
   }
   if (pts.length) { const [x, z] = pts[pts.length - 1]; out.push({ x, z }); }
-  let d = 0; out.forEach((p, i) => { if (i) d += Math.hypot(p.x - out[i - 1].x, p.z - out[i - 1].z); p.d = d; p.h = groundAt(p.x, p.z); });
+  let d = 0; out.forEach((p, i) => { if (i) d += Math.hypot(p.x - out[i - 1].x, p.z - out[i - 1].z); p.d = d; p.h = p.lift && i && out[i - 1].lift ? null : groundAt(p.x, p.z); });
+  // rides: straight between the stations' ground
+  for (let i = 0; i < out.length; i++) {
+    if (!out[i].lift) continue;
+    let j = i; while (j < out.length - 1 && out[j].lift) j++;
+    const a = out[i], b = out[j]; if (b.h == null) b.h = groundAt(b.x, b.z);
+    for (let k = i + 1; k < j; k++) out[k].h = a.h != null && b.h != null ? a.h + (b.h - a.h) * (out[k].d - a.d) / (b.d - a.d) : null;
+    i = j - 1;
+  }
   return out;
 }
 // the numbers of a resampled path (see the header for the rules)
+// dist is the distance walked; rides (lifts) are counted apart (ride, rideUp) and add nothing to the walking time
 export function pathStats(samples) {
   const s = samples.filter(p => p.h != null); if (s.length < 2) return null;
-  let up = 0, down = 0, ref = s[0].h, min = Infinity, max = -Infinity, steep = 0;
-  for (const p of s) {
+  let up = 0, down = 0, ref = s[0].h, min = Infinity, max = -Infinity, steep = 0, dist = 0, ride = 0, rideUp = 0;
+  const rides = new Int32Array(s.length + 1); // rides before each sample, to keep the steepest stretch off the cables
+  for (let i = 0; i < s.length; i++) {
+    const p = s[i];
     min = Math.min(min, p.h); max = Math.max(max, p.h);
+    if (i && s[i - 1].lift) { ride += p.d - s[i - 1].d; rideUp += Math.max(0, p.h - s[i - 1].h); ref = p.h; rides[i + 1] = rides[i] + 1; continue; }
+    rides[i + 1] = rides[i];
+    if (i) dist += p.d - s[i - 1].d;
     // climb counted in steps of at least 3 m, so that the relief's roughness does not add up
     if (p.h - ref >= 3) { up += p.h - ref; ref = p.h; } else if (ref - p.h >= 3) { down += ref - p.h; ref = p.h; }
   }
-  for (let i = 0, j = 0; i < s.length; i++) { while (j < s.length && s[j].d - s[i].d < 30) j++; if (j < s.length) steep = Math.max(steep, Math.abs(s[j].h - s[i].h) / (s[j].d - s[i].d)); }
-  const dist = s[s.length - 1].d, th = dist / 4000, tv = up / 300 + down / 500;
-  return { dist, up, down, min, max, steepDeg: Math.atan(steep) * 180 / Math.PI, hours: Math.max(th, tv) + Math.min(th, tv) / 2, complete: s.length === samples.length };
+  for (let i = 0, j = 0; i < s.length; i++) { while (j < s.length && s[j].d - s[i].d < 30) j++; if (j < s.length && rides[j + 1] === rides[i + 1]) steep = Math.max(steep, Math.abs(s[j].h - s[i].h) / (s[j].d - s[i].d)); }
+  const th = dist / 4000, tv = up / 300 + down / 500;
+  return { dist, up, down, min, max, ride, rideUp, steepDeg: Math.atan(steep) * 180 / Math.PI, hours: Math.max(th, tv) + Math.min(th, tv) / 2, complete: s.length === samples.length };
 }
 
 // An itinerary is a line (pts, scene metres). One drawn on the map is also a list of steps: the points touched
@@ -52,6 +72,13 @@ export class RouteLayer {
       rock: new LineMaterial({ color: 0xd61fff, linewidth: 7, transparent: true, depthTest: false, depthWrite: false }),
       glacier: new LineMaterial({ color: 0x8fdcff, linewidth: 7, transparent: true, depthTest: false, depthWrite: false }),
       steep: new LineMaterial({ color: 0xff8a00, linewidth: 7, transparent: true, depthTest: false, depthWrite: false }),
+      under: new LineMaterial({ color: 0x00e0c0, linewidth: 4, transparent: true, depthTest: false, depthWrite: false, dashed: true, dashSize: 6, gapSize: 6 }),
+      // ski descents by slope, the colours of the slope map (45° and more lighter than the map's, to stand out)
+      s30: new LineMaterial({ color: 0xff9419, linewidth: 6, transparent: true, depthTest: false, depthWrite: false }),
+      s35: new LineMaterial({ color: 0xe3261f, linewidth: 6, transparent: true, depthTest: false, depthWrite: false }),
+      s40: new LineMaterial({ color: 0x9a37d0, linewidth: 6, transparent: true, depthTest: false, depthWrite: false }),
+      s45: new LineMaterial({ color: 0xb8bcc8, linewidth: 6, transparent: true, depthTest: false, depthWrite: false }),
+      lift: new LineMaterial({ color: 0xffffff, linewidth: 5, transparent: true, depthTest: false, depthWrite: false, dashed: true, dashSize: 16, gapSize: 9 }),
       off: new LineMaterial({ color: 0xffd400, linewidth: 5, transparent: true, depthTest: false, depthWrite: false, dashed: true, dashSize: 10, gapSize: 8 })
     };
     // dark edge under them: the slope map uses the same yellow / orange / purple, the line must read as a line
@@ -66,7 +93,7 @@ export class RouteLayer {
       const s = JSON.parse(localStorage.getItem(STORE) || 'null');
       if (s?.ll?.length) {
         this.pts = s.ll.map(([lon, lat]) => lonLatToWorld(lon, lat)); this.name = s.name || '';
-        this.net = typeof s.net === 'string' && s.net.length === this.pts.length ? [...s.net].map(c => c === '1') : [];
+        this.net = typeof s.net === 'string' && s.net.length === this.pts.length ? [...s.net].map(Number) : [];
         this.ends = Array.isArray(s.ends) && s.ends.every(i => i < this.pts.length) ? s.ends : [];
         this.keep = this.ends.length ? Math.min(+s.keep || 0, this.ends.length) : 0;
         this.nights = Array.isArray(s.nights) ? s.nights.filter(d => typeof d === 'number') : [];
@@ -76,7 +103,7 @@ export class RouteLayer {
   setResolution(w, h) { for (const m of [this.mat, this.under, this.hidden, ...Object.values(this.hazMats), this.hazEdge]) m.resolution.set(w, h); }
   // [{ d0, d1, kind }] along the line (metres), shown until the line changes
   setHazards(list) { this.hazards = list; this.dirty = true; }
-  save() { try { localStorage.setItem(STORE, JSON.stringify({ ll: this.pts.map(([x, z]) => worldToLonLat(x, z).map(v => +v.toFixed(6))), name: this.name, ends: this.ends, keep: this.keep, nights: this.nights, net: this.net.map(v => v ? '1' : '0').join('') })); } catch { } }
+  save() { try { localStorage.setItem(STORE, JSON.stringify({ ll: this.pts.map(([x, z]) => worldToLonLat(x, z).map(v => +v.toFixed(6))), name: this.name, ends: this.ends, keep: this.keep, nights: this.nights, net: netString(this.net) })); } catch { } }
 
   // ----- drawing step by step -----
   // the steps of the line: those touched, or for a line from elsewhere (GPX, planner) its two ends, so that
@@ -142,8 +169,9 @@ export class RouteLayer {
   resample() { return resamplePath(this.pts, this.groundAt, this.net); }
   stats() { return pathStats(this.samples); }
   // nights: distances along the line (m) where an outing of several days stops for the night
-  // onNet: the whole line comes from the IGN route service (planner, catalogue); false for GPS tracks and GPX files
-  setPath(pts, name, nights = [], onNet = false) { this.pts = pts; this.net = pts.map(() => onNet); this.ends = []; this.keep = 0; this.nights = nights; this.name = name; this.drawing = false; this.dirty = true; this.save(); }
+  // net: what each point is (OFF / ON / LIFT), or true when the whole line comes from the IGN route service
+  // (planner, catalogue); false for GPS tracks and GPX files
+  setPath(pts, name, nights = [], net = false) { this.pts = pts; this.net = Array.isArray(net) ? net : pts.map(() => net ? ON : OFF); this.ends = []; this.keep = 0; this.nights = nights; this.name = name; this.drawing = false; this.dirty = true; this.save(); }
   pointAt(d) {
     const s = this.samples; if (!s.length) return null;
     let i = 1; while (i < s.length - 1 && s[i].d < d) i++;
@@ -161,8 +189,17 @@ export class RouteLayer {
     for (const p of this.samples) { const h = p.h ?? last; last = h; pos.push(p.x, h * exag + 2.5, p.z); }
     // dashes first, over everything; then the solid line where the relief does not hide it
     for (const m of [this.hidden, this.under, this.mat]) { const g = new LineGeometry(); g.setPositions(pos); const l = new Line2(g, m); l.computeLineDistances(); l.renderOrder = m === this.mat ? 6 : 5; this.group.add(l); this.lines.push(l); }
+    // rides, from station to station
+    for (let i = 0; i < this.samples.length - 1; i++) {
+      if (!this.samples[i].lift) continue;
+      let j = i; while (j < this.samples.length - 1 && this.samples[j].lift) j++;
+      const seg = []; for (let k = i; k <= j; k++) seg.push(pos[k * 3], pos[k * 3 + 1] + 6, pos[k * 3 + 2]);
+      for (const m of [this.hazEdge, this.hazMats.lift]) { const g = new LineGeometry(); g.setPositions(seg); const l = new Line2(g, m); l.computeLineDistances(); l.renderOrder = m === this.hazEdge ? 7 : 8; this.group.add(l); this.lines.push(l); }
+      i = j;
+    }
     for (const hz of this.hazards) {
-      const seg = []; this.samples.forEach((p, i) => { if (p.d >= hz.d0 - 5 && p.d <= hz.d1 + 5) seg.push(pos[i * 3], pos[i * 3 + 1] + 1, pos[i * 3 + 2]); });
+      // under avalanche slopes: a little above the others, as it can overlap them
+      const up = hz.kind === 'under' ? 7 : 1, seg = []; this.samples.forEach((p, i) => { if (p.d >= hz.d0 - 5 && p.d <= hz.d1 + 5) seg.push(pos[i * 3], pos[i * 3 + 1] + up, pos[i * 3 + 2]); });
       if (seg.length < 6) continue;
       for (const m of [this.hazEdge, this.hazMats[hz.kind]]) { const g = new LineGeometry(); g.setPositions(seg); const l = new Line2(g, m); l.computeLineDistances(); l.renderOrder = m === this.hazEdge ? 7 : 8; this.group.add(l); this.lines.push(l); }
     }

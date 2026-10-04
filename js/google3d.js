@@ -32,6 +32,8 @@ export async function whyRefused(key) {
     const r = await fetch(`${ROOT}?key=${encodeURIComponent(key)}`);
     if (r.ok) return null;
     const j = await r.json().catch(() => null), reason = j?.error?.details?.find(d => d.reason)?.reason ?? j?.error?.status;
+    // EEA terms (8 July 2025): photorealistic 3D tiles are not served to projects billed in the EEA (France included)
+    if (/not available for your account and region/i.test(j?.error?.message ?? '')) return "Google ne fournit plus ses tuiles 3D photoréalistes aux comptes facturés dans l'Espace économique européen (conditions EEE de Google, depuis le 8 juillet 2025). Aucun réglage de la clé ne le débloque : la vue IGN reste disponible.";
     return REASONS[reason] ?? `Google répond « ${j?.error?.message ?? r.status} ».`;
   } catch { return null; }
 }

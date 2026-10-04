@@ -3,7 +3,7 @@
 // altitudes), the weather is taken at four heights (the point, the highest summit, mid-slope, the lowest inhabited
 // place nearby), and the avalanche bulletin's massif is found with the owner's Météo-France key when there is one.
 // Read back by sites.js on the next opening (?site=<id>).
-import { cachedFetch, timedFetch } from './net.js?v=202610042107';
+import { cachedFetch, timedFetch } from './net.js?v=202610042110';
 const STORE = 'midi3d-custom-sites';
 const WFS = (layer, cql, [w, s, e, n]) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=${layer}&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=500`
   + `&CQL_FILTER=${encodeURIComponent(`${cql} AND BBOX(geometrie,${w},${s},${e},${n},'EPSG:4326')`)}`;

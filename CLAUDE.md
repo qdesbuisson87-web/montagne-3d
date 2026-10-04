@@ -299,6 +299,7 @@ Relecture de tous les modules ; défauts trouvés et corrigés :
 - Bug trouvé : depuis l'ajout de la session gardée 10 min (03/10), la ligne qui affiche l'erreur était tombée dans un commentaire. Un refus de Google (clé, quota, facturation) ou une panne ramenait à la vue IGN sans aucun message.
 - Corrigé : message et raison de Google (`whyRefused`) affichés dans le panneau et en message. Une erreur 429 est classée « quota » (avant : « réseau »), avec `RESOURCE_EXHAUSTED` traduit.
 - Testé avec une fausse clé (« cette clé n'existe pas »). PAS testé avec la vraie clé (pas sur ce navigateur) : la raison exacte s'affichera chez le propriétaire.
+- Raison réelle chez le propriétaire (04/10/2026) : « satellite tiles and 3D tiles are not available for your account and region ». Conditions EEE de Google (8 juillet 2025) : les tuiles 3D photoréalistes et satellite de la Map Tiles API ne sont plus servies aux projets facturés dans l'EEE (créés ou modifiés après cette date). Message traduit dans l'appli. Seule alternative citée par Google : la 3D de l'API Maps JavaScript (élément séparé, pas mélangeable avec notre scène) ; proposée au propriétaire, pas faite.
 
 ### Huit ajouts (04/10/2026, « fais tout »)
 1. **Remontées dans « Aller à un lieu »** (`js/liftplan.js`) :

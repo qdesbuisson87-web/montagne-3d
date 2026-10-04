@@ -2,9 +2,9 @@
 // a climb), the lifts of IGN BD TOPO (transport_par_cable) are tried: walk to a bottom station, ride, walk from the
 // top station, by the IGN route service. Only what the data says: the lift's line and stations, never its timetable
 // or whether it runs today (said on screen), and no time is counted for the ride.
-import { walkingRoute } from './planner.js?v=202610042107';
-import { ON, LIFT, pathStats, resamplePath } from './route.js?v=202610042107';
-import { cachedFetch } from './net.js?v=202610042107';
+import { walkingRoute } from './planner.js?v=202610042110';
+import { ON, LIFT, pathStats, resamplePath } from './route.js?v=202610042110';
+import { cachedFetch } from './net.js?v=202610042110';
 
 // lifts a walker can take: cable cars and gondolas, chairlifts (often shut in summer), and "other" lifts (rack
 // railways, funiculars…); not drag lifts (skis only) nor goods cables

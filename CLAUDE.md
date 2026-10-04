@@ -295,6 +295,11 @@ Relecture de tous les modules ; défauts trouvés et corrigés :
   - Refait seulement quand ce qui est dessiné autour change, au plus ~2 ms par image (le reste à l'image suivante).
 - Mesuré après : 0,000 m d'écart sur toutes les jointures dessinées (610 de même niveau, 75 entre niveaux). Coût : 0 à l'arrêt, ~1,4 ms par image en moyenne en se déplaçant vite (navigateur de test), 4 ms au pire. PAS mesuré sur téléphone.
 
+### Google 3D qui « ne marchait plus » (04/10/2026)
+- Bug trouvé : depuis l'ajout de la session gardée 10 min (03/10), la ligne qui affiche l'erreur était tombée dans un commentaire. Un refus de Google (clé, quota, facturation) ou une panne ramenait à la vue IGN sans aucun message.
+- Corrigé : message et raison de Google (`whyRefused`) affichés dans le panneau et en message. Une erreur 429 est classée « quota » (avant : « réseau »), avec `RESOURCE_EXHAUSTED` traduit.
+- Testé avec une fausse clé (« cette clé n'existe pas »). PAS testé avec la vraie clé (pas sur ce navigateur) : la raison exacte s'affichera chez le propriétaire.
+
 ### Huit ajouts (04/10/2026, « fais tout »)
 1. **Remontées dans « Aller à un lieu »** (`js/liftplan.js`) :
    - remontées BD TOPO `transport_par_cable` gardées avec leur nature et les altitudes de leurs points (`trails.lifts()`) ; prises : téléphérique / télécabine, télésiège (dit souvent fermé l'été), « autre remontée » ; jamais les téléskis ni les câbles EDF ;

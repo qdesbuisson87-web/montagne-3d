@@ -1,43 +1,43 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610042100';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610042100';
-import { SITE, SITE_LIST } from './sites.js?v=202610042100';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610042100';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610042100';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610042100';
-import { searchPlaces } from './search.js?v=202610042100';
-import { TerrainShadows } from './shadows.js?v=202610042100';
-import { PostFX } from './post.js?v=202610042100';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610042100';
-import { Forest } from './forest.js?v=202610042100';
-import { Lakes } from './water.js?v=202610042100';
-import { Glaciers } from './glaciers.js?v=202610042100';
-import { makeSite, removeSite } from './custom.js?v=202610042100';
-import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610042100';
-import { Streams } from './streams.js?v=202610042100';
-import { Refuges } from './refuges.js?v=202610042100';
-import { NightLights } from './lights.js?v=202610042100';
-import { Buildings } from './buildings.js?v=202610042100';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610042100';
-import { loadPlanned, savePlanned, scheduleReminders, cancelReminders, reminderTopic, leaveAt } from './planned.js?v=202610042100';
-import { junctions, say } from './guide.js?v=202610042100';
-import { TrackRecorder, progressOn } from './track.js?v=202610042100';
-import { GpsTracker } from './gps.js?v=202610042100';
-import { RouteLayer, resamplePath, pathStats, netString } from './route.js?v=202610042100';
-import { liftPlans, altitudes } from './liftplan.js?v=202610042100';
-import { walkingRoute } from './planner.js?v=202610042100';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610042100';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610042100';
-import { TrailsLayer } from './trails.js?v=202610042100';
-import { Weather3D } from './weather3d.js?v=202610042100';
-import { Sight } from './sight.js?v=202610042100';
-import { Photos360 } from './photos360.js?v=202610042100';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610042100';
-import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, routeForecast, cloudProfile, SPOTS } from './live.js?v=202610042100';
-import { VolumeClouds } from './clouds.js?v=202610042100';
-import { LiveShare, LiveFollow } from './share.js?v=202610042100';
-import { NightSky } from './sky.js?v=202610042100';
-import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise, walkability, exposure, skiStats, SKI_BINS } from './routebook.js?v=202610042100';
+import { EarthControls } from './controls.js?v=202610042107';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610042107';
+import { SITE, SITE_LIST } from './sites.js?v=202610042107';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610042107';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610042107';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610042107';
+import { searchPlaces } from './search.js?v=202610042107';
+import { TerrainShadows } from './shadows.js?v=202610042107';
+import { PostFX } from './post.js?v=202610042107';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610042107';
+import { Forest } from './forest.js?v=202610042107';
+import { Lakes } from './water.js?v=202610042107';
+import { Glaciers } from './glaciers.js?v=202610042107';
+import { makeSite, removeSite } from './custom.js?v=202610042107';
+import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610042107';
+import { Streams } from './streams.js?v=202610042107';
+import { Refuges } from './refuges.js?v=202610042107';
+import { NightLights } from './lights.js?v=202610042107';
+import { Buildings } from './buildings.js?v=202610042107';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610042107';
+import { loadPlanned, savePlanned, scheduleReminders, cancelReminders, reminderTopic, leaveAt } from './planned.js?v=202610042107';
+import { junctions, say } from './guide.js?v=202610042107';
+import { TrackRecorder, progressOn } from './track.js?v=202610042107';
+import { GpsTracker } from './gps.js?v=202610042107';
+import { RouteLayer, resamplePath, pathStats, netString } from './route.js?v=202610042107';
+import { liftPlans, altitudes } from './liftplan.js?v=202610042107';
+import { walkingRoute } from './planner.js?v=202610042107';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610042107';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610042107';
+import { TrailsLayer } from './trails.js?v=202610042107';
+import { Weather3D } from './weather3d.js?v=202610042107';
+import { Sight } from './sight.js?v=202610042107';
+import { Photos360 } from './photos360.js?v=202610042107';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610042107';
+import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, routeForecast, cloudProfile, SPOTS } from './live.js?v=202610042107';
+import { VolumeClouds } from './clouds.js?v=202610042107';
+import { LiveShare, LiveFollow } from './share.js?v=202610042107';
+import { NightSky } from './sky.js?v=202610042107';
+import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise, walkability, exposure, skiStats, SKI_BINS } from './routebook.js?v=202610042107';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -2435,7 +2435,8 @@ $('epochBadge').addEventListener('click', () => { $('epoch').value = 'current'; 
 state.view = 'ign';
 const GERR = {
   key: "Google refuse la clé. Vérifie qu'elle est copiée en entier, que la Map Tiles API est activée, que la facturation est configurée et que la clé autorise le site qdesbuisson87-web.github.io.",
-  network: 'Google 3D ne répond pas (connexion ou quota du jour atteint). Retour à la vue IGN.'
+  quota: "Google 3D : quota atteint (le plafond du jour réglé dans ton projet Google, ou trop de demandes d'un coup). Retour à la vue IGN.",
+  network: 'Google 3D ne répond pas (connexion). Retour à la vue IGN.'
 };
 function setView(v) {
   if (v === 'google' && !googleKey.get()) { $('gKeyBlock').hidden = false; $('gKey').focus(); $('gNote').textContent = ''; return; }
@@ -2449,11 +2450,11 @@ function setView(v) {
     if (state.exag !== 1) { $('exag').value = 1; $('exag').dispatchEvent(new Event('input')); }
     applyScale();
     google.start(googleKey.get(), async err => {
-      setView('ign'); google.dispose(); // a refused session is not kept for later $('gNote').textContent = GERR[err];
-      if (err !== 'key') return;
-      $('gKeyBlock').hidden = false;
-      const why = await whyRefused(googleKey.get()); // Google's own reason, when it gives one
-      if (why) $('gNote').textContent = 'Google refuse : ' + why;
+      setView('ign'); google.dispose(); // a refused session is not kept for later
+      $('gNote').textContent = GERR[err]; toast(GERR[err], true, 7000);
+      if (err === 'key') $('gKeyBlock').hidden = false;
+      const why = await whyRefused(googleKey.get()); // Google's own reason, when it gives one (key, quota…)
+      if (why) { $('gNote').textContent = 'Google refuse : ' + why; toast('Google 3D : ' + why, true, 9000); }
     });
     scene.fog = gFog;
   } else { google.stop(); scene.fog = null; }

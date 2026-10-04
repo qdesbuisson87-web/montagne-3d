@@ -2,12 +2,12 @@
 // elevation grid and photo. Close to the camera the tree goes down to zoom 19 (IGN photos 20 cm,
 // LiDAR HD elevation); far away it stays coarse. Nothing is pre-packaged: every tile is fetched live.
 import * as THREE from 'three';
-import { tileMerc, mercToWorld, mercToLonLat, worldToLonLat, lonLatToL93, lonLatToTile, K } from './geo.js?v=202610042122';
-import { cachedFetch, TransientError } from './net.js?v=202610042122';
+import { tileMerc, mercToWorld, mercToLonLat, worldToLonLat, lonLatToL93, lonLatToTile, K } from './geo.js?v=202610042126';
+import { cachedFetch, TransientError } from './net.js?v=202610042126';
 // avalanches of the past (CLPA, INRAE/IGN, served by Géorisques): areas seen on aerial photos and in the field
 // (magenta) and from witnesses (orange), as the map draws them
 const CLPA_WMS = ([x0, y0, x1, y1]) => `https://mapsref.brgm.fr/wxs/georisques/risques?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=CLPA_interpretation,CLPA_temoignage&STYLES=&CRS=EPSG:3857&BBOX=${x0},${y0},${x1},${y1}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true`;
-import { FOREST_WMS, decodeForest } from './foresttypes.js?v=202610042122';
+import { FOREST_WMS, decodeForest } from './foresttypes.js?v=202610042126';
 
 // NE: the grid plus a one-sample ring taken beyond the tile edge, so that normals and slopes at the edge
 // use the same central differences as the neighbour tile does (no seam in lighting or slope colours)
@@ -57,10 +57,6 @@ const sharedUV = (() => {
   for (let e = 0; e < 4; e++) for (let t = 0; t < NV; t++) { const [i, j] = edge[e](t), k = NV * NV + e * NV + t; uv[k * 2] = i / N; uv[k * 2 + 1] = j / N; }
   return new THREE.BufferAttribute(uv, 2);
 })();
-// across each edge (north, east, south, west) and corner (NW, NE, SE, SW): tile offsets; rows over which an edge
-// correction fades
-const MORPH = 600; // ms for a tile's relief to slide from the surface drawn before to its own
-const NEIGHBOURS = [[0, -1], [1, 0], [0, 1], [-1, 0]], CORNERS = [[-1, -1], [1, -1], [1, 1], [-1, 1]], STITCH = 8;
 const skirtSrc = (() => { const s = []; const edge = [t => t, t => t * NV + N, t => N * NV + (N - t), t => (N - t) * NV]; for (let e = 0; e < 4; e++) for (let t = 0; t < NV; t++) s.push(edge[e](t)); return s; })();
 
 // a refused or unanswered request (TransientError) propagates: the tile is retried later, never degraded for it
@@ -71,15 +67,9 @@ async function fetchBitmap(url, store = true) {
 }
 const unlessTransient = fallback => e => { if (e instanceof TransientError) throw e; return fallback; };
 export const photoUrl = (z, x, y) => URL_IGN_PHOTO(z, x, y), terrariumUrl = (z, x, y) => URL_TERRARIUM(z, x, y);
-// Elevation request for one tile: a Lambert-93 box around the tile, on the server's own pixel grid.
-// The IGN raster service resamples a request from pyramid levels of 0.5 m × 2^k. Measured on 04/10/2026 against
-// 0.5 m requests: for any other box the LiDAR layer comes back shifted north-south by up to one level pixel (a
-// saw-tooth with the box position: +14 m, −6 m… for two neighbouring zoom-15 tiles), which on a 70° face put
-// 90 m steps along tile edges. A box whose edges and pixel size sit on a level's grid comes back exactly one
-// pixel south, at every level (1 to 32 m): the request is moved one pixel north to make up for it. Bare-earth
-// RGE ALTI has no such offset. So: pixel = the level nearest the tile's grid spacing, box snapped to it, and
-// we resample onto the tile grid ourselves (bilinear), the same way on both sides of every edge.
-// L holds the Lambert-93 position of every point of the extended grid (ring included).
+// LiDAR request for one tile: Lambert-93 box around the tile at the tile's own resolution.
+// L holds the Lambert-93 position of every point of the extended grid (ring included); the box is set by the
+// tile itself (the ring lies inside its 2-sample margin), so URLs already in the cache and offline packs stay valid.
 export function elevRequest(z, x, y) {
   const m = tileMerc(z, x, y), L = new Float64Array(NE * NE * 2);
   let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
@@ -89,12 +79,10 @@ export function elevRequest(z, x, y) {
     if (i < 0 || j < 0 || i > N || j > N) continue;
     if (X < bx0) bx0 = X; if (X > bx1) bx1 = X; if (Y < by0) by0 = Y; if (Y > by1) by1 = Y;
   }
-  const [wx0] = mercToWorld(m.minx, 0), [wx1] = mercToWorld(m.maxx, 0), res = (wx1 - wx0) / N;
-  const G = 0.5 * 2 ** Math.max(0, Math.round(Math.log2(res / 0.5))), pad = res * 1.5 + G; // ring + one pixel for bilinear
-  bx0 = Math.floor((bx0 - pad) / G) * G; by0 = Math.floor((by0 - pad) / G) * G; bx1 = Math.ceil((bx1 + pad) / G) * G; by1 = Math.ceil((by1 + pad) / G) * G;
-  const w = Math.round((bx1 - bx0) / G), hgt = Math.round((by1 - by0) / G), bbox = [bx0, by0, bx1, by1];
-  const asked = layer => layer === LIDAR ? [bx0, by0 + G, bx1, by1 + G] : bbox; // the LiDAR layer's one-pixel offset
-  return { L, bbox, w, hgt, url: layer => URL_IGN_ELEV(layer, asked(layer), w, hgt) };
+  const [wx0] = mercToWorld(m.minx, 0), [wx1] = mercToWorld(m.maxx, 0), res = (wx1 - wx0) / N, pad = res * 2;
+  bx0 -= pad; by0 -= pad; bx1 += pad; by1 += pad;
+  const w = Math.min(160, Math.ceil((bx1 - bx0) / res)), hgt = Math.min(160, Math.ceil((by1 - by0) / res)), bbox = [bx0, by0, bx1, by1];
+  return { L, bbox, w, hgt, url: layer => URL_IGN_ELEV(layer, bbox, w, hgt) };
 }
 // Sentinel-2 cloudless (EOX), used where IGN has no photo (Italy, Switzerland), is darker in the mid-tones and
 // three times as saturated as the IGN photos: the border showed along the ridges. Measured on 12 zoom-14 tiles of
@@ -280,7 +268,7 @@ class Tile {
     slopeTex.magFilter = slopeTex.minFilter = THREE.LinearFilter; slopeTex.generateMipmaps = false; slopeTex.needsUpdate = true;
     const drop = Math.max(5, this.size / N * 3);
     skirtSrc.forEach((src, t) => { const k = NV * NV + t; pos[k * 3] = pos[src * 3]; pos[k * 3 + 1] = pos[src * 3 + 1] - drop; pos[k * 3 + 2] = pos[src * 3 + 2]; nor.copyWithin(k * 3, src * 3, src * 3 + 3); });
-    this.minH = mn - drop; this.maxH = mx; this.drop = drop; this.nbSig = this.border = null; // a new mesh: stitched afresh
+    this.minH = mn - drop; this.maxH = mx;
     const g = new THREE.BufferGeometry();
     g.setIndex(sharedIndex); g.setAttribute('uv', sharedUV);
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
@@ -292,68 +280,6 @@ class Tile {
     this.engine.group.add(this.mesh);
     this.engine.attachOverlays(this);
     this.engine.onTileBuilt?.(this); // layers standing on the ground (forests…) hook here
-  }
-  // Make this tile's edges meet its drawn neighbours exactly (engine.stitch). The same rule gives every point of a
-  // tile border one height, whichever tile computes it:
-  //  - a border point touching a coarser drawn tile takes that tile's drawn surface there (coarse tiles are done
-  //    first). A coarse edge is straight between its 32 or fewer points, so our extra points sit on its line: no gap.
-  //    Coarser data is smoother: on cliffs the change reaches tens of metres;
-  //  - otherwise the mean of the measured heights of every same-level tile touching it (equal already for LiDAR
-  //    tiles, not for the global model far away). Corners count every tile meeting there, diagonal ones too.
-  // nb: drawn tile across each edge (N, E, S, W), dg: across each corner (NW, NE, SE, SW), same level or coarser
-  // (finer ones meet us themselves). The change fades over STITCH rows inward, so the edge does not become a crease.
-  // Only the drawn mesh moves: heights asked of the tile (labels, slopes, neighbours) stay the measured ones.
-  stitch(nb, dg) {
-    const h = this.h, p = this.mesh.geometry.attributes.position, a = p.array, sx = this.size / N, sz = (this.z1 - this.z0) / N;
-    const c = [], add = t => { if (t && !c.includes(t)) c.push(t); };
-    const target = (i, j) => {
-      c.length = 0;
-      if (j === 0) add(nb[0]); if (i === N) add(nb[1]); if (j === N) add(nb[2]); if (i === 0) add(nb[3]);
-      if (i === 0 && j === 0) add(dg[0]); else if (i === N && j === 0) add(dg[1]); else if (i === N && j === N) add(dg[2]); else if (i === 0 && j === N) add(dg[3]);
-      if (!c.length) return null;
-      const x = this.x0 + i * sx, z = this.z0 + j * sz;
-      let low = c[0]; for (const t of c) if (t.z < low.z) low = t;
-      if (low.z < this.z) return low.drawnAt(x, z);
-      let sum = h[j * NV + i]; for (const t of c) sum += t.heightAt(x, z);
-      return sum / (c.length + 1);
-    };
-    // change wanted on each edge (null: nothing drawn across it at our level or coarser)
-    const at = (e, t) => e === 0 ? [t, 0] : e === 1 ? [N, t] : e === 2 ? [t, N] : [0, t];
-    const d = [0, 1, 2, 3].map(e => {
-      if (!nb[e] && !dg[e] && !dg[(e + 1) % 4]) return null;
-      const out = new Float32Array(NV); let any = false;
-      for (let t = 0; t < NV; t++) { const [i, j] = at(e, t), v = target(i, j); if (v != null) { out[t] = v - h[j * NV + i]; any = true; } }
-      return any ? out : null;
-    });
-    let lo = Infinity, hi = -Infinity;
-    for (let k = 0; k < NV * NV; k++) a[k * 3 + 1] = h[k];
-    for (let e = 0; e < 4; e++) {
-      const de = d[e]; if (!de) continue;
-      for (let r = 0; r < STITCH; r++) {
-        const w = 1 - r / STITCH;
-        for (let t = 0; t < NV; t++) {
-          const i = e === 0 || e === 2 ? t : e === 1 ? N - r : r, j = e === 1 || e === 3 ? t : e === 0 ? r : N - r;
-          a[(j * NV + i) * 3 + 1] += de[t] * w;
-        }
-      }
-    }
-    // the border points themselves exactly on their target (the fades of two edges add up near a corner)
-    for (let e = 0; e < 4; e++) if (d[e]) for (let t = 0; t < NV; t++) { const [i, j] = at(e, t), k = j * NV + i, v = target(i, j); if (v != null) a[k * 3 + 1] = v; }
-    for (let k = 0; k < NV * NV; k++) { const y = a[k * 3 + 1]; if (y < lo) lo = y; if (y > hi) hi = y; }
-    skirtSrc.forEach((src, t) => { a[(NV * NV + t) * 3 + 1] = a[src * 3 + 1] - this.drop; });
-    p.needsUpdate = true;
-    // finer neighbours lay their borders on ours: told only when a border point really moved
-    const border = new Float32Array(4 * NV);
-    for (let e = 0; e < 4; e++) for (let t = 0; t < NV; t++) { const [i, j] = at(e, t); border[e * NV + t] = a[(j * NV + i) * 3 + 1]; }
-    if (!this.border || border.some((v, q) => Math.abs(v - this.border[q]) > 1e-3)) this.ver = (this.ver || 0) + 1;
-    this.border = border;
-    this.minH = Math.min(this.minH, lo - this.drop); this.maxH = Math.max(this.maxH, hi); // only grows: no LOD flicker
-  }
-  // height of the drawn surface (after stitching), straight between the mesh points
-  drawnAt(x, z) {
-    const a = this.mesh.geometry.attributes.position.array, gx = Math.min(Math.max((x - this.x0) / this.size * N, 0), N - 1e-6), gz = Math.min(Math.max((z - this.z0) / (this.z1 - this.z0) * N, 0), N - 1e-6);
-    const i = gx | 0, j = gz | 0, tx = gx - i, ty = gz - j, k = j * NV + i, y = q => a[q * 3 + 1];
-    return y(k) * (1 - tx) * (1 - ty) + y(k + 1) * tx * (1 - ty) + y(k + NV) * (1 - tx) * ty + y(k + NV + 1) * tx * ty;
   }
   dispose() {
     this.engine.onTileDisposed?.(this); this.engine.releaseOverlays(this);
@@ -416,7 +342,7 @@ export class TerrainEngine {
     const [ax, ay] = lonLatToTile(bounds[0], bounds[3], 11), [bx, by] = lonLatToTile(bounds[2], bounds[1], 11);
     this.roots = []; this.rootKeys = new Map();
     for (let y = Math.floor(ay); y <= Math.floor(by); y++) for (let x = Math.floor(ax); x <= Math.floor(bx); x++) this.addRoot(x, y);
-    this.drawn = []; this.morphing = new Set();
+    this.drawn = [];
   }
   addRoot(x, y) { const t = new Tile(this, 11, x, y, null); this.roots.push(t); this.rootKeys.set(`${x}/${y}`, t); }
   // Free navigation: keep zoom-11 tiles loaded within `radius` metres of a point (the view's centre), drop those
@@ -443,7 +369,7 @@ export class TerrainEngine {
   makeMaterial(tex, tileSize, slopeTex) {
     return new THREE.ShaderMaterial({
       uniforms: { ...this.uniforms, map: { value: tex }, slopeMap: { value: slopeTex }, ndsiMap: { value: null }, cloudMap: { value: null }, visMap: { value: null }, forestMap: { value: null }, clpaMap: { value: null }, radarMap: { value: null }, ovRect: { value: new THREE.Vector4(0, 0, 1, 1) }, clpaRect: { value: new THREE.Vector4(0, 0, 1, 1) }, radarRect: { value: new THREE.Vector4(0, 0, 1, 1) },
-        hasNdsi: { value: 0 }, hasCloud: { value: 0 }, hasVis: { value: 0 }, hasForest: { value: 0 }, hasClpa: { value: 0 }, hasRadar: { value: 0 }, tileSize: { value: tileSize }, morph: { value: 1 } },
+        hasNdsi: { value: 0 }, hasCloud: { value: 0 }, hasVis: { value: 0 }, hasForest: { value: 0 }, hasClpa: { value: 0 }, hasRadar: { value: 0 }, tileSize: { value: tileSize } },
       vertexShader: this.vs, fragmentShader: this.fs
     });
   }
@@ -585,55 +511,7 @@ export class TerrainEngine {
     if (this.frame % 30 === 0) this.evict();
     if (this.frame % 600 === 0) this.evictOverlays();
     if (this.frame % 5 === 0) this.pumpOverlays();
-    this.morphIn();
-    this.stitch();
     for (const m of this.drawn) m.visible = true;
-  }
-  // Finer or coarser relief comes in smoothly: a tile drawn now in place of its parent (or of its children) starts
-  // from the surface that was drawn there and slides to its own heights over MORPH ms, in the vertex shader (the
-  // heights it starts from are sent once, as the "fromY" attribute; then only the "morph" uniform moves)
-  morphIn() {
-    const now = performance.now(), prev = this.prevOn ?? new Map(), on = new Map();
-    for (const m of this.drawn) { const t = m.userData.tile; on.set(t.z * 2 ** 42 + t.x * 2 ** 21 + t.y, t); }
-    for (const m of this.drawn) {
-      const t = m.userData.tile; if (prev.get(t.z * 2 ** 42 + t.x * 2 ** 21 + t.y) === t) continue;
-      let src = null;
-      for (let s = 1; s <= t.z && !src; s++) { const a = prev.get((t.z - s) * 2 ** 42 + (t.x >> s) * 2 ** 21 + (t.y >> s)); if (a) src = [a]; }
-      if (!src) { const kids = [...prev.values()].filter(c => c.z > t.z && c.x >> (c.z - t.z) === t.x && c.y >> (c.z - t.z) === t.y); if (kids.length) src = kids; }
-      if (!src || !t.mesh) continue; // come into view: nothing was drawn there
-      const sx = t.size / N, sz = (t.z1 - t.z0) / N, from = new Float32Array(NV * NV + SKIRT);
-      for (let j = 0; j < NV; j++) for (let i = 0; i < NV; i++) {
-        const x = t.x0 + i * sx, z = t.z0 + j * sz, s = src.length === 1 ? src[0] : src.find(c => c.contains(x, z)) ?? src[0];
-        from[j * NV + i] = s.mesh ? s.drawnAt(x, z) : t.h[j * NV + i];
-      }
-      skirtSrc.forEach((k, q) => { from[NV * NV + q] = from[k] - t.drop; });
-      t.mesh.geometry.setAttribute('fromY', new THREE.BufferAttribute(from, 1));
-      t.morphStart = now; this.morphing.add(t);
-    }
-    this.prevOn = on;
-    for (const t of this.morphing) {
-      const f = Math.min(1, (now - t.morphStart) / MORPH), u = t.mesh?.material.uniforms.morph;
-      if (!u || f >= 1) { if (u) u.value = 1; t.mesh?.geometry.deleteAttribute('fromY'); this.morphing.delete(t); continue; }
-      u.value = f * f * (3 - 2 * f);
-    }
-  }
-  // tile edges made to meet (Tile.stitch): coarse tiles first, as finer ones lay their borders on them; a tile is
-  // done again when what is drawn around it changes, or when a coarser neighbour moved its own border
-  stitch() {
-    // nothing to do while the same meshes are drawn (a rebuilt tile has a new mesh): the usual case, every frame
-    const prev = this.stitched; this.stitched = this.drawn;
-    if (prev && prev.length === this.drawn.length && prev.every((m, i) => m === this.drawn[i])) return;
-    const t0 = performance.now();
-    const tiles = this.drawn.map(m => m.userData.tile).sort((a, b) => a.z - b.z), on = new Map(), zmin = tiles[0]?.z ?? 0;
-    for (const t of tiles) on.set(t.z * 2 ** 42 + t.x * 2 ** 21 + t.y, t); // numbers, not strings: thousands of lookups
-    const find = (t, dx, dy) => { for (let s = 0; s <= t.z - zmin; s++) { const n = on.get((t.z - s) * 2 ** 42 + ((t.x + dx) >> s) * 2 ** 21 + ((t.y + dy) >> s)); if (n) return n; } return null; };
-    for (const t of tiles) {
-      const nb = NEIGHBOURS.map(([dx, dy]) => find(t, dx, dy)), dg = CORNERS.map(([dx, dy]) => find(t, dx, dy));
-      let sig = ''; for (const n of nb.concat(dg)) sig += n ? `${n.z}/${n.x}/${n.y}#${n.gen}.${n.z < t.z ? n.ver : ''},` : ',';
-      if (sig !== t.nbSig) { t.nbSig = sig; t.stitch(nb, dg); }
-      // at most ~2 ms a frame (hundreds of tiles can change at once): the rest next frame, skirts hide the gaps
-      if (performance.now() - t0 > 2) { this.stitched = null; return; }
-    }
   }
   want(t, p) { t.lastSeen = this.frame; if (t.state === 'idle') this.wanted.push({ t, p }); }
   visit(t) {

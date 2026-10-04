@@ -19,11 +19,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202610042122">
+<link rel="stylesheet" href="css/app.css?v=202610042126">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/",
+  "3d-tiles-renderer/": "https://cdn.jsdelivr.net/npm/3d-tiles-renderer@0.5.3/build/"
 } }
 </script>
 </head>
@@ -84,7 +85,6 @@
   <div class="db-r">
     <label class="sw" for="drawSnap"><input id="drawSnap" type="checkbox" checked><span>Suivre les sentiers</span></label>
     <button id="drawMe" type="button" class="mini">Partir de ma position</button>
-    <button id="drawOff" type="button" class="mini" hidden>Prolonger hors sentier</button>
   </div>
   <div class="db-b">
     <button id="drawUndo" type="button" class="mini big"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Annuler le point</button>
@@ -194,7 +194,7 @@
   <div class="field"><label>Vue 3D</label>
     <div class="seg"><button type="button" data-view="ign" aria-pressed="true">IGN (LiDAR)</button><button type="button" data-view="google" aria-pressed="false">Google 3D</button></div>
     <div id="gKeyBlock" class="gkey" hidden>
-      <p class="cline small">La vue Google 3D demande ta clé API Google, avec « Maps JavaScript API » activée. Elle reste sur cet appareil et n'est envoyée qu'à Google.</p>
+      <p class="cline small">La vue Google 3D demande ta clé API Google (Map Tiles API). Elle reste sur cet appareil et n'est envoyée qu'à Google.</p>
       <div class="row"><label class="sr" for="gKey">Clé API Google</label><input id="gKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Clé API Google"><button id="gKeySave" type="button" class="mini go">OK</button></div>
       <button id="gKeyClear" type="button" class="mini wide">Effacer la clé de cet appareil</button>
     </div>
@@ -234,7 +234,7 @@
     <p class="cline small" id="ptStore"></p>
     <button id="ptClear" type="button" class="mini">Vider les points LiDAR</button>
   </details>
-  <p class="cnote">Sources : relief © IGN (LiDAR HD, RGE ALTI), photos © IGN (BD ORTHO), hors France Sentinel-2 cloudless © EOX (CC BY-NC-SA 4.0) et relief Mapzen/AWS Terrain Tiles · Satellite du jour : Copernicus Sentinel-2 via Microsoft Planetary Computer · Météo : Météo-France via Open-Meteo · Sentiers, refuges, remontées, bâtiments et lacs : IGN BD TOPO · Itinéraires : service d'itinéraire IGN Géoplateforme · Pistes de ski et webcams : © contributeurs OpenStreetMap (ODbL), images des webcams à leurs propriétaires · Neige mesurée : Météo-France, réseau nivo-météorologique (Licence Ouverte 2.0) · Bulletin d'avalanche : Météo-France · Radar : RainViewer · Position partagée : service ntfy.sh · Avalanches passées : CLPA (INRAE, IGN), Géorisques · Refuges, points d'eau, passages délicats : refuges.info (CC BY-SA 2.0) · Topos : camptocamp.org (CC BY-SA 4.0) · Forêts : IGN BD Forêt V2 · Nuage de points : IGN LiDAR HD (Licence ouverte Etalab 2.0), décodé avec laz-perf (Hobu, Apache 2.0) · Ciel étoilé : d3-celestial (Olaf Frohn, licence BSD), planètes d'après les éléments du JPL (NASA) · Vue Google 3D : carte 3D de Google Maps (© Google et fournisseurs, affichés par Google sur la carte).</p>
+  <p class="cnote">Sources : relief © IGN (LiDAR HD, RGE ALTI), photos © IGN (BD ORTHO), hors France Sentinel-2 cloudless © EOX (CC BY-NC-SA 4.0) et relief Mapzen/AWS Terrain Tiles · Satellite du jour : Copernicus Sentinel-2 via Microsoft Planetary Computer · Météo : Météo-France via Open-Meteo · Sentiers, refuges, remontées, bâtiments et lacs : IGN BD TOPO · Itinéraires : service d'itinéraire IGN Géoplateforme · Pistes de ski et webcams : © contributeurs OpenStreetMap (ODbL), images des webcams à leurs propriétaires · Neige mesurée : Météo-France, réseau nivo-météorologique (Licence Ouverte 2.0) · Bulletin d'avalanche : Météo-France · Radar : RainViewer · Position partagée : service ntfy.sh · Avalanches passées : CLPA (INRAE, IGN), Géorisques · Refuges, points d'eau, passages délicats : refuges.info (CC BY-SA 2.0) · Topos : camptocamp.org (CC BY-SA 4.0) · Forêts : IGN BD Forêt V2 · Nuage de points : IGN LiDAR HD (Licence ouverte Etalab 2.0), décodé avec laz-perf (Hobu, Apache 2.0) · Ciel étoilé : d3-celestial (Olaf Frohn, licence BSD), planètes d'après les éléments du JPL (NASA) · Vue Google 3D : Google Photorealistic 3D Tiles (© Google et fournisseurs affichés en bas de l'écran).</p>
 </section>
 
 <section id="sheet-route" class="sheet glass" hidden aria-label="Rando">
@@ -246,10 +246,8 @@
   </div>
   <p class="cline small" id="sosInfo">Le 112 marche sur tous les réseaux, même sans carte SIM ; il oriente vers le secours en montagne (PGHM, CRS).</p>
 
-  <div id="plannedCard" class="rcard planned" hidden aria-live="polite"></div>
   <div id="routeCard" class="rcard" hidden>
     <div id="routeOut"></div>
-    <div id="walkOut"></div>
     <div class="btns">
       <button id="flyGo" type="button" class="mini">Survoler</button>
       <button id="drawEdit" type="button" class="mini">Modifier le tracé</button>
@@ -261,24 +259,6 @@
     <p class="cline small" id="routePackInfo"></p>
     <button id="bookSave" type="button" class="mini wide">Garder dans mes itinéraires</button>
     <details class="sec" id="d-when"><summary>Quand partir ?</summary><div id="whenOut"></div></details>
-    <details class="sec" id="d-rwx"><summary>Météo en route</summary>
-      <label class="cline small rwx-at">Départ <input id="rwxAt" type="datetime-local" class="in-text"></label>
-      <div id="rwxOut"></div>
-    </details>
-    <details class="sec" id="d-plan2"><summary>Prévoir cette sortie</summary>
-      <div class="pvrow"><label>Jour <input id="pvDate" type="date" class="in-text"></label><label>Départ <input id="pvTime" type="time" class="in-text" value="07:00"></label></div>
-      <label class="switch-row"><input id="pvRemind" type="checkbox"> Rappels sur mon téléphone (application ntfy)</label>
-      <button id="pvSave" type="button" class="mini wide">Enregistrer la sortie prévue</button>
-      <div id="pvInfo"></div>
-    </details>
-    <details class="sec" id="d-guide"><summary>Guidage aux croisements <span class="cnt" id="guideCnt"></span></summary>
-      <div class="seg3" role="group" aria-label="Guidage">
-        <button type="button" class="mini" data-guide="off">Désactivé</button>
-        <button type="button" class="mini" data-guide="vibe">Vibreur</button>
-        <button type="button" class="mini" data-guide="voice">Voix</button>
-      </div>
-      <div id="guideOut"></div>
-    </details>
     <details class="sec" id="d-days"><summary>En plusieurs jours <span class="cnt" id="daysCnt"></span></summary><div id="daysOut"></div></details>
   </div>
 
@@ -319,7 +299,6 @@
     <div id="plResults" class="places results"></div>
     <div class="btns"><button id="plToTap" type="button" class="mini">Toucher la carte</button><button id="plGo" type="button" class="mini go">Calculer l'itinéraire</button></div>
     <p class="cline small" id="plNote"></p>
-    <div id="plOpts"></div>
     <button id="plIdeas" type="button" class="mini wide">Idées de sorties autour du départ</button>
     <div id="plIdeasOut"></div>
   </details>
@@ -384,7 +363,7 @@
 </section>
 <div id="pin" class="pin" hidden><i></i></div>
 
-<div id="gmap" class="gmap" hidden></div>
+<div id="gAttrib" class="gattrib" hidden><img id="gLogo" src="icons/google-maps-logo.svg" alt="Google Maps"><span id="gAttribTxt"></span></div>
 
 <div class="readout glass" aria-live="polite">
   <div class="a" id="rAlt"></div>
@@ -394,6 +373,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202610042122"></script>
+<script type="module" src="js/app.js?v=202610042126"></script>
 </body>
 </html>

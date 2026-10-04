@@ -1,92 +1,114 @@
-// Google's photorealistic 3D, as a separate view: the 3D map of the Maps JavaScript API (Map3DElement), laid over
-// the scene. Why not the tiles in our own scene any more: since Google's EEA terms (8 July 2025), the Map Tiles API
-// no longer serves its photorealistic 3D tiles to projects billed in the European Economic Area, and the owner's is
-// (refused on 04/10/2026). Google names this 3D map as the way left. It is Google's renderer: its own light and sky,
-// its logo and data credits drawn by itself (as its terms require), and nothing of ours blended into its surface;
-// our summits, huts and itinerary are put on it as Google's own markers and line. The camera is handed over both
-// ways, so going from one view to the other keeps the place looked at. The key belongs to the owner: typed in the
-// app, kept on the device only, sent only to Google.
+// Google Photorealistic 3D Tiles, as a separate view mode. Google's terms forbid blending its tiles with other
+// map data such as the IGN terrain, so the IGN terrain is hidden while this mode is on; our own overlays
+// (labels, weather, precipitation, point sheet) stay on top, and the Google logo and the tiles' attributions
+// are shown as the terms require. The key belongs to the owner: typed in the app, kept on the device only.
+import * as THREE from 'three';
+import { TilesRenderer } from '3d-tiles-renderer/index.three.js';
+import { GoogleCloudAuthPlugin } from '3d-tiles-renderer/index.core-plugins.js';
+import { GLTFExtensionsPlugin, TileCompressionPlugin, TilesFadePlugin, ReorientationPlugin } from '3d-tiles-renderer/index.three-plugins.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+const ROOT = 'https://tile.googleapis.com/v1/3dtiles/root.json';
+const DRACO = 'https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/libs/draco/gltf/';
 const KEY_STORE = 'midi3d-google-key';
 export const googleKey = {
   get() { try { return localStorage.getItem(KEY_STORE) || ''; } catch { return ''; } },
   set(k) { try { if (k) localStorage.setItem(KEY_STORE, k); else localStorage.removeItem(KEY_STORE); } catch { } }
 };
 
-// The API loads once per page, with one key: a key changed later needs the page reloaded (said in the app).
-let api = null, apiKey = null, onAuthFail = null;
-function loadApi(key) {
-  if (api) return api;
-  apiKey = key;
-  api = new Promise((ok, ko) => {
-    window.__midi3dMaps = ok;
-    // Google calls this when it refuses the key (API not enabled, key not allowed for this site or this API…)
-    window.gm_authFailure = () => { onAuthFail?.(); ko(new Error('key')); };
-    const s = document.createElement('script');
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&v=weekly&libraries=maps3d&language=fr&region=FR&loading=async&callback=__midi3dMaps`;
-    s.async = true; s.onerror = () => { api = null; ko(new Error('network')); };
-    document.head.appendChild(s);
-  });
-  return api;
+// Why Google refused the key, in plain French. Called only after a refusal: a refused request is not billed,
+// whereas checking before every start would cost one session each time.
+const REASONS = {
+  SERVICE_DISABLED: "la Map Tiles API n'est pas activée dans ton projet Google. Active-la sur console.cloud.google.com/apis/library/tile.googleapis.com, attends 2 à 5 minutes, puis réessaie.",
+  API_KEY_INVALID: "cette clé n'existe pas (mal copiée ou supprimée).",
+  API_KEY_HTTP_REFERRER_BLOCKED: "la clé n'autorise pas ce site. Dans ses restrictions « Sites Web », ajoute https://qdesbuisson87-web.github.io/*.",
+  API_KEY_SERVICE_BLOCKED: "la clé est limitée à d'autres API. Dans ses restrictions d'API, coche Map Tiles API.",
+  BILLING_DISABLED: "la facturation n'est pas activée sur ton projet Google.",
+  RATE_LIMIT_EXCEEDED: "le quota du jour est atteint. Ça revient demain."
+};
+export async function whyRefused(key) {
+  try {
+    const r = await fetch(`${ROOT}?key=${encodeURIComponent(key)}`);
+    if (r.ok) return null;
+    const j = await r.json().catch(() => null), reason = j?.error?.details?.find(d => d.reason)?.reason ?? j?.error?.status;
+    return REASONS[reason] ?? `Google répond « ${j?.error?.message ?? r.status} ».`;
+  } catch { return null; }
 }
-export const keyChanged = key => apiKey != null && key !== apiKey;
 
-export class GoogleMap3D {
-  constructor(host) { this.host = host; this.map = null; this.shown = false; this.extras = []; }
+export class GoogleTiles {
+  // origin: {lat, lon} of the scene origin; geoidN: geoid height there, so that y = altitude above sea level
+  constructor({ scene, camera, renderer, origin, geoidN }) {
+    this.scene = scene; this.camera = camera; this.renderer = renderer; this.origin = origin; this.geoidN = geoidN;
+    this.tiles = null; this.shown = false; this.error = null; this.errorTarget = 12; this.parkTimer = null;
+    // the plugin puts the origin at (0,0,0) with x west and z north; our scene has x east and z south
+    this.holder = new THREE.Group(); this.holder.rotation.y = Math.PI;
+    this.draco = new DRACOLoader().setDecoderPath(DRACO);
+  }
   get on() { return this.shown; }
-  // cam: { lat, lng, range, heading, tilt } (degrees, metres); marks: [{ name, lat, lng, small }]; path: [{ lat, lng }]
-  async open(key, cam, { marks = [], path = [] }, onError) {
-    this.onError = onError; onAuthFail = () => this.fail('key', '');
-    const gen = this.gen = (this.gen || 0) + 1; // back to our view while loading: this opening is dropped
-    await loadApi(key);
-    const { Map3DElement, Marker3DElement, Polyline3DElement, MapMode, AltitudeMode } = await google.maps.importLibrary('maps3d');
-    if (gen !== this.gen) return;
-    if (!this.map) {
-      this.map = new Map3DElement({ mode: MapMode.SATELLITE, defaultUIHidden: true });
-      this.map.addEventListener('gmp-error', e => this.fail('map', e?.error?.message ?? ''));
-      // a touch on Google's map: its place goes to the app (point sheet, drawing, choosing a point), as on ours
-      this.map.addEventListener('gmp-click', e => { const p = e.position; if (p) this.onTap?.({ lat: p.lat, lng: p.lng }); });
-      this.map.addEventListener('gmp-steadychange', e => { if (e.isSteady) { this.steady = true; clearTimeout(this.slowTimer); } });
-      this.host.appendChild(this.map);
+
+  // Google bills one session per root request (a session lasts 3 hours): going back to the IGN view parks the
+  // tiles out of sight for a while instead of freeing them, so that coming back soon costs no new session and
+  // shows at once. Parked longer than PARK, they are freed (graphics memory on a phone).
+  start(key, onError) {
+    const PARK_SESSION = 2.5 * 3600e3;
+    if (this.tiles && this.key === key && Date.now() - this.since < PARK_SESSION) {
+      clearTimeout(this.parkTimer); this.onError = onError;
+      this.scene.add(this.holder); this.shown = true; return;
     }
-    Object.assign(this.map, { center: { lat: cam.lat, lng: cam.lng, altitude: 0 }, range: cam.range, heading: cam.heading, tilt: cam.tilt });
-    // our names, as Google's markers (the nearest, so that the map stays readable), and the itinerary
-    for (const el of this.extras) el.remove(); this.extras = [];
-    for (const m of marks) {
-      const el = new Marker3DElement({ position: { lat: m.lat, lng: m.lng }, altitudeMode: AltitudeMode.CLAMP_TO_GROUND, label: m.name, extruded: !m.small, sizePreserved: true, collisionPriority: m.small ? 0 : 1 });
-      this.map.appendChild(el); this.extras.push(el);
-    }
-    this.lib = { Polyline3DElement, Marker3DElement, AltitudeMode }; this.setPath(path); this.me?.remove(); this.me = null;
-    this.host.hidden = false; this.shown = true;
-    // nothing drawn after 30 s (refused without a word, or no connection): back to our view rather than a black screen
-    clearTimeout(this.slowTimer);
-    if (!this.steady) this.slowTimer = setTimeout(() => { if (!this.steady) this.fail('slow', ''); }, 30e3);
+    this.dispose(); this.error = null; this.key = key; this.since = Date.now(); this.onError = onError;
+    const t = this.tiles = new TilesRenderer(ROOT);
+    t.registerPlugin(new GoogleCloudAuthPlugin({ apiToken: key, autoRefreshToken: true }));
+    t.registerPlugin(new GLTFExtensionsPlugin({ dracoLoader: this.draco }));
+    t.registerPlugin(new TileCompressionPlugin()); // smaller GPU buffers: matters on phones
+    t.registerPlugin(new TilesFadePlugin());       // tiles blend in instead of popping
+    t.registerPlugin(new ReorientationPlugin({ lat: this.origin.lat * Math.PI / 180, lon: this.origin.lon * Math.PI / 180, height: this.geoidN, recenter: true }));
+    t.errorTarget = this.errorTarget;
+    t.setCamera(this.camera); t.setResolutionFromRenderer(this.camera, this.renderer);
+    // the scene works in display (sRGB) values end to end, without colour management: show the photos as stored
+    t.addEventListener('load-model', ({ scene }) => scene.traverse(o => {
+      const m = o.material; if (m?.map) { m.map.colorSpace = THREE.NoColorSpace; m.map.needsUpdate = true; }
+    }));
+    t.addEventListener('load-error', e => {
+      // only the root request matters (tile: null): it fails with 400/403 for a wrong key, a key restricted to
+      // other sites, the Map Tiles API not enabled or billing not set up; a single tile failing is not fatal
+      if (e.tile) return;
+      const m = String(e.error?.message ?? e.error ?? '');
+      this.error = /40[013]/.test(m) ? 'key' : 'network';
+      this.onError?.(this.error, m);
+    });
+    this.holder.add(t.group); this.scene.add(this.holder); this.shown = true;
   }
-  // the itinerary on Google's map (again when it changes: drawing, planner…); parts hidden by the relief stay seen
-  setPath(path) {
-    if (!this.map || !this.lib) return;
-    this.line?.remove(); this.line = null;
-    if (path.length < 2) return;
-    const { Polyline3DElement, AltitudeMode } = this.lib;
-    this.line = new Polyline3DElement({ path, altitudeMode: AltitudeMode.CLAMP_TO_GROUND, strokeColor: '#ff3b30', strokeWidth: 6, outerColor: '#3a0a08', outerWidth: 0.35, drawsOccludedSegments: true });
-    this.map.appendChild(this.line);
+  // back to the IGN view: out of sight, kept PARK minutes (see start)
+  stop() {
+    if (!this.shown) return;
+    this.scene.remove(this.holder); this.shown = false;
+    clearTimeout(this.parkTimer); this.parkTimer = setTimeout(() => { if (!this.shown) this.dispose(); }, 10 * 60e3);
   }
-  // my GPS position on Google's map (null: none)
-  setMe(pos) {
-    if (!this.map || !this.lib) return;
-    if (!pos) { this.me?.remove(); this.me = null; return; }
-    if (!this.me) { this.me = new this.lib.Marker3DElement({ altitudeMode: this.lib.AltitudeMode.CLAMP_TO_GROUND, label: 'Ma position', sizePreserved: true, collisionPriority: 2 }); this.map.appendChild(this.me); }
-    this.me.position = { lat: pos.lat, lng: pos.lng };
+  dispose() {
+    clearTimeout(this.parkTimer);
+    if (!this.tiles) return;
+    this.holder.remove(this.tiles.group); this.scene.remove(this.holder);
+    this.tiles.dispose(); this.tiles = null; this.shown = false;
   }
-  // our camera moves (a place searched, back to the summit, my position…) made by Google's camera
-  flyTo(cam, ms) {
-    if (!this.map || !this.shown) return;
-    this.map.flyCameraTo({ endCamera: { center: { lat: cam.lat, lng: cam.lng, altitude: 0 }, range: cam.range, heading: cam.heading, tilt: cam.tilt }, durationMillis: Math.max(300, ms) });
+  setErrorTarget(e) { this.errorTarget = e; if (this.tiles) this.tiles.errorTarget = e; }
+  update() {
+    const t = this.tiles; if (!t || !this.shown) return;
+    this.camera.updateMatrixWorld();
+    t.setResolutionFromRenderer(this.camera, this.renderer);
+    t.update();
   }
-  // back to our view: the camera as Google has it now (null if the map never showed)
-  close() {
-    this.gen = (this.gen || 0) + 1; clearTimeout(this.slowTimer); this.host.hidden = true; this.shown = false;
-    const m = this.map; if (!m?.center) return null;
-    return { lat: m.center.lat, lng: m.center.lng, range: m.range ?? 3000, heading: m.heading ?? 0, tilt: m.tilt ?? 60 };
+  get loading() { const s = this.tiles?.stats; return s ? (s.downloading || 0) + (s.parsing || 0) : 0; }
+  // data sources of the tiles on screen, most frequent first, as Google asks
+  attributions() {
+    const list = this.tiles?.getAttributions() ?? [], count = new Map();
+    for (const a of list) if (a.type === 'string') for (const s of String(a.value).split(';')) { const k = s.trim(); if (k) count.set(k, (count.get(k) || 0) + 1); }
+    return [...count.entries()].sort((a, b) => b[1] - a[1]).map(e => e[0]);
   }
-  fail(kind, msg) { if (!this.shown) return; this.close(); this.onError?.(kind, msg); }
+  // first hit of a ray on the Google surface (x, y altitude, z in scene metres)
+  raycast(raycaster) {
+    if (!this.tiles || !this.shown) return null;
+    raycaster.firstHitOnly = true;
+    const hit = raycaster.intersectObject(this.tiles.group, true)[0];
+    return hit ? hit.point : null;
+  }
 }

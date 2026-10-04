@@ -1,8 +1,8 @@
 // Live data, fetched every time the app opens: Météo-France forecasts (via Open-Meteo),
 // the latest Sentinel-2 pass and the latest clear one (Microsoft Planetary Computer), snow by altitude.
-import { lonLatToMerc, RE } from './geo.js?v=202610042122';
-import { SITE } from './sites.js?v=202610042122';
-import { timedFetch } from './net.js?v=202610042122';
+import { lonLatToMerc, RE } from './geo.js?v=202610042126';
+import { SITE } from './sites.js?v=202610042126';
+import { timedFetch } from './net.js?v=202610042126';
 
 export const SPOTS = SITE.spots; // top, peak2, mid, valley
 // pressure levels (hPa) of the cloud profile: ≈ 1 500, 2 000, 3 000, 4 200, 5 600, 7 200 and 9 200 m
@@ -52,17 +52,6 @@ export async function pointForecast(lat, lon, alt) {
   let firstSnow = null; for (let k = k0; k < h.time.length; k++) if ((h.snowfall[k] || 0) >= 0.2) { firstSnow = h.time[k]; break; }
   return { current: d.current, snow24: sum(h.snowfall, 24), snow72: sum(h.snowfall, 72), rain24: sum(h.rain, 24), rain72: sum(h.rain, 72),
     tmin: Math.min(...h.temperature_2m.slice(k0, k0 + 24)), tmax: Math.max(...h.temperature_2m.slice(k0, k0 + 24)), firstSnow, hourly: h, k0 };
-}
-
-// forecast at several points at once (along an itinerary), each at its own altitude: Météo-France models, hour by
-// hour for 3 days. points: [{ lat, lon, alt }] → [{ time, temperature_2m, precipitation, … }] in the same order
-export async function routeForecast(points) {
-  const d = await json('https://api.open-meteo.com/v1/forecast?' + qs({
-    latitude: points.map(p => p.lat.toFixed(4)).join(','), longitude: points.map(p => p.lon.toFixed(4)).join(','),
-    elevation: points.map(p => Math.round(p.alt)).join(','), timezone: 'Europe/Paris', forecast_days: 3, models: 'meteofrance_seamless',
-    hourly: 'temperature_2m,precipitation,snowfall,weather_code,wind_speed_10m,wind_gusts_10m'
-  }));
-  return (Array.isArray(d) ? d : [d]).map(x => x.hourly);
 }
 
 // ----- weather radar (RainViewer: the national radars, mosaicked every 10 minutes, the last 2 hours) -----

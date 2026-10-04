@@ -7,7 +7,7 @@
 // The sky is drawn on a sphere around the camera, rotated from equatorial coordinates to the place's horizon by the
 // local sidereal time (precession since 2000 neglected: about 0.3°).
 import * as THREE from 'three';
-import { sunPosition, moonPosition } from './live.js?v=202610042122';
+import { sunPosition, moonPosition } from './live.js?v=202610042126';
 
 const R = 180000, RAD = Math.PI / 180;
 const days2000 = date => date / 864e5 - 10957.5; // days since J2000 (as in live.js)
@@ -55,8 +55,7 @@ export class NightSky {
   async load() {
     if (this.data || this.loading) return; this.loading = true;
     try { const r = await fetch('data/sky.json'); if (r.ok) this.data = await r.json(); } catch { }
-    // built whole or not at all: a failure leaves the sky without stars, never the frame broken
-    this.loading = false; if (this.data) try { this.build(); this.built = true; } catch (e) { console.warn('ciel de nuit :', e); }
+    this.loading = false; if (this.data) this.build();
   }
   build() {
     // stars: points at their direction, size and brightness from the magnitude, colour from B−V
@@ -78,29 +77,14 @@ export class NightSky {
         void main(){ vec2 c = gl_PointCoord - 0.5; float r = dot(c, c) * 4.0; if (r > 1.0) discard; gl_FragColor = vec4(vC * vA * (1.0 - r * r), 1.0); }`
     }));
     stars.frustumCulled = false; stars.renderOrder = -0.5; this.group.add(stars);
-    // the Milky Way: its outlines (five brightness levels) painted on an equirectangular map of the sky, then blurred.
-    // An outline crossing longitude ±180° is unwrapped and painted three times (−360°, 0, +360°): drawn as is, it
-    // drew a straight edge across the whole sky. The blur is done here (3 box passes ≈ Gaussian, ~4°): the canvas
-    // "filter" is ignored by Safari.
-    const W = 512, Hh = 256, cv = document.createElement('canvas'); cv.width = W; cv.height = Hh; const c = cv.getContext('2d');
+    // the Milky Way: its outlines (five brightness levels) painted on an equirectangular map of the sky, blurred
+    const cv = document.createElement('canvas'); cv.width = 2048; cv.height = 1024; const c = cv.getContext('2d');
+    c.filter = 'blur(10px)';
     for (const { level, rings } of this.data.milkyway) {
       c.fillStyle = `rgba(255,255,255,${0.12 + level * 0.03})`; c.beginPath();
-      for (const r of rings) {
-        let prev = null; const pts = r.map(([lon, lat]) => { if (prev != null) lon += Math.round((prev - lon) / 360) * 360; prev = lon; return [lon, lat]; });
-        for (const off of [-360, 0, 360]) pts.forEach(([lon, lat], i) => { const x = (lon + off + 180) / 360 * W, y = (90 - lat) / 180 * Hh; i ? c.lineTo(x, y) : c.moveTo(x, y); });
-      }
+      for (const r of rings) r.forEach(([lon, lat], i) => { const x = (lon + 180) / 360 * 2048, y = (90 - lat) / 180 * 1024; i ? c.lineTo(x, y) : c.moveTo(x, y); });
       c.fill('evenodd');
     }
-    const img = c.getImageData(0, 0, W, Hh), px = img.data, v = new Float32Array(W * Hh), t = new Float32Array(W * Hh);
-    for (let k = 0; k < W * Hh; k++) v[k] = px[k * 4 + 3] / 255 * (px[k * 4] / 255);
-    const BR = 3; // box radius in pixels (0.7° each): horizontal wraps around the sky, vertical clamps at the poles
-    for (let pass = 0; pass < 3; pass++) {
-      for (let y = 0; y < Hh; y++) for (let x = 0; x < W; x++) { let s = 0; for (let d = -BR; d <= BR; d++) s += v[y * W + ((x + d + W) % W)]; t[y * W + x] = s / (2 * BR + 1); }
-      for (let y = 0; y < Hh; y++) for (let x = 0; x < W; x++) { let s = 0; for (let d = -BR; d <= BR; d++) s += t[Math.min(Hh - 1, Math.max(0, y + d)) * W + x]; v[y * W + x] = s / (2 * BR + 1); }
-    }
-    // five levels at their alphas pile up to ≈ 0.7 in the core: brought to 1 there, the faint arms in proportion
-    for (let k = 0; k < W * Hh; k++) { const g = Math.round(Math.min(1, v[k] / 0.7) * 255); px[k * 4] = px[k * 4 + 1] = px[k * 4 + 2] = g; px[k * 4 + 3] = 255; }
-    c.putImageData(img, 0, 0);
     const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.NoColorSpace; tex.wrapS = THREE.RepeatWrapping;
     const mw = new THREE.Mesh(new THREE.SphereGeometry(R * 1.02, 64, 32), new THREE.ShaderMaterial({
       uniforms: { ...this.u, map: { value: tex } }, side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
@@ -129,7 +113,7 @@ export class NightSky {
     const vis = night > 0.01 && overcast < 0.97;
     if (vis && !this.data) this.load();
     this.u.night.value = night * (1 - overcast); this.u.px.value = 1.6 * Math.min(2, pixelRatio);
-    const ready = !!this.built && vis;
+    const ready = !!this.data && vis;
     this.group.visible = ready; if (this.planetPoints) this.planetPoints.visible = ready;
     if (ready) {
       // equatorial -> the place's horizon (scene: x east, y up, z south), by the local sidereal time

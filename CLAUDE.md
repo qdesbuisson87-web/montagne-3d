@@ -30,7 +30,7 @@ le temps et les tokens nécessaires. Ne jamais sacrifier la qualité pour aller 
 - `js/geo.js` : Web Mercator (tuiles), repère local en mètres (origine = sommet, x est, z sud, y altitude), Lambert-93 pour l'IGN.
 - `js/net.js` : accès réseau des tuiles. Cache Storage d'abord (`midi3d-tiles-v1`, hors ligne), puis file d'attente polie par service (IGN WMS-R, WMTS, WFS, itinéraires, reste de la Géoplateforme, Planetary Computer, Géorisques, téléchargement LiDAR) avec débit adaptatif, délai d'abandon (`timedFetch`) (AIMD) et nouvelles tentatives sur 429/5xx. `TransientError` = pas de réponse maintenant (hors ligne, refus) : la tuile est retentée plus tard et le parent reste affiché, jamais remplacé par une donnée de repli. Mesuré : le WMS-R IGN refuse (429) au-delà d'environ 40 requêtes en rafale ; avant ce module, 146 tuiles sur 200 retombaient pour de bon sur le relief parent.
 - `js/terrain.js` : moteur de streaming en quadtree de tuiles Web Mercator, du zoom 11 au 19, chaque tuile = maillage 64×64 + jupes.
-  - chaque tuile charge une grille 67×67 (anneau d'un échantillon au-delà du bord, pris dans la marge de la requête LiDAR, sinon extrapolé) : normales et pentes sans raccord entre tuiles. L'URL LiDAR ne dépend que de la tuile, les caches existants restent valides.
+  - chaque tuile charge une grille 67×67 (anneau d'un échantillon au-delà du bord, pris dans la marge de la requête LiDAR, sinon extrapolé) : normales et pentes sans raccord entre tuiles. Requête de relief alignée sur la grille du serveur (voir « Montagnes coupées » plus bas).
   - texture de pente par tuile (RG16F, gradient du sol en vrais mètres, sans l'exagération), interpolée par pixel. `engine.slopeAt(x, z)` → degrés, orientation, pas de mesure, source du relief (`tile.src` : lidar / rge / global).
   - relief : Terrarium (AWS) jusqu'au z13, puis LiDAR HD IGN (MNT, WMS-R bil float32 en Lambert-93), trous comblés par RGE ALTI puis par la tuile parente. Le MNS est exclu : il contient les câbles de téléphérique.
   - photo : IGN BD ORTHO WMTS (20 cm au z19, pas de z20). Les pixels blancs hors de France sont remplacés par EOX Sentinel-2 cloudless.
@@ -283,6 +283,17 @@ Relecture de tous les modules ; défauts trouvés et corrigés :
   - changement seulement après 3 vérifications concordantes.
 - `window.midi3d.places` exposé pour le débogage.
 - Règle : toujours passer un vrai booléen à `classList.toggle`. Toutes les autres bascules de l'appli ont été vérifiées.
+
+### Montagnes coupées en morceaux (04/10/2026, « quand on zoome on voit des traits, c'est pas fusionné »)
+- Mesuré sur les tuiles affichées autour du Midi : deux tuiles voisines du même niveau donnaient au même point des hauteurs différentes (médiane 7 m, jusqu'à 87 m sur les parois), 132 m entre deux niveaux. La « jupe » verticale qui bouche le trou se voyait comme un trait ou une marche.
+- Cause 1, serveur IGN (WMS-R, couche LiDAR MNT seulement) : il rééchantillonne depuis des niveaux de 0,5 m × 2^k et, pour une zone quelconque, rend l'image décalée nord-sud d'une partie de pixel en dents de scie (+14 m, −6 m… pour deux tuiles z15 voisines). Zone alignée sur la grille d'un niveau : décalage d'exactement un pixel vers le sud, à tous les niveaux de 1 à 32 m. RGE ALTI et la hauteur des arbres (MNH) n'ont pas ce défaut.
+  - Corrigé dans `elevRequest` : pixel = niveau le plus proche du pas de la tuile, zone calée sur sa grille, requête LiDAR remontée d'un pixel, rééchantillonnage bilinéaire chez nous. Résultat : 0 écart entre tuiles LiDAR voisines à tous les niveaux.
+  - Les adresses des tuiles de relief changent : tout le relief se retélécharge une fois. Les packs hors ligne déjà faits sont à relancer (ils reprennent, seul le relief manque).
+- Cause 2, niveaux différents côte à côte, et relief mondial lointain (z12–13, bords de tuile lus à un demi-pixel près) : `TerrainEngine.stitch` + `Tile.stitch`.
+  - Tout point de bord prend la surface dessinée de la tuile la plus grossière qui le touche (tuiles traitées de la plus grossière à la plus fine), sinon la moyenne des tuiles de même niveau ; les coins comptent aussi la tuile en diagonale.
+  - La correction est fondue sur 8 rangées. Seul le maillage dessiné bouge : les hauteurs demandées (étiquettes, pentes, itinéraires) restent les mesures.
+  - Refait seulement quand ce qui est dessiné autour change, au plus ~2 ms par image (le reste à l'image suivante).
+- Mesuré après : 0,000 m d'écart sur toutes les jointures dessinées (610 de même niveau, 75 entre niveaux). Coût : 0 à l'arrêt, ~1,4 ms par image en moyenne en se déplaçant vite (navigateur de test), 4 ms au pire. PAS mesuré sur téléphone.
 
 ### Itinéraires réalistes (04/10/2026, « Chamonix → l'Aiguille, ça me fait monter tout droit, impossible sans escalade : faut dire quand c'est pas possible »)
 - Tracé au doigt : au-delà du bout des sentiers, plus de ligne droite automatique. Le tracé s'arrête au bout du chemin, avec un message (« le chemin s'arrête X m avant : glacier, rocher ou pente raide »), la remontée mécanique la plus proche (< 600 m) si elle existe, et un bouton « Prolonger hors sentier » pour ajouter quand même la ligne droite.

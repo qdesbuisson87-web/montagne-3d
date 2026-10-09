@@ -6,8 +6,8 @@ import * as THREE from 'three';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
 import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
-import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610042126';
-import { cachedFetch } from './net.js?v=202610042126';
+import { lonLatToWorld, worldToLonLat } from './geo.js?v=202610091553';
+import { cachedFetch } from './net.js?v=202610091553';
 
 const CELL = 0.04, RANGE = 5000, SHOW = 6500; // metres: fat lines cost on phones, the far ones were barely visible
 const WFS = (layer, cql, [s, w, n, e]) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=${layer}&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=5000`
@@ -38,21 +38,26 @@ export class TrailsLayer {
   }
   setResolution(w, h) { for (const m of Object.values(this.mats)) m.resolution.set(w, h); }
 
+  // returns a promise settled when the cells around the point have answered (or failed)
   ensure(x, z) {
-    const [lon, lat] = worldToLonLat(x, z), dLat = RANGE / 111000, dLon = RANGE / (111000 * Math.cos(lat * Math.PI / 180));
+    const [lon, lat] = worldToLonLat(x, z), dLat = RANGE / 111000, dLon = RANGE / (111000 * Math.cos(lat * Math.PI / 180)), waits = [];
     for (let a = Math.floor((lat - dLat) / CELL); a <= Math.floor((lat + dLat) / CELL); a++) for (let b = Math.floor((lon - dLon) / CELL); b <= Math.floor((lon + dLon) / CELL); b++) {
-      const key = `${a}/${b}`; if (this.cells.has(key)) continue;
+      const key = `${a}/${b}`; if (this.cells.has(key)) { waits.push(this.cells.get(key).done); continue; }
       const cell = { ways: null, meshes: [], draped: 0 }; this.cells.set(key, cell);
       [cell.cx, cell.cz] = lonLatToWorld((b + 0.5) * CELL, (a + 0.5) * CELL);
       const box = [a * CELL, b * CELL, (a + 1) * CELL, (b + 1) * CELL], json = u => cachedFetch(u).then(r => r.ok ? r.json() : null);
-      Promise.all([
+      cell.done = Promise.all([
         json(WFS('BDTOPO_V3:troncon_de_route', "nature IN ('Sentier','Chemin')", box)),
         json(WFS('BDTOPO_V3:transport_par_cable', null, box)),
         json(WFS('BDTOPO_V3:zone_d_activite_ou_d_interet', "nature IN ('Refuge','Abri de montagne')", box))
       ]).then(([roads, lifts, zones]) => {
         if (this.cells.get(key) !== cell) return;
         if (!roads && !lifts) { this.cells.delete(key); return; } // no answer: try again later
-        const lines = (f, kind) => (f.geometry.type === 'MultiLineString' ? f.geometry.coordinates : [f.geometry.coordinates]).map(l => ({ kind, name: f.properties.toponyme || f.properties.nature || null, pts: l.map(([lon, lat]) => lonLatToWorld(lon, lat)) }));
+        // lifts keep their kind and the altitudes of their points (−1000 in BD TOPO where unknown)
+        const lines = (f, kind) => (f.geometry.type === 'MultiLineString' ? f.geometry.coordinates : [f.geometry.coordinates]).map(l => ({
+          kind, name: f.properties.toponyme || f.properties.nature || null, nature: f.properties.nature, pts: l.map(([lon, lat]) => lonLatToWorld(lon, lat)),
+          zs: kind === 'lift' ? l.map(c => c[2] > -500 ? c[2] : null) : null
+        }));
         cell.ways = [
           ...(roads?.features ?? []).flatMap(f => lines(f, f.properties.nature === 'Chemin' ? 'track' : 'path')),
           ...(lifts?.features ?? []).flatMap(f => lines(f, 'lift'))
@@ -65,7 +70,9 @@ export class TrailsLayer {
         });
         if (huts.length) this.onHuts?.(huts);
       }).catch(() => this.cells.delete(key));
+      waits.push(cell.done);
     }
+    return Promise.all(waits.map(p => p?.catch(() => { })));
   }
   // ----- where the paths are (to tell walking from off-path, mountaineering or a lift) -----
   cellOf(x, z) { const [lon, lat] = worldToLonLat(x, z); return this.cells.get(`${Math.floor(lat / CELL)}/${Math.floor(lon / CELL)}`); }
@@ -91,8 +98,28 @@ export class TrailsLayer {
     for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) { const c = this.cells.get(`${a + j}/${b + i}`); if (c) out.push(c); }
     return out;
   }
-  // the lifts loaded: name and both ends (scene metres)
-  lifts() { const out = []; for (const c of this.cells.values()) for (const w of c.ways ?? []) if (w.kind === 'lift') out.push({ name: w.name, a: w.pts[0], b: w.pts[w.pts.length - 1] }); return out; }
+  // every path and track loaded, once each (a way crossing a cell border comes with both cells)
+  ways() {
+    const out = [], seen = new Set();
+    for (const c of this.cells.values()) for (const w of c.ways ?? []) {
+      if (w.kind === 'lift') continue;
+      const a = w.pts[0], b = w.pts[w.pts.length - 1], k = `${a[0].toFixed(1)},${a[1].toFixed(1)},${b[0].toFixed(1)},${b[1].toFixed(1)},${w.pts.length}`;
+      if (!seen.has(k)) { seen.add(k); out.push(w); }
+    }
+    return out;
+  }
+  // the lifts loaded: name, kind (BD TOPO nature), both ends and the whole line (scene metres), altitudes of its
+  // points when known. A lift crossing a cell border is in both cells: kept once.
+  lifts() {
+    const out = [], seen = new Set();
+    for (const c of this.cells.values()) for (const w of c.ways ?? []) {
+      if (w.kind !== 'lift') continue;
+      const a = w.pts[0], b = w.pts[w.pts.length - 1], k = `${Math.round(a[0])},${Math.round(a[1])},${Math.round(b[0])},${Math.round(b[1])}`;
+      if (seen.has(k)) continue; seen.add(k);
+      out.push({ name: w.name, nature: w.nature, a, b, pts: w.pts, zs: w.zs });
+    }
+    return out;
+  }
 
   // (re)lay a cell's lines on the relief: once loaded, then when finer tiles have arrived
   drape(cell) {

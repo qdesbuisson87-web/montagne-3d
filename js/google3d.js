@@ -24,13 +24,16 @@ const REASONS = {
   API_KEY_HTTP_REFERRER_BLOCKED: "la clé n'autorise pas ce site. Dans ses restrictions « Sites Web », ajoute https://qdesbuisson87-web.github.io/*.",
   API_KEY_SERVICE_BLOCKED: "la clé est limitée à d'autres API. Dans ses restrictions d'API, coche Map Tiles API.",
   BILLING_DISABLED: "la facturation n'est pas activée sur ton projet Google.",
-  RATE_LIMIT_EXCEEDED: "le quota du jour est atteint. Ça revient demain."
+  RATE_LIMIT_EXCEEDED: "le quota du jour est atteint. Ça revient demain.",
+  RESOURCE_EXHAUSTED: "le quota est atteint (plafond du jour de ton projet Google). Ça revient demain, ou relève le plafond dans la console Google (Map Tiles API, Quotas)."
 };
 export async function whyRefused(key) {
   try {
     const r = await fetch(`${ROOT}?key=${encodeURIComponent(key)}`);
     if (r.ok) return null;
     const j = await r.json().catch(() => null), reason = j?.error?.details?.find(d => d.reason)?.reason ?? j?.error?.status;
+    // EEA terms (8 July 2025): photorealistic 3D tiles are not served to projects billed in the EEA (France included)
+    if (/not available for your account and region/i.test(j?.error?.message ?? '')) return "Google ne fournit plus ses tuiles 3D photoréalistes aux comptes facturés dans l'Espace économique européen (conditions EEE de Google, depuis le 8 juillet 2025). Aucun réglage de la clé ne le débloque : la vue IGN reste disponible.";
     return REASONS[reason] ?? `Google répond « ${j?.error?.message ?? r.status} ».`;
   } catch { return null; }
 }
@@ -73,7 +76,7 @@ export class GoogleTiles {
       // other sites, the Map Tiles API not enabled or billing not set up; a single tile failing is not fatal
       if (e.tile) return;
       const m = String(e.error?.message ?? e.error ?? '');
-      this.error = /40[013]/.test(m) ? 'key' : 'network';
+      this.error = /\b429\b/.test(m) ? 'quota' : /\b40[013]\b/.test(m) ? 'key' : 'network';
       this.onError?.(this.error, m);
     });
     this.holder.add(t.group); this.scene.add(this.holder); this.shown = true;

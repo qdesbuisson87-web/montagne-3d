@@ -18,6 +18,7 @@ import * as THREE from 'three';
 const UP = new THREE.Vector3(0, 1, 0);
 const MAX_TILT = Math.PI * 0.485;          // angle from the vertical: 0 = straight down, ~87° = almost level
 const EASE = { move: 30, zoom: 11, turn: 16 }; // 1/s: how fast the view catches up with the gesture
+const CLEAR = 3; // m: the relief kept this far around the camera too, not only under it
 const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 
 class View {
@@ -231,13 +232,21 @@ export class EarthControls extends THREE.EventDispatcher {
     this.target.copy(c.t); this.lastPos.copy(cam.position); this.lastT.copy(c.t);
   }
   // the camera stays a few metres above the relief: if it would go under, the view tilts towards the vertical
-  // around the look-at point just enough (and the goal with it, so the gesture does not push against the ground)
+  // around the look-at point just enough (and the goal with it, so the gesture does not push against the ground).
+  // The relief is looked at under the camera and on a ring of CLEAR m around it: right beside a face, the ground
+  // between two samples must not come closer than that (it showed the inside of the mountain).
   keepAboveGround() {
     if (!this.heightAt) return;
     const c = this.cur, g = this.goal, eye = new THREE.Vector3();
+    const groundNear = (x, z) => {
+      let top = this.heightAt(x, z); if (top == null) return null;
+      top += Math.max(4, c.d * 0.01);
+      for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4, h = this.heightAt(x + Math.cos(a) * CLEAR, z + Math.sin(a) * CLEAR); if (h != null) top = Math.max(top, h + CLEAR * 0.75); }
+      return top;
+    };
     for (let i = 0; i < 4; i++) {
-      c.eye(eye); const gr = this.heightAt(eye.x, eye.z); if (gr == null) return;
-      const need = gr + Math.max(4, c.d * 0.01) - c.t.y; // camera height wanted above the look-at point
+      c.eye(eye); const gr = groundNear(eye.x, eye.z); if (gr == null) return;
+      const need = gr - c.t.y; // camera height wanted above the look-at point
       if (c.d * Math.cos(c.p) >= need - 0.01) return;
       if (need >= c.d) { c.p = 0; c.d = Math.min(this.maxDistance, need); g.d = Math.max(g.d, c.d); }
       else c.p = Math.acos(need / c.d);

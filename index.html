@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202610042126">
+<link rel="stylesheet" href="css/app.css?v=202610091553">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -85,6 +85,7 @@
   <div class="db-r">
     <label class="sw" for="drawSnap"><input id="drawSnap" type="checkbox" checked><span>Suivre les sentiers</span></label>
     <button id="drawMe" type="button" class="mini">Partir de ma position</button>
+    <button id="drawOff" type="button" class="mini" hidden>Prolonger hors sentier</button>
   </div>
   <div class="db-b">
     <button id="drawUndo" type="button" class="mini big"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Annuler le point</button>
@@ -106,12 +107,20 @@
   <p class="cline small" id="searchNote"></p>
   <h3>Sommets et repères</h3>
   <div id="placeList" class="places"></div>
+  <h3>Mes lieux</h3>
+  <div id="myPlaces" class="places"></div>
+  <button id="myAdd" type="button" class="mini wide">Ajouter un lieu en touchant la carte</button>
+  <p class="cnote">Tes sommets, cols, refuges, points de vue… : touche la carte, puis « Ajouter à mes lieux ». Ils restent sur cet appareil : personne d'autre ne les voit.</p>
   <h3>Massif</h3>
   <div id="sites" class="sites"></div>
   <details class="sec">
     <summary>Faire un massif de l'endroit regardé</summary>
     <p class="cline small" id="makeNote">N'importe où en France : météo à quatre altitudes, sommets nommés, neige du jour, bulletin d'avalanche (avec ta clé Météo-France), randos à construire. Gardé sur cet appareil.</p>
     <button id="makeSite" type="button" class="mini wide">Faire un massif ici</button>
+  </details>
+  <details class="sec" id="d-mydata"><summary>Mes données (cet appareil)</summary>
+    <div id="myDataOut"></div>
+    <div class="row2"><button id="dataSave" type="button" class="mini">Sauvegarder dans un fichier</button><label class="mini btnlink" for="dataLoad">Restaurer un fichier</label><input id="dataLoad" type="file" accept=".json,application/json" hidden></div>
   </details>
   <button id="shareView" type="button" class="mini wide">Partager cette vue (lien)</button>
   <p class="cline small" id="shareNote"></p>
@@ -246,8 +255,10 @@
   </div>
   <p class="cline small" id="sosInfo">Le 112 marche sur tous les réseaux, même sans carte SIM ; il oriente vers le secours en montagne (PGHM, CRS).</p>
 
+  <div id="plannedCard" class="rcard planned" hidden aria-live="polite"></div>
   <div id="routeCard" class="rcard" hidden>
     <div id="routeOut"></div>
+    <div id="walkOut"></div>
     <div class="btns">
       <button id="flyGo" type="button" class="mini">Survoler</button>
       <button id="drawEdit" type="button" class="mini">Modifier le tracé</button>
@@ -258,7 +269,26 @@
     </div>
     <p class="cline small" id="routePackInfo"></p>
     <button id="bookSave" type="button" class="mini wide">Garder dans mes itinéraires</button>
+    <div class="row2"><input id="doneDate" type="date" class="in-text" aria-label="Jour de la sortie"><button id="routeDone" type="button" class="mini">J'ai fait cette rando</button></div>
     <details class="sec" id="d-when"><summary>Quand partir ?</summary><div id="whenOut"></div></details>
+    <details class="sec" id="d-rwx"><summary>Météo en route</summary>
+      <label class="cline small rwx-at">Départ <input id="rwxAt" type="datetime-local" class="in-text"></label>
+      <div id="rwxOut"></div>
+    </details>
+    <details class="sec" id="d-plan2"><summary>Prévoir cette sortie</summary>
+      <div class="pvrow"><label>Jour <input id="pvDate" type="date" class="in-text"></label><label>Départ <input id="pvTime" type="time" class="in-text" value="07:00"></label></div>
+      <label class="switch-row"><input id="pvRemind" type="checkbox"> Rappels sur mon téléphone (application ntfy)</label>
+      <button id="pvSave" type="button" class="mini wide">Enregistrer la sortie prévue</button>
+      <div id="pvInfo"></div>
+    </details>
+    <details class="sec" id="d-guide"><summary>Guidage aux croisements <span class="cnt" id="guideCnt"></span></summary>
+      <div class="seg3" role="group" aria-label="Guidage">
+        <button type="button" class="mini" data-guide="off">Désactivé</button>
+        <button type="button" class="mini" data-guide="vibe">Vibreur</button>
+        <button type="button" class="mini" data-guide="voice">Voix</button>
+      </div>
+      <div id="guideOut"></div>
+    </details>
     <details class="sec" id="d-days"><summary>En plusieurs jours <span class="cnt" id="daysCnt"></span></summary><div id="daysOut"></div></details>
   </div>
 
@@ -269,6 +299,8 @@
     <button id="trkGo" type="button" class="bigact"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle class="dot" cx="12" cy="12" r="3.6"/></svg><b id="trkGoT">Enregistrer ma sortie</b><span id="trkGoS">Ma trace GPS, distance, dénivelé</span></button>
   </div>
   <p class="cline small" id="trkInfo"></p>
+  <button id="trkSave" type="button" class="mini wide" hidden>Terminer la sortie et la garder dans mes sorties</button>
+  <details class="sec" id="d-outings"><summary>Mes sorties <span class="cnt" id="outCnt"></span></summary><div id="outOut"></div></details>
 
   <details class="sec" id="d-book">
     <summary>Mes itinéraires <span class="cnt" id="bookCnt"></span></summary>
@@ -299,6 +331,7 @@
     <div id="plResults" class="places results"></div>
     <div class="btns"><button id="plToTap" type="button" class="mini">Toucher la carte</button><button id="plGo" type="button" class="mini go">Calculer l'itinéraire</button></div>
     <p class="cline small" id="plNote"></p>
+    <div id="plOpts"></div>
     <button id="plIdeas" type="button" class="mini wide">Idées de sorties autour du départ</button>
     <div id="plIdeasOut"></div>
   </details>
@@ -360,6 +393,7 @@
 <section id="sheet-point" class="sheet glass" hidden aria-label="Point choisi">
   <div class="sh"><h2 id="ptTitle">Point</h2><button class="close" type="button" aria-label="Fermer">×</button></div>
   <div id="ptOut"></div>
+  <div id="ptMine"></div>
 </section>
 <div id="pin" class="pin" hidden><i></i></div>
 
@@ -373,6 +407,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202610042126"></script>
+<script type="module" src="js/app.js?v=202610091553"></script>
 </body>
 </html>

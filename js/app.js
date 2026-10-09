@@ -1,40 +1,44 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610042126';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610042126';
-import { SITE, SITE_LIST } from './sites.js?v=202610042126';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610042126';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610042126';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610042126';
-import { searchPlaces } from './search.js?v=202610042126';
-import { TerrainShadows } from './shadows.js?v=202610042126';
-import { PostFX } from './post.js?v=202610042126';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610042126';
-import { Forest } from './forest.js?v=202610042126';
-import { Lakes } from './water.js?v=202610042126';
-import { Glaciers } from './glaciers.js?v=202610042126';
-import { makeSite, removeSite } from './custom.js?v=202610042126';
-import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610042126';
-import { Streams } from './streams.js?v=202610042126';
-import { Refuges } from './refuges.js?v=202610042126';
-import { NightLights } from './lights.js?v=202610042126';
-import { Buildings } from './buildings.js?v=202610042126';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610042126';
-import { TrackRecorder, progressOn } from './track.js?v=202610042126';
-import { GpsTracker } from './gps.js?v=202610042126';
-import { RouteLayer, resamplePath, pathStats } from './route.js?v=202610042126';
-import { walkingRoute } from './planner.js?v=202610042126';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610042126';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610042126';
-import { TrailsLayer } from './trails.js?v=202610042126';
-import { Weather3D } from './weather3d.js?v=202610042126';
-import { Sight } from './sight.js?v=202610042126';
-import { Photos360 } from './photos360.js?v=202610042126';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610042126';
-import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, cloudProfile, SPOTS } from './live.js?v=202610042126';
-import { VolumeClouds } from './clouds.js?v=202610042126';
-import { LiveShare, LiveFollow } from './share.js?v=202610042126';
-import { NightSky } from './sky.js?v=202610042126';
-import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise } from './routebook.js?v=202610042126';
+import { EarthControls } from './controls.js?v=202610091553';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610091553';
+import { SITE, SITE_LIST } from './sites.js?v=202610091553';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610091553';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610091553';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610091553';
+import { searchPlaces } from './search.js?v=202610091553';
+import { TerrainShadows } from './shadows.js?v=202610091553';
+import { PostFX } from './post.js?v=202610091553';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610091553';
+import { Forest } from './forest.js?v=202610091553';
+import { Lakes } from './water.js?v=202610091553';
+import { Glaciers } from './glaciers.js?v=202610091553';
+import { makeSite, removeSite, customSites } from './custom.js?v=202610091553';
+import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610091553';
+import { Streams } from './streams.js?v=202610091553';
+import { Refuges } from './refuges.js?v=202610091553';
+import { NightLights } from './lights.js?v=202610091553';
+import { Buildings } from './buildings.js?v=202610091553';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610091553';
+import { PLACE_KINDS, loadMyPlaces, saveMyPlaces, listOutings, putOuting, deleteOuting, thin, totals, backup, restore } from './mydata.js?v=202610091553';
+import { loadPlanned, savePlanned, scheduleReminders, cancelReminders, reminderTopic, leaveAt } from './planned.js?v=202610091553';
+import { junctions, say } from './guide.js?v=202610091553';
+import { TrackRecorder, progressOn } from './track.js?v=202610091553';
+import { GpsTracker } from './gps.js?v=202610091553';
+import { RouteLayer, resamplePath, pathStats, netString } from './route.js?v=202610091553';
+import { liftPlans, altitudes } from './liftplan.js?v=202610091553';
+import { walkingRoute } from './planner.js?v=202610091553';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610091553';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610091553';
+import { TrailsLayer } from './trails.js?v=202610091553';
+import { Weather3D } from './weather3d.js?v=202610091553';
+import { Sight } from './sight.js?v=202610091553';
+import { Photos360 } from './photos360.js?v=202610091553';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610091553';
+import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, routeForecast, cloudProfile, SPOTS } from './live.js?v=202610091553';
+import { VolumeClouds } from './clouds.js?v=202610091553';
+import { LiveShare, LiveFollow } from './share.js?v=202610091553';
+import { NightSky } from './sky.js?v=202610091553';
+import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise, walkability, exposure, skiStats, SKI_BINS } from './routebook.js?v=202610091553';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -59,7 +63,7 @@ const camera = new THREE.PerspectiveCamera(50, 1, 1, 250000);
 // position comes from pick() (the IGN relief or the Google surface), defined further down
 const controls = new EarthControls(camera, renderer.domElement,
   (nx, ny, cam) => { const h = pick(nx, ny, cam); return h ? new THREE.Vector3(h.x, h.h * state.exag, h.z) : null; },
-  (x, z) => { const g = groundAt(x, z); return g == null ? null : g * state.exag; });
+  (x, z) => { const g = surfaceAt(x, z); return g == null ? null : g * state.exag; });
 
 // ---------- quality ----------
 const touch = matchMedia('(pointer: coarse)').matches;
@@ -570,6 +574,7 @@ function openPlace(p) {
   if (pickMode) { picked(at()); return; }
   if (p.cam) { window.open(p.cam, '_blank', 'noopener'); return; } // a webcam: its own page
   if (p.nivo) { openSheet('cond', true); $('nivo').scrollIntoView({ block: 'start' }); return; } // a snow station: the measures
+  if (p.mine) { pointReport({ x: p.x, z: p.z, h: p.alt ?? groundAt(p.x, p.z) ?? p.h, mine: p.mine, name: p.name }); flyToPlace(p); return; } // one of my places
   flyToPlace(p); if (p.rinfo) showRefuge(p.rinfo);
 }
 // refuges.info: their sheet joins the label of the same hut (within 200 m), or gets its own label; water points
@@ -656,7 +661,9 @@ $('searchForm').addEventListener('submit', async e => {
   $('q').blur(); $('results').innerHTML = ''; $('searchNote').textContent = 'Recherche…';
   try {
     const [lon, lat] = worldToLonLat(controls.target.x, controls.target.z);
-    const list = await searchPlaces(q, { lat, lon });
+    // my own places first (on this device), then IGN and OpenStreetMap
+    const ql = q.toLocaleLowerCase('fr'), mine = myPlaces.filter(m => m.name.toLocaleLowerCase('fr').includes(ql)).map(m => ({ name: `${kindMark(m.kind)} ${m.name}`, lon: m.lon, lat: m.lat, km: Math.hypot((m.lon - lon) * Math.cos(lat * Math.PI / 180), m.lat - lat) * 111.2, detail: 'mes lieux' }));
+    const list = [...mine, ...await searchPlaces(q, { lat, lon }).catch(e => { if (mine.length) return []; throw e; })];
     $('searchNote').textContent = list.length ? 'Sources : IGN Géoplateforme, © contributeurs OpenStreetMap (Nominatim).' : `Aucun lieu trouvé pour « ${q} ».`;
     list.forEach(p => {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'place';
@@ -670,6 +677,22 @@ $('searchForm').addEventListener('submit', async e => {
 
 // ---------- terrain queries ----------
 const groundAt = (x, z) => engine.heightAt(x, z);
+// what the camera must keep clear of: the finest relief known and the relief as drawn, whichever is higher
+function surfaceAt(x, z) { const a = engine.heightAt(x, z), b = engine.drawnHeightAt(x, z); return a == null ? b : b == null ? a : Math.max(a, b); }
+// distance (scene metres) from a point to the relief around it, looked for on rings out to 300 m: sets the near
+// plane, so that a face beside the camera is never cut away (it showed the mountain hollow)
+const RINGS = [0, 2, 5, 12, 30, 75, 180, 300];
+function reliefDistance(c) {
+  let best = Infinity;
+  for (const r of RINGS) {
+    if (r > best) break; // nothing on a farther ring can be closer
+    for (let k = 0, n = r ? 12 : 1; k < n; k++) {
+      const a = k / n * 2 * Math.PI, x = c.x + Math.cos(a) * r, z = c.z + Math.sin(a) * r, h = surfaceAt(x, z);
+      if (h != null) best = Math.min(best, Math.hypot(r, c.y - h * state.exag));
+    }
+  }
+  return best;
+}
 const google = new GoogleTiles({ scene, camera, renderer, origin: ORIGIN, geoidN: SITE.geoidN ?? 50 });
 const rayG = new THREE.Raycaster();
 // aerial perspective for the Google tiles (their materials take three.js fog), same horizon colour as the sky
@@ -1229,7 +1252,7 @@ function tripFix() {
   // off the itinerary: farther than 60 m beyond the GPS uncertainty on three fixes in a row
   if (prog && prog.off > 60 + p.acc) { if (++trip.off >= 3 && !trip.offAlert) { trip.offAlert = true; buzz([200, 100, 200]); } }
   else { trip.off = 0; trip.offAlert = false; }
-  trip.prog = prog;
+  trip.prog = prog; trip.next = guideFix(prog);
   // the day's sunset where one stands (computed once a day)
   const day = new Date().toDateString(); if (trip.sunDay !== day) { trip.sun = sunTimes(new Date(), p.lat, p.lon); trip.sunDay = day; }
   if ((track.recording || liveShare.on) && Date.now() - trip.stormAt > 30 * 60e3) stormCheck(p);
@@ -1247,6 +1270,7 @@ function renderTrip() {
     const hoursLeft = prog.hours * pace, eta = new Date(Date.now() + hoursLeft * 3600e3);
     lines.push(prog.left < 30 ? "Arrivé au bout de l'itinéraire." : `Reste ${t1(prog.left / 1000)} km · +${fmt(prog.up)} m · −${fmt(prog.down)} m · ${hm(hoursLeft)}${pace !== 1 ? ' à ton rythme' : ''} → arrivée vers ${hhmm(eta)}`);
     if (trip.offAlert) lines.push(`<span class="bad">Tu t'écartes de l'itinéraire : à ${fmt(prog.off)} m de la ligne.</span>`);
+    else if (trip.next && trip.next.left < 400) lines.push(`Croisement dans ${fmt(Math.max(0, trip.next.left))} m : ${esc(trip.next.j.text)}${trip.next.j.toward ? `, direction ${esc(trip.next.j.toward)}` : ''}`);
     const ss = trip.sun?.sunset;
     if (ss && eta > ss - 15 * 60e3 && prog.left >= 30) {
       if (!trip.sunAlert) { trip.sunAlert = true; buzz([300]); }
@@ -1262,6 +1286,7 @@ function renderTrip() {
   $('trkGo').classList.toggle('rec', track.recording);
   $('trkGoT').textContent = track.recording ? "Arrêter l'enregistrement" : track.pts.length ? "Reprendre l'enregistrement" : 'Enregistrer ma sortie';
   $('trkGoS').textContent = track.recording && st ? `En cours : ${t1(st.dist / 1000)} km · +${fmt(st.up)} m · ${hm(st.hours)}` : 'Ma trace GPS, distance, dénivelé';
+  $('trkSave').hidden = track.pts.length < 2;
   $('trkInfo').textContent = track.recording ? "L'écran reste allumé pendant l'enregistrement : verrouillé, le téléphone met l'appli en pause et la trace s'interrompt."
     : st ? `Trace gardée : ${t1(st.dist / 1000)} km, +${fmt(st.up)} m, ${fmt(st.count)} points (export et effacement dans « Ma position et ma trace »).` : '';
 }
@@ -1290,19 +1315,41 @@ const km = d => (d / 1000).toLocaleString('fr-FR', { maximumFractionDigits: d < 
 // the itinerary laid on the relief again, and its card in "Rando"
 function renderRoute() { route.drape(state.exag); renderRouteCard(); }
 let routeSig = '', routeKey = '';
+// on foot or on skis (ski touring): the numbers, the verdict and the colours on the map follow (kept on the device)
+const activity = { v: (() => { try { return localStorage.getItem('midi3d-activity') || 'foot'; } catch { return 'foot'; } })() };
+const SKI_COLOURS = ['#ff9419', '#e3261f', '#9a37d0', '#b8bcc8'];
+function skiKpis(k) {
+  return `<div class="kpis">
+      <div><span>Montée à skis</span><b>${hm(k.upHours)}</b></div>
+      <div><span>Descente</span><b>${hm(k.downHours)}</b></div>
+      <div><span>Dénivelé +</span><b>${fmt(k.up)} m</b></div>
+      <div><span>Dénivelé −</span><b>${fmt(k.down)} m</b></div>
+      <div><span>Distance</span><b>${km(k.dist)} km</b></div>
+      <div><span>Total</span><b>${hm(k.hours)}</b></div>
+    </div>
+    <p class="cline small">Pentes à la descente : ${k.bins.some(v => v > 5) ? SKI_BINS.map((b, i) => k.bins[i] > 5 ? `<span class="wk" style="background:${SKI_COLOURS[i]};color:${i === 1 || i === 2 ? '#fff' : '#111'}">${b}°${i < 3 ? `–${SKI_BINS[i + 1]}°` : ' et plus'}</span> ${fmt(k.bins[i])} m` : '').filter(Boolean).join(' · ') : 'rien à 30° ou plus.'}</p>`;
+}
 function renderRouteCard() {
   const st = route.stats(), has = route.pts.length >= 2 && !route.drawing;
+  route.ski = activity.v === 'ski' && route.samples.length > 1 ? skiStats(route.samples, (x, z) => engine.slopeAt(x, z)) : null;
   routeSig = st ? `${Math.round(st.dist)}|${Math.round(st.up)}|${st.complete}` : '';
   $('routeCard').hidden = !has;
   if (draw.on) renderDraw();
   // another itinerary: its "when to leave" is asked again when opened, its days laid out again
   const key = `${route.name}|${route.pts.length}|${route.pts[0]?.join()}`;
-  if (key !== routeKey) { routeKey = key; $('d-when').open = false; $('whenOut').innerHTML = ''; delete $('whenOut').dataset.key; }
+  if (key !== routeKey) { routeKey = key; guide.key = null; guide.said.clear(); $('d-when').open = false; $('d-rwx').open = false; rwx.key = null; $('rwxOut').innerHTML = ''; $('whenOut').innerHTML = ''; delete $('whenOut').dataset.key; walkSig = ''; route.hazards = []; route.expo = null; scheduleWalk(true); }
+  else if (route.pts.length >= 2) scheduleWalk(false);
   if (has) renderDays();
   if (!has) { $('routeOut').innerHTML = ''; return; }
   const name = `<p class="rname">${esc(route.name || 'Mon itinéraire')}</p>`;
   if (!st) { $('routeOut').innerHTML = `${name}<p class="cline small">Relief en cours de chargement sous le tracé…</p>`; return; }
-  $('routeOut').innerHTML = `${name}
+  const mode = `<div class="seg2" role="group" aria-label="Activité"><button type="button" class="mini${activity.v === 'foot' ? ' on' : ''}" data-act="foot">À pied</button><button type="button" class="mini${activity.v === 'ski' ? ' on' : ''}" data-act="ski">Ski de rando</button></div>`;
+  if (route.ski) {
+    $('routeOut').innerHTML = `${name}${mode}${skiKpis(route.ski)}${route.profileSVG()}
+    <p class="cnote">Montée : 4 kilomètres-effort par heure (1 km à plat ou 100 m de montée), la règle du Club alpin suisse ; descente : 1 000 m de dénivelé par heure, une estimation courante qui varie beaucoup avec la neige et le niveau. Sans pauses${st.ride ? ', remontée à part' : ''}. Pentes du relief LiDAR IGN sous le tracé, aux couleurs de la carte des pentes.</p>`;
+    showHazards(); return;
+  }
+  $('routeOut').innerHTML = `${name}${mode}
     <div class="kpis">
       <div><span>Distance</span><b>${km(st.dist)} km</b></div>
       <div><span>Temps de marche</span><b>${hm(st.hours)}</b></div>
@@ -1310,9 +1357,10 @@ function renderRouteCard() {
       <div><span>Dénivelé −</span><b>${fmt(st.down)} m</b></div>
       <div><span>Point haut / bas</span><b>${fmt(st.max)} / ${fmt(st.min)} m</b></div>
       <div><span>Raideur max du tracé</span><b>${Math.round(st.steepDeg)}°</b></div>
+      ${st.ride ? `<div><span>En remontée</span><b>${km(st.ride)} km · +${fmt(st.rideUp)} m</b></div>` : ''}
     </div>
     ${route.profileSVG()}
-    <p class="cnote">Altitudes du relief LiDAR IGN sous le tracé${st.complete ? '' : ' (partiel : une partie du relief n\'est pas encore chargée)'}. Temps selon la norme DIN 33466 (randonneur moyen, sans pauses) ; pente maxi mesurée sur 30 m.</p>`;
+    <p class="cnote">Altitudes du relief LiDAR IGN sous le tracé${st.complete ? '' : ' (partiel : une partie du relief n\'est pas encore chargée)'}. Temps selon la norme DIN 33466 (randonneur moyen, sans pauses) ; pente maxi mesurée sur 30 m.${st.ride ? ' Distance, dénivelé et temps : à pied seulement, la remontée (pointillés blancs) est à part.' : ''}</p>`;
 }
 // a new itinerary is there: on phones the panel closes so the line is seen on the map, with its numbers in a
 // message; the card at the top of "Rando" holds the details
@@ -1323,6 +1371,12 @@ function routeReady(what) {
   else closeSheets();
   toast(`${what}${st ? ` : ${km(st.dist)} km · +${fmt(st.up)} m · ${hm(st.hours)}` : ''}. Détails dans « Rando ».`, false, 4500);
 }
+$('routeOut').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b || b.dataset.act === activity.v) return;
+  activity.v = b.dataset.act; try { localStorage.setItem('midi3d-activity', activity.v); } catch { }
+  walkSig = ''; renderRouteCard(); showHazards(); renderWalk();
+  toast(activity.v === 'ski' ? 'Ski de rando : temps de montée et de descente, pentes de la descente en couleur.' : 'À pied : temps de marche et sentiers.');
+});
 $('routeClear').addEventListener('click', () => {
   const b = $('routeClear');
   if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Confirmer'; setTimeout(() => { b.dataset.armed = ''; b.textContent = 'Effacer'; }, 4000); return; }
@@ -1349,7 +1403,7 @@ $('drawSnap').addEventListener('change', e => {
 function startDraw(fresh) {
   if (pickMode) endPick();
   flyRoute = null; route.beginDraw(fresh);
-  Object.assign(draw, { on: true, gen: draw.gen + 1, busy: 0, pending: [], note: '', wantGps: false, quitArmed: 0 });
+  Object.assign(draw, { on: true, gen: draw.gen + 1, busy: 0, pending: [], note: '', wantGps: false, quitArmed: 0, offer: null });
   document.body.classList.add('drawing'); $('drawTop').hidden = $('drawBar').hidden = false;
   closeSheets(); $('sheet-point').hidden = true; pin = null; $('pin').hidden = true; syncSheetOpen();
   $('drawTitle').textContent = fresh ? 'Tracer une rando' : 'Modifier le tracé';
@@ -1372,11 +1426,13 @@ function renderDraw() {
     : n === 0 ? (draw.wantGps ? 'Recherche de ta position GPS…' : "Touche la carte à l'endroit du départ (ou le nom d'un lieu).")
     : n === 1 ? 'Départ posé. Touche la prochaine étape.'
     : 'Touche l\'étape suivante, ou « Terminer ».';
-  $('drawStats').innerHTML = st ? `<span>${km(st.dist)} km</span><span>+${fmt(st.up)} m</span><span>−${fmt(st.down)} m</span><span>${hm(st.hours)}</span>${draw.note ? `<span class="warn">${esc(draw.note)}</span>` : ''}`
+  const wk = route.walk && n >= 2 ? walkText(route.walk)[0] : '';
+  $('drawStats').innerHTML = st ? `<span>${km(st.dist)} km</span><span>+${fmt(st.up)} m</span><span>−${fmt(st.down)} m</span><span>${hm(st.hours)}</span>${wk ? `<span class="verdict">${wk}</span>` : ''}${draw.note ? `<span class="warn">${esc(draw.note)}</span>` : ''}`
     : n === 1 && !busy ? '<span>1 point</span>' : '';
   $('drawUndo').disabled = n <= route.keep && !busy;
   $('drawDone').disabled = n < 2 || busy;
   $('drawMe').hidden = n > 0 || busy;
+  $('drawOff').hidden = !draw.offer || busy;
   measureBars();
 }
 // metres covered by one CSS pixel at a point of the relief (to judge a touch "beside" a path)
@@ -1392,17 +1448,19 @@ async function pathStretch(a, b, tol, firstLeg) {
     const r = await walkingRoute(ll(a), ll(b));
     const via = r.pts.slice(); let start = null, end = via[via.length - 1], note = '';
     // the start touched beside a path is put on it; otherwise a straight line joins it to the path
-    if (r.offStart > 1) { if (firstLeg && r.offStart <= tol) start = via[0]; else via.unshift(a); }
+    const net = via.map(() => true); // what the route service gives is on the IGN network of paths and roads
+    if (r.offStart > 1) { if (firstLeg && r.offStart <= tol) start = via[0]; else { via.unshift(a); net.unshift(false); } }
     // the paths stop short of the point touched: the line stops with them (a straight line beyond went up faces and
     // glaciers no one walks); said, with the lift that serves the place when there is one
     if (r.offEnd > tol) {
+      draw.offer = b; // the point touched, offered as a straight line off the paths (button "Prolonger hors sentier")
       const lift = trails.lifts().map(l => ({ l, d: Math.min(Math.hypot(l.a[0] - b[0], l.a[1] - b[1]), Math.hypot(l.b[0] - b[0], l.b[1] - b[1])) })).sort((p, q) => p.d - q.d)[0];
       note = `Pas de sentier jusqu'au point touché : le chemin s'arrête ${fmt(r.offEnd)} m avant (au-delà : glacier, rocher ou pente raide, terrain d'alpinisme). Le tracé s'arrête au bout du chemin.`
         + (lift && lift.d < 600 ? ` Ce point est desservi par une remontée (${lift.l.name ?? 'téléphérique'}).` : '');
     }
     const len = pathLength(via);
     if (len > 3 * straight && len - straight > 1500) note = `Par les sentiers, ce passage fait ${km(len)} km (${km(straight)} km à vol d'oiseau). Annule le point et pose une étape avant, ou décoche « Suivre les sentiers ».`;
-    return { via, start, end, note };
+    return { via, net, start, end, note };
   } catch (e) {
     const why = !navigator.onLine ? 'Hors ligne : ligne droite (les sentiers demandent du réseau).'
       : /aucun chemin/.test(e.message) ? 'Pas de chemin IGN entre ces deux points : ligne droite.' : `Itinéraire IGN indisponible (${e.message}) : ligne droite.`;
@@ -1416,15 +1474,15 @@ function drawStep(x, z) {
   const prev = draw.pending[draw.pending.length - 1] ?? (route.last && { x: route.last[0], z: route.last[1] });
   if (prev && Math.hypot(prev.x - x, prev.z - z) < 12 * mpp) return;
   const live = () => draw.on && draw.gen === gen; // the same drawing still going on
-  draw.busy++; draw.pending.push(mark); buzz(12); renderDraw();
+  draw.busy++; draw.pending.push(mark); draw.offer = null; buzz(12); renderDraw();
   draw.q = draw.q.then(async () => {
     if (!live()) return;
     if (!route.pts.length || !draw.snap) { route.addStep(x, z); draw.note = ''; return; }
     const s = await pathStretch(route.last, [x, z], tol, route.ends.length === 1);
     if (!live()) return; // abandoned meanwhile
     if (s.start) route.moveStart(s.start[0], s.start[1]);
-    route.addStep(s.end[0], s.end[1], s.via);
-    draw.note = s.note; if (s.note) toast(s.note, true, 4500);
+    route.addStep(s.end[0], s.end[1], s.via, s.net);
+    draw.note = s.note; if (s.note) toast(s.note, true, 6000);
   }).catch(e => console.error(e)).finally(() => {
     draw.busy = Math.max(0, draw.busy - 1); draw.pending = draw.pending.filter(m => m !== mark);
     if (live()) renderRoute();
@@ -1443,6 +1501,11 @@ $('drawUndo').addEventListener('click', () => {
   draw.q = draw.q.then(() => { if (!draw.on || draw.gen !== gen) return; route.undo(); draw.note = ''; renderRoute(); buzz(12); });
 });
 $('drawDone').addEventListener('click', () => stopDraw(true));
+// carry on beyond the end of the paths anyway: a straight line, judged like the rest (rock, glacier, steep ground)
+$('drawOff').addEventListener('click', () => {
+  const b = draw.offer; if (!b) return; draw.offer = null;
+  route.addStep(b[0], b[1]); draw.note = 'Ligne droite hors sentier ajoutée : regarde le verdict (parois, glacier, pentes raides).'; renderRoute();
+});
 // giving up a drawing: a second touch confirms, so a slip of the finger loses nothing
 $('drawQuit').addEventListener('click', () => {
   if (route.ends.length < 2 || performance.now() - draw.quitArmed < 3500) { stopDraw(false); toast('Tracé abandonné.'); return; }
@@ -1452,6 +1515,70 @@ $('drawMe').addEventListener('click', () => {
   if (gps.pos) { drawStep(gps.pos.x, gps.pos.z); return; }
   draw.wantGps = true; if (!gps.on) { gpsCentered = true; gps.start(); } renderDraw();
 });
+// ---------- can it be walked? (routebook.js walkability): verdict, and the stretches coloured on the map ----------
+let walkTimer = null, walkTries = 0, walkSig = '';
+function scheduleWalk(reset) { if (reset) walkTries = 0; clearTimeout(walkTimer); walkTimer = setTimeout(analyseWalk, 300); }
+const judge = S => walkability(S, {
+  slopeAt: (x, z) => engine.slopeAt(x, z), onGlacier: (x, z) => glaciers.contains(x, z), pathDist: (x, z) => trails.pathDist(x, z),
+  stations: trails.lifts().flatMap(l => [l.a, l.b])
+});
+function analyseWalk() {
+  const S = route.samples;
+  if (S.length < 2) { route.walk = null; if (route.hazards.length) route.setHazards([]); $('walkOut').innerHTML = ''; return; }
+  // the paths and glaciers along the whole line are asked for (kept on the device), then the line is judged again
+  for (let i = 0; i < S.length; i += 150) { trails.ensure(S[i].x, S[i].z); glaciers.ensure(S[i].x, S[i].z); }
+  const w = judge(S);
+  route.walk = w;
+  showHazards();
+  renderWalk();
+  if (w.unknown > 0 && ++walkTries < 20) { clearTimeout(walkTimer); walkTimer = setTimeout(analyseWalk, 3000); } // paths still loading
+  else scheduleExposure();
+}
+// the stretches drawn on the map: what is not a walk, and what lies under avalanche slopes
+function showHazards() {
+  const ski = activity.v === 'ski' && route.ski, walk = (route.walk?.stretches ?? []).filter(s => !ski || s.kind === 'rock' || s.kind === 'glacier');
+  // a few metres (one sample over a rock step) would only be a dot: 15 m and more
+  const list = [...walk, ...(ski ? route.ski.stretches : []), ...(route.expo?.stretches ?? [])].filter(s => s.d1 - s.d0 >= 15);
+  const sig = JSON.stringify(list.map(s => [Math.round(s.d0), Math.round(s.d1), s.kind]));
+  if (sig !== walkSig) { walkSig = sig; route.setHazards(list); }
+}
+// slopes above the line (routebook.js exposure): worked out once the line's paths are known, again while part of the
+// relief around it was missing (it keeps arriving), at most 4 times
+let expoKey = '', expoTries = 0, expoBusy = false;
+function scheduleExposure(again = false) {
+  const key = routeKey;
+  if (key !== expoKey) { expoKey = key; expoTries = 0; route.expo = null; }
+  else if (expoBusy || (!again && route.expo) || expoTries >= 4) return;
+  expoTries++; expoBusy = true;
+  setTimeout(async () => {
+    const e = await exposure(route.samples, (x, z) => engine.heightAt(x, z), { alive: () => routeKey === key }).catch(() => null);
+    expoBusy = false;
+    if (!e || routeKey !== key) return;
+    route.expo = e; showHazards(); renderWalk();
+    if (e.unknown > 50 && expoTries < 4) setTimeout(() => scheduleExposure(true), 15000);
+  }, 800);
+}
+const walkText = (w, e = null) => {
+  const m = v => `${fmt(v)} m`, bits = [];
+  if (w.rock > 30) bits.push(`<span class="wk rock">Non faisable à pied</span> : ${m(w.rock)} dans des parois (terrain jusqu'à ${Math.round(w.rockMax)}°) : passages d'escalade. C'est un itinéraire d'alpinisme : matériel, expérience, guide conseillé.`);
+  if (w.glacier > 50) bits.push(`<span class="wk glacier">Glacier</span> sur ${m(w.glacier)} : crevasses, encordement et matériel d'alpinisme.`);
+  const ski = activity.v === 'ski';
+  if (w.steep > 50 && !ski) bits.push(`<span class="wk steep">Pentes de 35° et plus</span> hors sentier sur ${m(w.steep)} : terrain très raide, une glissade ne s'arrête pas.`);
+  if (w.off > 200 && !ski) bits.push(`<span class="wk off">Hors sentier</span> sur ${m(w.off)} (pas de chemin IGN à moins de 40 m).`);
+  if (!bits.length && !ski && w.unknown <= w.total * 0.3) bits.push(`<span class="wk path">Sur sentiers et chemins</span> ${w.lift ? 'pour la marche' : 'de bout en bout'} (IGN), sans paroi ni glacier.`);
+  if (e?.exposed > 50) bits.push(`<span class="wk under">Sous des pentes de 30° et plus</span> sur ${m(e.exposed)} : avec de la neige, une avalanche partie au-dessus peut atteindre le tracé (pente de 30 à 60° à moins de 1 km, tournée vers lui, portée calculée par le modèle norvégien α-β). La forêt, qui retient souvent la neige, n'est pas comptée. Regarde le bulletin d'avalanche.`);
+  else if (e && e.unknown <= 50) bits.push(`<span class="small">Aucune pente de 30° et plus d'où une avalanche pourrait atteindre le tracé (à moins de 1 km, modèle α-β).</span>`);
+  if (w.lift > 0) bits.push(`<span class="wk lift">Remontée</span> sur ${km(w.lift)} km : vérifie qu'elle fonctionne ce jour-là (horaires, fermetures hors saison et pour révision). Le temps de montée en cabine n'est pas compté.`);
+  if (w.unknown > 0) bits.push(`<span class="small">Sentiers pas encore chargés sur ${m(w.unknown)} : vérification en cours…</span>`);
+  return bits;
+};
+function renderWalk() {
+  const w = route.walk; if (!w) { $('walkOut').innerHTML = ''; return; }
+  $('walkOut').innerHTML = `<div class="walk">${walkText(w, route.expo).map(b => `<p class="cline">${b}</p>`).join('')}
+    <p class="cnote">Mesuré sur le relief LiDAR IGN (pente du terrain traversé et des pentes au-dessus), les sentiers et les glaciers de la BD TOPO IGN. Ne dit rien de la neige, de la glace ou de l'état des chemins du jour.</p></div>`;
+  if (draw.on) renderDraw();
+}
+
 // ---------- my itineraries, an outing in several days, when to leave (routebook.js) ----------
 const bookPick = new Set();
 const factsLine = f => `${km(f.dist)} km · ${hm(f.hours)} · +${fmt(f.up)} m / −${fmt(f.down)} m · point haut ${fmt(f.max)} m${f.steep30 > 20 ? ` · ${fmt(f.steep30)} m à travers des pentes ≥ 30°` : ''}`;
@@ -1476,7 +1603,7 @@ $('bookSave').addEventListener('click', () => {
   if (!f) { toast('Relief pas encore chargé sous le tracé : attends un instant.', true); return; }
   const list = loadBook(), ll = route.pts.map(([x, z]) => worldToLonLat(x, z).map(v => +v.toFixed(6))), name = route.name || 'Mon itinéraire';
   const same = list.findIndex(r => r.name === name && r.ll.length === ll.length);
-  const entry = { id: same >= 0 ? list[same].id : Date.now().toString(36), name, ll, ends: route.ends, keep: route.keep, nights: route.nights, facts: f, saved: Date.now() };
+  const entry = { id: same >= 0 ? list[same].id : Date.now().toString(36), name, ll, ends: route.ends, keep: route.keep, nights: route.nights, net: netString(route.net), facts: f, saved: Date.now() };
   if (same >= 0) list[same] = entry; else list.unshift(entry);
   if (!saveBook(list)) { toast("Mémoire de l'appareil pleine : itinéraire non gardé.", true); return; }
   toast(same >= 0 ? 'Itinéraire mis à jour dans « Mes itinéraires ».' : 'Gardé dans « Mes itinéraires » (Rando).'); renderBook();
@@ -1485,7 +1612,7 @@ $('bookOut').addEventListener('click', e => {
   const open = e.target.closest('[data-open]'), del = e.target.closest('[data-del]');
   if (open) {
     const r = loadBook().find(x => x.id === open.dataset.open); if (!r) return;
-    route.setPath(r.ll.map(([lon, lat]) => lonLatToWorld(lon, lat)), r.name, r.nights ?? []); route.ends = r.ends ?? []; route.keep = r.keep ?? 0; route.save();
+    route.setPath(r.ll.map(([lon, lat]) => lonLatToWorld(lon, lat)), r.name, r.nights ?? []); if (r.net?.length === r.ll.length) route.net = [...r.net].map(Number); route.ends = r.ends ?? []; route.keep = r.keep ?? 0; route.save();
     routeReady(`« ${r.name} » ouvert`);
   }
   if (del) {
@@ -1535,6 +1662,359 @@ $('d-when').addEventListener('toggle', async () => {
     $('whenOut').innerHTML = lines.join('') + `<p class="cnote">Point haut ${fmt(w.hiAlt)} m atteint en ${hm(w.toTop)}, itinéraire complet en ${hm(w.total)} : temps DIN 33466 sans pauses (ajoute les tiennes). Prévision Météo-France au point haut, reçue à ${hhmm(new Date())} ; les orages de montagne arrivent souvent plus tôt que prévu.</p>`;
     $('whenOut').dataset.key = routeKey;
   } catch (e) { $('whenOut').innerHTML = `<p class="cline">Prévision indisponible (${esc(why(e))}).</p>`; }
+});
+
+// ---------- weather along the way: the forecast at each point at the hour one walks by ----------
+// Points: the start, then one per hour of walking, the highest point and the end; the hour at each from the chosen
+// start and the DIN walking time (no breaks, no time on lifts). One request for all the points, each at its altitude.
+const rwx = { key: null, pts: null, fc: null, at: null, got: null };
+const pad2 = n => String(n).padStart(2, '0');
+const localInput = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+function rwxPoints() {
+  const S = route.samples; if (S.length < 2 || S.some(s => s.h == null)) return null;
+  const hoursAt = i => pathStats(S.slice(0, i + 1))?.hours ?? 0, hi = S.reduce((b, s, i) => s.h > S[b].h ? i : b, 0);
+  const out = [{ i: 0, what: 'Départ' }];
+  let next = 1;
+  for (let i = 25; i < S.length - 1; i += 25) { const h = hoursAt(i); if (h >= next) { out.push({ i, what: `${next} h de marche` }); next = Math.floor(h) + 1; } }
+  if (hi > 0 && hi < S.length - 1) out.push({ i: hi, what: 'Point haut' });
+  out.push({ i: S.length - 1, what: 'Arrivée' });
+  return out.sort((a, b) => a.i - b.i).filter((p, k, a) => !k || p.i - a[k - 1].i > 10 || p.what === 'Point haut')
+    .map(p => { const s = S[p.i], [lon, lat] = worldToLonLat(s.x, s.z); return { ...p, d: s.d, alt: s.h, lat, lon, hours: hoursAt(p.i) }; });
+}
+async function renderRouteWeather() {
+  if (!$('d-rwx').open) return;
+  if (rwx.key !== routeKey) {
+    rwx.pts = rwxPoints();
+    if (!rwx.pts) { $('rwxOut').innerHTML = '<p class="cline small">Relief pas encore chargé sous le tracé.</p>'; return; }
+    $('rwxOut').innerHTML = '<p class="cmeta">Prévision aux points de passage…</p>';
+    try { rwx.fc = await routeForecast(rwx.pts); rwx.got = new Date(); rwx.key = routeKey; }
+    catch (e) { $('rwxOut').innerHTML = `<p class="cline">Prévision indisponible (${esc(why(e))}).</p>`; return; }
+  }
+  const start = new Date($('rwxAt').value || Date.now());
+  let worst = null; const flag = (lvl, txt) => { if (!worst || lvl > worst.lvl) worst = { lvl, txt }; };
+  const rows = rwx.pts.map((p, k) => {
+    const at = new Date(+start + p.hours * 3600e3), h = rwx.fc[k], r = new Date(+at + 30 * 60e3); // the nearest forecast hour
+    const key = `${r.getFullYear()}-${pad2(r.getMonth() + 1)}-${pad2(r.getDate())}T${pad2(r.getHours())}:00`, j = h.time.indexOf(key);
+    const where = `<th>${esc(p.what)}<br><span class="small">${hhmm(at)} · km ${km(p.d)} · ${fmt(p.alt)} m</span></th>`;
+    if (j < 0 || h.temperature_2m[j] == null) return `<tr>${where}<td colspan="3" class="small">au-delà de la prévision</td></tr>`;
+    const code = h.weather_code[j], pr = h.precipitation[j] ?? 0, sn = h.snowfall[j] ?? 0, t = h.temperature_2m[j], w = h.wind_speed_10m[j], g = h.wind_gusts_10m[j];
+    const storm = code >= 95, wet = pr >= 0.3 || (code >= 51 && code < 95), windy = g >= 60, cold = t <= 0;
+    if (storm) flag(3, `orage prévu vers ${hhmm(at)} (${esc(p.what.toLowerCase())})`);
+    else if (wet) flag(2, `${sn > 0.1 ? 'neige' : 'pluie'} prévue vers ${hhmm(at)} (${fmt(p.alt)} m)`);
+    if (windy) flag(windy && g >= 80 ? 2.5 : 1.5, `rafales à ${fmt(g)} km/h vers ${hhmm(at)} (${fmt(p.alt)} m)`);
+    if (cold) flag(1, `${t1(t)} °C vers ${hhmm(at)} (${fmt(p.alt)} m)`);
+    return `<tr>${where}<td class="${storm ? 'bad' : wet ? 'warn' : ''}">${esc(WMO[code] ?? '—')}${pr >= 0.1 ? `<br><span class="small">${t1(pr)} mm${sn > 0.1 ? ` (${t1(sn)} cm de neige)` : ''}</span>` : ''}</td>
+      <td class="n${cold ? ' cold' : ''}">${t1(t)} °C</td><td class="n${windy ? ' warn' : ''}">${fmt(w)}<br><span class="small">raf. ${fmt(g)}</span></td></tr>`;
+  });
+  $('rwxOut').innerHTML = `<p class="cline">${worst ? `<b>À surveiller :</b> ${worst.txt}.` : 'Rien de marquant prévu sur le trajet (ni pluie, ni orage, ni rafales de 60 km/h, ni gel).'}</p>
+    <div class="tw"><table class="cmp rwx"><thead><tr><th>Passage</th><th>Ciel</th><th class="n">Temp.</th><th class="n">Vent km/h</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>
+    <p class="cnote">Prévision Météo-France (modèles AROME et ARPEGE, via Open-Meteo) à l'altitude de chaque point, reçue à ${hhmm(rwx.got)}. Heures de passage selon la norme DIN 33466, sans pauses${route.stats()?.ride ? ' ni temps en remontée' : ''} : ajoute les tiennes. Le vent est celui à 10 m du sol, plus fort sur les crêtes.</p>`;
+}
+$('d-rwx').addEventListener('toggle', () => {
+  if (!$('d-rwx').open) return;
+  // start: the value chosen before, or the next full hour
+  if (!$('rwxAt').value) { const d = new Date(); d.setHours(d.getHours() + 1, 0, 0, 0); $('rwxAt').value = localInput(d); }
+  renderRouteWeather();
+});
+$('rwxAt').addEventListener('change', renderRouteWeather);
+
+// ---------- guidance at the forks (guide.js): the list, and the instruction said ahead during an outing ----------
+// mode: off, vibrate, or vibrate and speak (French voice of the phone). The forks are worked out again while the
+// paths along the line keep arriving (up to 10 times, every 20 s).
+const guide = { key: null, list: [], at: 0, tries: 0, said: new Set(), mode: (() => { try { return localStorage.getItem('midi3d-guide') || 'vibe'; } catch { return 'vibe'; } })() };
+function guideList() {
+  if (route.samples.length < 3) return [];
+  if (guide.key !== routeKey || (guide.tries < 10 && Date.now() - guide.at > 20e3)) {
+    if (guide.key !== routeKey) guide.tries = 0;
+    const places = [...PLACES.filter(p => p.name && !p.area && !p.cam && !p.nivo), ...[...lakes.lakes.values()].filter(l => l.name).map(l => ({ name: l.name, x: l.cx, z: l.cz }))];
+    guide.list = junctions(route.samples, trails.ways(), places); guide.key = routeKey; guide.at = Date.now(); guide.tries++;
+  }
+  return guide.list;
+}
+function renderGuide() {
+  document.querySelectorAll('[data-guide]').forEach(b => b.classList.toggle('on', b.dataset.guide === guide.mode));
+  if (!$('d-guide').open) return;
+  const list = guideList(); $('guideCnt').textContent = list.length ? `(${list.length})` : '';
+  $('guideOut').innerHTML = (list.length ? `<ol class="road">${list.map(j => `<li><b>km ${km(j.d)}</b> ${esc(j.text)}${j.toward ? `, direction ${esc(j.toward)}` : ''}</li>`).join('')}</ol>`
+    : '<p class="cline small">Aucun croisement de sentiers sur le tracé (ou sentiers pas encore chargés).</p>')
+    + `<p class="cnote">Croisements des sentiers et chemins de la BD TOPO IGN sur le tracé (pas ceux avec les routes). Pendant la sortie, avec ta position, la consigne vient environ 60 m avant chaque croisement${guide.mode === 'voice' ? ', à voix haute' : guide.mode === 'vibe' ? ', avec le vibreur' : ' (guidage désactivé)'}. Regarde toujours les panneaux.</p>`;
+}
+$('d-guide').addEventListener('toggle', renderGuide);
+document.querySelectorAll('[data-guide]').forEach(b => b.addEventListener('click', () => {
+  guide.mode = b.dataset.guide; try { localStorage.setItem('midi3d-guide', guide.mode); } catch { }
+  // the voice speaks once now: phones only let a page speak after a touch
+  if (guide.mode === 'voice') speak('Guidage vocal activé.');
+  toast(guide.mode === 'off' ? 'Guidage désactivé.' : guide.mode === 'voice' ? 'Guidage à voix haute aux croisements.' : 'Guidage avec le vibreur aux croisements.');
+  renderGuide();
+}));
+function speak(text) {
+  try { const u = new SpeechSynthesisUtterance(text); u.lang = 'fr-FR'; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch { }
+}
+// on each GPS fix on the itinerary: the next fork within 70 m is said once
+function guideFix(prog) {
+  if (guide.mode === 'off' || !prog || prog.off > 60) return null;
+  const next = guideList().find(j => j.d > prog.done - 3); if (!next) return null;
+  const left = next.d - prog.done;
+  if (left < 70 && !guide.said.has(next.d)) {
+    guide.said.add(next.d);
+    const text = say(next, Math.max(10, Math.round(left / 10) * 10));
+    toast(text, false, 7000); buzz([90, 70, 90]); if (guide.mode === 'voice') speak(text);
+  }
+  return { j: next, left };
+}
+
+// ---------- the outing planned for a day (planned.js): kept, checked when the app opens, reminders ----------
+let planned = loadPlanned();
+const plannedLink = () => `${location.origin}${location.pathname}?site=${planned?.site ?? SITE.id}&sortie=1`;
+const dayWord = d => { const t = new Date(); t.setHours(0, 0, 0, 0); const k = Math.round((new Date(d).setHours(0, 0, 0, 0) - t) / 864e5); return k === 0 ? "aujourd'hui" : k === 1 ? 'demain' : k === -1 ? 'hier' : `le ${new Date(d).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`; };
+$('d-plan2').addEventListener('toggle', () => {
+  if (!$('d-plan2').open) return;
+  if (!$('pvDate').value) { const d = new Date(); d.setDate(d.getDate() + 1); $('pvDate').value = isoDay(d); }
+  $('pvRemind').checked = !!planned?.remind;
+  $('pvInfo').innerHTML = `<p class="cnote">Gardée sur l'appareil. À chaque ouverture de l'appli les jours d'avant, la sortie est revérifiée : prévision Météo-France à son point haut pour les heures de marche, orages, bulletin d'avalanche. Avec les rappels, ton téléphone reçoit un message la veille à 19 h et une heure avant le départ, par l'application gratuite ntfy (un site web ne peut pas se réveiller seul à une heure donnée) : le message te dit d'ouvrir l'appli, qui vérifie alors.</p>`;
+});
+$('pvSave').addEventListener('click', async () => {
+  const st = route.stats(); if (!st || route.samples.length < 2) { toast("Charge d'abord un itinéraire.", true); return; }
+  if (!$('pvDate').value) { toast('Choisis le jour.', true); return; }
+  const S = route.samples, hi = S.reduce((b, s) => (s.h != null && s.h > (b?.h ?? -Infinity) ? s : b), null), [hlon, hlat] = worldToLonLat(hi.x, hi.z);
+  const old = planned;
+  planned = {
+    name: route.name || 'Ma sortie', site: SITE.id, date: $('pvDate').value, start: $('pvTime').value || '07:00', hours: st.hours,
+    ll: route.pts.map(([x, z]) => worldToLonLat(x, z).map(v => +v.toFixed(6))), net: netString(route.net), hi: { lon: hlon, lat: hlat, alt: hi.h },
+    remind: $('pvRemind').checked, reminders: []
+  };
+  if (leaveAt(planned) < Date.now()) { planned = old; toast('Ce départ est déjà passé.', true); return; }
+  $('pvSave').disabled = true;
+  await cancelReminders(old);
+  let note = '';
+  if (planned.remind) {
+    try {
+      const r = await scheduleReminders(planned, plannedLink()); planned.reminders = r.sent;
+      note = r.sent.length ? `${r.sent.length} rappel${r.sent.length > 1 ? 's' : ''} programmé${r.sent.length > 1 ? 's' : ''}.` : 'Les rappels seront programmés à une ouverture de l\'appli dans les 3 jours avant (ntfy les garde 3 jours au plus).';
+    } catch (e) { note = `Rappels impossibles (${why(e)}) : réessaie plus tard.`; }
+  }
+  savePlanned(planned); $('pvSave').disabled = false;
+  toast(`Sortie prévue ${dayWord(leaveAt(planned))} à ${planned.start}. ${note}`, false, 6000);
+  renderReminderHelp(note); checkPlanned();
+});
+function renderReminderHelp(note = '') {
+  const t = reminderTopic(); if (!planned?.remind || !t) { $('pvInfo').innerHTML = note ? `<p class="cline small">${esc(note)}</p>` : ''; return; }
+  $('pvInfo').innerHTML = `<p class="cline small">${esc(note)}</p><p class="cline small">Pour recevoir les rappels : installe l'application <b>ntfy</b> (Android ou iPhone, gratuite), puis abonne-toi au canal <b class="mono">${esc(t)}</b> (bouton +, serveur ntfy.sh). Ce canal est propre à ce téléphone : garde-le pour toi.</p>
+    <button type="button" class="mini wide" data-copy-topic>Copier le nom du canal</button>`;
+}
+$('pvInfo').addEventListener('click', e => { if (e.target.closest('[data-copy-topic]')) navigator.clipboard?.writeText(reminderTopic()).then(() => toast('Nom du canal copié.'), () => toast('Copie impossible : recopie-le à la main.', true)); });
+// the check: forecast at the highest point for the hours of the outing (from 3 days before), avalanche bulletin
+async function checkPlanned() {
+  if (!planned) { $('plannedCard').hidden = true; return; }
+  const leave = leaveAt(planned), end = new Date(+leave + (planned.hours || 4) * 3600e3);
+  if (end < Date.now() - 6 * 3600e3) { await cancelReminders(planned); planned = null; savePlanned(null); $('plannedCard').hidden = true; return; } // over
+  // reminders asked for but not scheduled yet (the outing was more than 3 days ahead): now
+  if (planned.remind && !planned.reminders?.length && leave - Date.now() < 3 * 864e5) {
+    try { const r = await scheduleReminders(planned, plannedLink()); planned.reminders = r.sent; savePlanned(planned); } catch { }
+  }
+  const head = `<p class="rname">Sortie prévue ${dayWord(leave)} à ${esc(planned.start)}</p><p class="cline"><b>${esc(planned.name)}</b> · point haut ${fmt(planned.hi.alt)} m · ${hm(planned.hours)} de marche</p>`;
+  const open = `<button type="button" class="mini wide" data-open-planned>Ouvrir l'itinéraire</button><button type="button" class="mini wide" data-drop-planned>Annuler la sortie prévue</button>`;
+  $('plannedCard').hidden = false;
+  if (leave - Date.now() > 3 * 864e5) { $('plannedCard').innerHTML = `${head}<p class="cline small">La prévision au point haut sera là 3 jours avant.</p>${open}`; return; }
+  $('plannedCard').innerHTML = `${head}<p class="cmeta">Vérification de la météo…</p>${open}`;
+  const bits = [];
+  try {
+    const [h] = await routeForecast([planned.hi]);
+    let storm = null, wet = null, gust = 0, tmin = Infinity;
+    h.time.forEach((t, i) => {
+      const at = new Date(t); if (at < +leave - 1800e3 || at > +end + 1800e3) return;
+      if (h.weather_code[i] >= 95 && !storm) storm = at;
+      if ((h.precipitation[i] >= 0.3 || (h.weather_code[i] >= 51 && h.weather_code[i] < 95)) && !wet) wet = { at, snow: (h.snowfall[i] ?? 0) > 0.1 };
+      gust = Math.max(gust, h.wind_gusts_10m[i] ?? 0); tmin = Math.min(tmin, h.temperature_2m[i] ?? Infinity);
+    });
+    if (storm) bits.push(`<span class="bad">Orage prévu vers ${hhmm(storm)}</span>`);
+    if (wet) bits.push(`<span class="warn">${wet.snow ? 'Neige' : 'Pluie'} prévue vers ${hhmm(wet.at)}</span>`);
+    if (gust >= 60) bits.push(`<span class="warn">Rafales jusqu'à ${fmt(gust)} km/h</span>`);
+    if (tmin <= 0) bits.push(`Jusqu'à ${t1(tmin)} °C`);
+    if (!bits.length) bits.push('Rien de marquant prévu au point haut pendant la sortie');
+  } catch (e) { bits.push(`Prévision indisponible (${esc(why(e))})`); }
+  let beraTxt = '';
+  if (planned.site === SITE.id && state.bera) {
+    const b = state.bera, covers = b.validUntil >= +leave - 6 * 3600e3;
+    const when = b.issued.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    beraTxt = covers ? beraAtText(planned.hi.alt)
+      : Date.now() - b.validUntil > 3 * 864e5 ? `<p class="cline small">Pas de bulletin d'avalanche en cours (le dernier date du ${when}).</p>`
+      : `<p class="cline small">Bulletin d'avalanche du ${when} : il ne couvre pas encore ce jour (le suivant paraît vers 16 h la veille).</p>`;
+  }
+  $('plannedCard').innerHTML = `${head}<p class="cline">${bits.join(' · ')}.</p>${beraTxt}<p class="cnote">Prévision Météo-France au point haut (${fmt(planned.hi.alt)} m) pour ${hhmm(leave)}–${hhmm(end)}, vérifiée à ${hhmm(new Date())}.</p>${open}`;
+  return bits;
+}
+$('plannedCard').addEventListener('click', async e => {
+  if (e.target.closest('[data-open-planned]')) {
+    if (planned.site !== SITE.id) { location.href = plannedLink(); return; }
+    route.setPath(planned.ll.map(([lon, lat]) => lonLatToWorld(lon, lat)), planned.name, [], planned.net?.length === planned.ll.length ? [...planned.net].map(Number) : false);
+    routeReady(`« ${planned.name} » ouvert`);
+  }
+  if (e.target.closest('[data-drop-planned]')) { await cancelReminders(planned); planned = null; savePlanned(null); $('plannedCard').hidden = true; toast('Sortie prévue annulée (et ses rappels).'); }
+});
+// at opening: checked, and said when it is today or tomorrow (or when the app was opened from a reminder)
+setTimeout(async () => {
+  if (!planned) return;
+  const bits = await checkPlanned(), leave = planned && leaveAt(planned);
+  if (!planned || !bits) return;
+  const fromReminder = new URLSearchParams(location.search).has('sortie');
+  if (fromReminder) openSheet('route', true);
+  if (fromReminder || leave - Date.now() < 36 * 3600e3) toast(`Sortie ${dayWord(leave)} (${planned.name}) : ${bits.map(b => b.replace(/<[^>]+>/g, '')).join(' · ')}.`, false, 8000);
+}, 4000);
+
+// ---------- mine: my places, my outings done, my data (mydata.js): on this device only, seen by no one else ----------
+// my places: labels like the others (yellow name, a mark for the kind), in the search, in the itinerary ideas
+let myPlaces = loadMyPlaces();
+const kindMark = k => PLACE_KINDS[k]?.[1] ?? '●';
+function addMyLabel(m) {
+  const [x, z] = lonLatToWorld(m.lon, m.lat), p = { name: m.name, alt: m.alt, x, z, h: m.alt ?? groundAt(x, z) ?? 2000, mine: m.id, kind: m.kind, hut: m.kind === 'refuge' };
+  const el = document.createElement('button'); el.type = 'button'; el.className = 'label mine';
+  el.innerHTML = `<span class="t"><span class="n">${kindMark(m.kind)} ${esc(m.name)}</span>${m.alt != null ? `<span class="h">${fmt(m.alt)} m</span>` : ''}</span>`;
+  el.addEventListener('click', () => openPlace(p));
+  labelsEl.appendChild(el); p.el = el; PLACES.push(p);
+}
+function dropMyLabel(id) { const i = PLACES.findIndex(p => p.mine === id); if (i >= 0) { PLACES[i].el?.remove(); PLACES.splice(i, 1); } }
+myPlaces.forEach(addMyLabel);
+function renderMyPlaces() {
+  $('myPlaces').innerHTML = myPlaces.length ? '' : '<p class="cline small">Aucun pour l\'instant.</p>';
+  for (const m of [...myPlaces].sort((a, b) => a.name.localeCompare(b.name, 'fr'))) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'place mine'; b.dataset.mark = kindMark(m.kind);
+    b.innerHTML = `<span>${esc(m.name)}</span><span class="pa">${PLACE_KINDS[m.kind]?.[0] ?? 'Lieu'}${m.alt != null ? ` · ${fmt(m.alt)} m` : ''}${m.note ? ` · ${esc(m.note)}` : ''}</span>`;
+    b.addEventListener('click', () => { const p = PLACES.find(q => q.mine === m.id); if (p) { openPlace(p); closeIfCovering(); } });
+    $('myPlaces').appendChild(b);
+  }
+}
+renderMyPlaces();
+// the box under a point's sheet: add it to my places, or (one of mine) change it, remove it, make a massif of it
+function renderMine(hit) {
+  const box = $('ptMine'), m = hit.mine ? myPlaces.find(q => q.id === hit.mine) : null;
+  if (m) {
+    box.innerHTML = `<p class="cline"><b>${kindMark(m.kind)} ${esc(m.name)}</b> · ${PLACE_KINDS[m.kind]?.[0] ?? 'Lieu'} · un de mes lieux${m.note ? `<br><span class="small">${esc(m.note)}</span>` : ''}</p>
+      <div class="row2"><button type="button" class="mini" data-mine-edit>Modifier</button><button type="button" class="mini" data-mine-del>Supprimer</button></div>`;
+  } else box.innerHTML = `<button type="button" class="mini wide" data-mine-add>Ajouter à mes lieux</button>`;
+  box.dataset.hit = JSON.stringify({ x: hit.x, z: hit.z, h: hit.h, mine: m?.id ?? null, name: hit.name ?? null });
+}
+function mineForm(hit, m) {
+  const kinds = Object.entries(PLACE_KINDS).map(([k, [n, mark]]) => `<option value="${k}"${(m?.kind ?? 'sommet') === k ? ' selected' : ''}>${mark} ${n}</option>`).join('');
+  $('ptMine').innerHTML = `<div class="mineform">
+    <label>Nom <input id="mName" class="in-text" maxlength="60" value="${esc(m?.name ?? hit.name ?? '')}" placeholder="Ex. : Pointe du Lac, ma source…"></label>
+    <label>Type <select id="mKind" class="in-text">${kinds}</select></label>
+    <label>Altitude (m) <input id="mAlt" class="in-text" type="number" inputmode="numeric" value="${Math.round(m?.alt ?? hit.h)}"></label>
+    <label>Note (facultatif) <input id="mNote" class="in-text" maxlength="120" value="${esc(m?.note ?? '')}"></label>
+    <div class="row2"><button type="button" class="mini go" data-mine-save>Garder</button><button type="button" class="mini" data-mine-cancel>Annuler</button></div>
+    <p class="cnote">Gardé sur cet appareil seulement.</p></div>`;
+  $('mName').focus();
+}
+$('ptMine').addEventListener('click', e => {
+  const hit = JSON.parse($('ptMine').dataset.hit || 'null'); if (!hit) return;
+  const m = hit.mine ? myPlaces.find(q => q.id === hit.mine) : null;
+  if (e.target.closest('[data-mine-add]')) mineForm(hit, null);
+  else if (e.target.closest('[data-mine-edit]')) mineForm(hit, m);
+  else if (e.target.closest('[data-mine-cancel]')) renderMine(hit);
+  else if (e.target.closest('[data-mine-save]')) {
+    const name = $('mName').value.trim(); if (!name) { toast('Donne-lui un nom.', true); $('mName').focus(); return; }
+    const alt = Number($('mAlt').value), [lon, lat] = worldToLonLat(hit.x, hit.z);
+    const rec = { id: m?.id ?? Date.now().toString(36), name, kind: $('mKind').value, lon: +lon.toFixed(6), lat: +lat.toFixed(6), alt: Number.isFinite(alt) && $('mAlt').value !== '' ? Math.round(alt) : null, note: $('mNote').value.trim(), created: m?.created ?? Date.now() };
+    if (m) { myPlaces = myPlaces.map(q => q.id === m.id ? rec : q); dropMyLabel(m.id); } else myPlaces.push(rec);
+    if (!saveMyPlaces(myPlaces)) { toast("Plus de place sur l'appareil pour garder ce lieu.", true); return; }
+    addMyLabel(rec); renderMyPlaces(); renderMine({ ...hit, mine: rec.id }); renderMyData();
+    toast(m ? `« ${name} » modifié.` : `« ${name} » ajouté à tes lieux.`);
+  } else if (e.target.closest('[data-mine-del]') && m) {
+    const b = e.target.closest('[data-mine-del]');
+    if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Confirmer'; setTimeout(() => { b.dataset.armed = ''; b.textContent = 'Supprimer'; }, 4000); return; }
+    myPlaces = myPlaces.filter(q => q.id !== m.id); saveMyPlaces(myPlaces); dropMyLabel(m.id); renderMyPlaces(); renderMine({ ...hit, mine: null }); renderMyData();
+    toast(`« ${m.name} » supprimé de tes lieux.`);
+  }
+});
+$('myAdd').addEventListener('click', () => startPick('Touche l\'endroit à ajouter à tes lieux.', hit => { pointReport(hit); mineForm({ ...hit, mine: null }, null); }));
+
+// my outings done: from a GPS recording (its line and times), or an itinerary marked as done on a day
+let outings = [];
+async function loadOutings() { try { outings = await listOutings(); } catch { outings = null; } renderOutings(); renderMyData(); }
+loadOutings();
+const dayFr = t => new Date(t).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+function renderOutings() {
+  const el = $('outOut');
+  if (outings == null) { el.innerHTML = '<p class="cline small">Historique indisponible dans ce navigateur (stockage IndexedDB refusé, navigation privée ?).</p>'; return; }
+  $('outCnt').textContent = outings.length ? `(${outings.length})` : '';
+  if (!outings.length) { el.innerHTML = '<p class="cline small">Aucune sortie gardée. En fin de sortie enregistrée : « Terminer la sortie et la garder ». Sans enregistrement : sur un itinéraire, choisis le jour puis « J\'ai fait cette rando ».</p>'; return; }
+  const tot = totals(outings), years = Object.keys(tot).sort((a, b) => b - a);
+  el.innerHTML = `<div class="tw"><table class="cmp"><thead><tr><th></th><th class="n">Sorties</th><th class="n">km</th><th class="n">D+</th><th class="n">Temps</th></tr></thead><tbody>${years.map(y => `<tr><th>${y}</th><td class="n">${tot[y].n}</td><td class="n">${t1(tot[y].dist / 1000)}</td><td class="n">${fmt(tot[y].up)} m</td><td class="n">${hm(tot[y].hours)}</td></tr>`).join('')}</tbody></table></div>`
+    + outings.map(o => `<div class="outing" data-id="${esc(o.id)}"><div class="on">${esc(o.name)}</div>
+      <div class="small">${dayFr(o.date)} · ${t1((o.stats?.dist ?? 0) / 1000)} km · +${fmt(o.stats?.up ?? 0)} m · ${hm(o.stats?.hours ?? 0)}${o.kind === 'route' ? ' (temps estimé, sans trace GPS)' : ''}${o.stats?.max != null ? ` · point haut ${fmt(o.stats.max)} m` : ''}</div>
+      <div class="acts"><button type="button" class="mini" data-o="show">Voir</button><button type="button" class="mini" data-o="gpx">GPX</button><button type="button" class="mini" data-o="rename">Renommer</button><button type="button" class="mini" data-o="del">Supprimer</button></div></div>`).join('')
+    + '<p class="cnote">Gardées sur cet appareil seulement. Pour changer de téléphone : Lieux → Mes données → Sauvegarder.</p>';
+}
+$('outOut').addEventListener('click', async e => {
+  const b = e.target.closest('[data-o]'), card = e.target.closest('.outing'); if (!b || !card) return;
+  const o = outings.find(q => q.id === card.dataset.id); if (!o) return;
+  const act = b.dataset.o;
+  if (act === 'show') { route.setPath(o.pts.map(([lon, lat]) => lonLatToWorld(lon, lat)), `${o.name} (${new Date(o.date).toLocaleDateString('fr-FR')})`, [], false); routeReady(o.name); }
+  else if (act === 'gpx') {
+    const esc2 = s => s.replace(/[<&>]/g, c => ({ '<': '&lt;', '&': '&amp;', '>': '&gt;' }[c]));
+    const trk = o.pts.map(([lon, lat, t]) => { const [x, z] = lonLatToWorld(lon, lat), h = groundAt(x, z); return `<trkpt lat="${lat}" lon="${lon}">${h != null ? `<ele>${h.toFixed(1)}</ele>` : ''}${t ? `<time>${new Date(t).toISOString()}</time>` : ''}</trkpt>`; }).join('\n      ');
+    const gpx = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Montagne 3D" xmlns="http://www.topografix.com/GPX/1/1">\n  <trk><name>${esc2(o.name)}</name><trkseg>\n      ${trk}\n  </trkseg></trk>\n</gpx>\n`;
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([gpx], { type: 'application/gpx+xml' }));
+    a.download = `${o.name.replace(/[^\w\- àâçéèêëîïôûùüÿœ]+/gi, '_').slice(0, 60)}.gpx`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  } else if (act === 'rename') {
+    const on = card.querySelector('.on'); if (on.querySelector('input')) return;
+    on.innerHTML = `<div class="row2"><input class="in-text" maxlength="80" value="${esc(o.name)}"><button type="button" class="mini go" data-o="name">OK</button></div>`; on.querySelector('input').focus();
+  } else if (act === 'name') {
+    const v = card.querySelector('.on input').value.trim(); if (!v) return;
+    o.name = v; await putOuting(o).catch(() => toast('Renommage impossible (stockage).', true)); renderOutings();
+  } else if (act === 'del') {
+    if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Confirmer'; setTimeout(() => { b.dataset.armed = ''; b.textContent = 'Supprimer'; }, 4000); return; }
+    await deleteOuting(o.id).catch(() => { }); toast('Sortie supprimée.'); loadOutings();
+  }
+});
+// numbers of a line in lon/lat with the relief loaded (the same rules as the itinerary card)
+function outingStats(llPts, hoursIfNoTimes) {
+  const S = resamplePath(llPts.map(([lon, lat]) => lonLatToWorld(lon, lat)), groundAt), st = pathStats(S);
+  return { dist: st?.dist ?? 0, up: st?.up ?? 0, down: st?.down ?? 0, max: st?.max ?? null, min: st?.min ?? null, hours: hoursIfNoTimes ?? st?.hours ?? 0 };
+}
+async function keepOuting(o) {
+  try { await putOuting(o); } catch { toast("Impossible de garder la sortie dans ce navigateur (stockage refusé).", true); return false; }
+  await loadOutings(); $('d-outings').open = true; return true;
+}
+$('trkSave').addEventListener('click', async () => {
+  if (track.pts.length < 2) return;
+  // start: the recording's, or its first position if earlier (a recording resumed after a reload); never negative
+  const st = track.stats(), started = Math.min(track.started ?? Infinity, track.pts[0].t), end = track.pts[track.pts.length - 1].t, pts = thin(track.pts);
+  st.hours = Math.max(0, (end - started) / 3600e3);
+  // the itinerary followed, when the walk began near its start: its name for the outing
+  const r0 = route.pts[0], p0 = track.pts[0], followed = r0 && Math.hypot(r0[0] - p0.x, r0[1] - p0.z) < 400 && route.name;
+  const o = { id: Date.now().toString(36), kind: 'trace', site: SITE.id, date: started, end, name: followed || `Sortie du ${new Date(started).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`, pts, stats: { ...outingStats(pts), dist: st.dist, up: st.up, down: st.down, hours: st.hours } };
+  if (!(await keepOuting(o))) return;
+  track.clear(); renderTrip(); toast(`Sortie gardée : ${t1(st.dist / 1000)} km, +${fmt(st.up)} m, ${hm(st.hours)}.`, false, 5000);
+});
+$('routeDone').addEventListener('click', async () => {
+  if (route.pts.length < 2) { toast("Charge d'abord un itinéraire.", true); return; }
+  const day = $('doneDate').value ? new Date(`${$('doneDate').value}T09:00:00`) : new Date();
+  if (day > Date.now() + 864e5) { toast('Ce jour est dans le futur : pour une sortie à venir, « Prévoir cette sortie ».', true); return; }
+  const pts = thin(route.pts.map(([x, z]) => { const [lon, lat] = worldToLonLat(x, z); return { lon, lat }; }));
+  const o = { id: Date.now().toString(36), kind: 'route', site: SITE.id, date: +day, name: route.name || `Sortie du ${day.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`, pts, stats: outingStats(pts) };
+  if (await keepOuting(o)) toast(`« ${o.name} » ajoutée à tes sorties (${day.toLocaleDateString('fr-FR')}).`);
+});
+$('doneDate').value = isoDay(new Date());
+
+// my data: what is on this device, a backup file and reading one back
+function renderMyData() {
+  let routes = 0; try { routes = JSON.parse(localStorage.getItem('midi3d-routes') || '[]').length; } catch { }
+  const custom = Object.keys(customSites()).length;
+  $('myDataOut').innerHTML = `<p class="cline small">Sur cet appareil : ${myPlaces.length} lieu${myPlaces.length > 1 ? 'x' : ''} à toi, ${outings?.length ?? 0} sortie${(outings?.length ?? 0) > 1 ? 's' : ''}, ${routes} itinéraire${routes > 1 ? 's' : ''} gardé${routes > 1 ? 's' : ''}, ${custom} massif${custom > 1 ? 's' : ''} créé${custom > 1 ? 's' : ''}.</p>
+    <p class="cnote">Chacun a sa propre appli : ce que tu crées (lieux, massifs, itinéraires, sorties, réglages) reste sur ce téléphone, rien n'est envoyé ni montré à personne. Pour changer d'appareil, sauvegarde dans un fichier puis restaure-le sur le nouveau. Les clés API ne sont pas dans le fichier : tu les retaperas.</p>`;
+}
+$('d-mydata').addEventListener('toggle', renderMyData);
+$('dataSave').addEventListener('click', async () => {
+  const data = await backup(), a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
+  a.download = `montagne-3d-sauvegarde-${isoDay(new Date())}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  toast('Sauvegarde enregistrée dans tes téléchargements.');
+});
+$('dataLoad').addEventListener('change', async e => {
+  const f = e.target.files?.[0]; e.target.value = ''; if (!f) return;
+  try { const n = await restore(JSON.parse(await f.text())); toast(`${n} élément${n > 1 ? 's' : ''} restauré${n > 1 ? 's' : ''} : l'appli redémarre.`, false, 3000); setTimeout(() => location.reload(), 1500); }
+  catch (err) { toast(`Restauration impossible : ${err.message}.`, true, 6000); }
 });
 
 // ---------- snow measured at the mountain stations, webcams (daily copies in data/, see scripts/) ----------
@@ -1711,15 +2191,69 @@ function offPathNote(r, toName) {
   if (r.offEnd > 60) bits.push(`les sentiers s'arrêtent à ${fmt(r.offEnd)} m ${toName ? `de ${toName}` : "de l'arrivée"} (au-delà, terrain hors sentier : non tracé)`);
   return bits.length ? bits.join(' ; ') + '.' : '';
 }
+// On foot by the IGN paths, and the ways with lifts (liftplan.js) when they save a quarter of the walk or more,
+// or when on foot it is not a walk (faces, glaciers): each judged like the itinerary card, the best one laid
+let planGen = 0;
 async function planGo(from, to) {
-  $('plNote').textContent = "Calcul de l'itinéraire par l'IGN…"; $('plGo').disabled = true;
+  const gen = ++planGen, title = `${from.name ?? 'Départ'} → ${to.name ?? 'Arrivée'}`;
+  $('plNote').textContent = "Calcul de l'itinéraire par l'IGN…"; $('plOpts').innerHTML = ''; $('plGo').disabled = true;
+  let r = null, err = null;
+  try { r = await walkingRoute(from, to); } catch (e) { err = e; }
+  if (gen !== planGen) return;
+  const opts = [];
+  if (r) {
+    opts.push({ title: 'À pied', name: title, pts: r.pts, net: true, note: offPathNote(r, to.name) });
+    route.setPath(r.pts, title, [], true); renderRoute();
+  }
+  $('plNote').textContent = r ? 'Recherche des remontées sur le trajet…' : `À pied : ${why(err)}. Recherche des remontées…`;
   try {
-    const r = await walkingRoute(from, to);
-    route.setPath(r.pts, `${from.name ?? 'Départ'} → ${to.name ?? 'Arrivée'}`);
-    $('plNote').textContent = ['Itinéraire IGN sur sentiers et chemins : vérifie l\'état (neige, fermetures, difficulté) avant de partir.', offPathNote(r, to.name)].filter(Boolean).join(' ');
-    routeReady('Itinéraire tracé');
-  } catch (err) { $('plNote').textContent = `Itinéraire impossible : ${why(err)}.`; toast(`Itinéraire impossible : ${why(err)}.`, true, 4500); }
+    const a = lonLatToWorld(from.lon, from.lat), b = lonLatToWorld(to.lon, to.lat), n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 1500)), waits = [];
+    for (let k = 0; k <= n; k++) waits.push(trails.ensure(a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n));
+    await Promise.race([Promise.all(waits), new Promise(res => setTimeout(res, 12000))]);
+    const [za, zb] = await altitudes([from, to]).catch(() => [groundAt(...a), groundAt(...b)]);
+    if (gen !== planGen) return;
+    const direct = r ? pathStats(resamplePath(r.pts, groundAt)) : null;
+    if (za != null && zb != null) {
+      const ll = p => { const [lon, lat] = worldToLonLat(p[0], p[1]); return { lon, lat }; };
+      for (const o of await liftPlans({ a, b, za, zb, lifts: trails.lifts(), groundAt, ll, directHours: direct?.hours ?? Infinity }))
+        opts.push({ title: `Avec ${o.name}`, name: `${title} (${o.name})`, pts: o.pts, net: o.net, note: [offPathNote(o, to.name), o.lifts.some(l => l.kind === 'chair') ? "Télésiège : souvent fermé l'été hors des stations ouvertes l'été." : ''].filter(Boolean).join(' ') });
+    }
+  } catch { /* the ways with lifts are a plus: on foot stays */ }
+  if (gen !== planGen) return;
   $('plGo').disabled = false;
+  if (!opts.length) { $('plNote').textContent = `Itinéraire impossible : ${why(err)}.`; toast(`Itinéraire impossible : ${why(err)}.`, true, 4500); return; }
+  // each way judged (paths and glaciers along it asked for first)
+  for (const o of opts) {
+    o.S = resamplePath(o.pts, groundAt, Array.isArray(o.net) ? o.net : o.pts.map(() => 1));
+    for (let i = 0; i < o.S.length; i += 150) { trails.ensure(o.S[i].x, o.S[i].z); glaciers.ensure(o.S[i].x, o.S[i].z); }
+  }
+  await new Promise(res => setTimeout(res, 1500)); if (gen !== planGen) return;
+  const rank = { path: 0, unknown: 1, off: 2, steep: 3, glacier: 4, rock: 5 };
+  for (const o of opts) { o.st = pathStats(o.S); o.w = judge(o.S); }
+  // a way with lifts that another way beats on both counts (verdict and walking time) is left out; on foot stays
+  const worse = (p, q) => rank[q.w.level] <= rank[p.w.level] && (q.st?.hours ?? 99) <= (p.st?.hours ?? 99) && q !== p;
+  for (let i = opts.length - 1; i >= 0; i--) if (opts[i].title !== 'À pied' && opts.some(q => worse(opts[i], q))) opts.splice(i, 1);
+  // the way laid: on foot when it is a walk (the lifts stay offered); otherwise the one that can be walked, quickest first
+  const foot = opts.find(o => o.title === 'À pied');
+  const best = foot && rank[foot.w.level] < rank.glacier ? foot : [...opts].sort((p, q) => rank[p.w.level] - rank[q.w.level] || (p.st?.hours ?? 99) - (q.st?.hours ?? 99))[0];
+  const pickOpt = o => {
+    route.setPath(o.pts, o.name, [], o.net);
+    $('plNote').textContent = ['Itinéraire IGN sur sentiers et chemins : vérifie l\'état (neige, fermetures, difficulté) avant de partir.', o.note].filter(Boolean).join(' ');
+    [...$('plOpts').querySelectorAll('.place')].forEach((el, i) => el.classList.toggle('on', opts[i] === o));
+  };
+  const verdict = w => w.level === 'rock' ? '<span class="wk rock">Escalade</span>' : w.level === 'glacier' ? '<span class="wk glacier">Glacier</span>'
+    : w.level === 'steep' ? '<span class="wk steep">Pentes raides</span>' : w.level === 'off' ? '<span class="wk off">Hors sentier</span>' : w.level === 'path' ? '<span class="wk path">Sentiers</span>' : '';
+  $('plOpts').innerHTML = opts.length > 1 ? '<p class="cmeta">Plusieurs façons d\'y aller : touche pour choisir.</p><div class="places results ideas"></div>' : '';
+  if (opts.length > 1) for (const o of opts) {
+    const bt = document.createElement('button'); bt.type = 'button'; bt.className = 'place';
+    bt.innerHTML = `<span>${esc(o.title)}</span><span class="pa">${verdict(o.w)} ${o.st ? `marche ${km(o.st.dist)} km · +${fmt(o.st.up)} m · ${hm(o.st.hours)}${o.st.ride ? ` · remontée ${km(o.st.ride)} km, +${fmt(o.st.rideUp)} m` : ''}` : ''}</span>`;
+    bt.addEventListener('click', () => { pickOpt(o); routeReady(o.title); });
+    $('plOpts').lastChild.appendChild(bt);
+  }
+  pickOpt(best);
+  const first = opts[0];
+  routeReady(best === first ? 'Itinéraire tracé' : first.title === 'À pied' && rank[first.w.level] >= rank.glacier
+    ? `À pied, ce n'est pas une randonnée (${first.w.level === 'rock' ? 'parois' : 'glacier'}) : itinéraire « ${best.title} » proposé` : best.title);
 }
 $('plGo').addEventListener('click', () => {
   const from = planStart();
@@ -1752,7 +2286,7 @@ $('plIdeas').addEventListener('click', async () => {
   for (const o of out) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'place';
     b.innerHTML = `<span>${esc(o.name)}</span><span class="pa"><span class="cls ${o.cls}">${CLASS_NAMES[o.cls]}</span>${o.kind} · ${hm(o.st.hours)} · ${(o.st.dist / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km · +${fmt(o.st.up)} m${o.r.offEnd > 60 ? ` · sentier jusqu'à ${fmt(o.r.offEnd)} m du but` : ''}</span>`;
-    b.addEventListener('click', () => { route.setPath(o.r.pts, `${from.name ?? 'Départ'} → ${o.name}`); $('plNote').textContent = offPathNote(o.r, o.name); routeReady(o.name); });
+    b.addEventListener('click', () => { route.setPath(o.r.pts, `${from.name ?? 'Départ'} → ${o.name}`, [], true); $('plNote').textContent = offPathNote(o.r, o.name); routeReady(o.name); });
     $('plIdeasOut').firstChild.appendChild(b);
   }
 });
@@ -1772,7 +2306,7 @@ function renderHikes(done, total) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'place';
     b.innerHTML = `<span>${esc(h.name)}${h.alt ? ` · ${fmt(h.alt)} m` : ''}</span><span class="pa"><span class="cls ${h.cls}">${CLASS_NAMES[h.cls]}</span>${h.kind} · depuis ${h.start === 'parking' ? `un parking à ${fmt(h.startAlt ?? 0)} m` : esc(h.start)} · ${hm(h.hours)} · ${(h.dist / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km · +${fmt(h.up)} m · point haut ${fmt(h.max)} m${h.offEnd > 150 ? ` · les sentiers s'arrêtent à ${fmt(h.offEnd)} m du but, la fin est hors sentier` : ''}</span>`;
     b.addEventListener('click', () => {
-      route.setPath(hikePath(h), `${h.name} depuis ${h.start}`); routeReady(h.name);
+      route.setPath(hikePath(h), `${h.name} depuis ${h.start}`, [], true); routeReady(h.name);
       if (h.cls === 'alpine') setTimeout(() => toast("Haute montagne : glacier ou rocher, crevasses et chutes de pierres possibles. Matériel d'alpinisme, expérience et encordement nécessaires ; guide conseillé. Le tracé s'arrête au bout des sentiers.", true, 7000), 4600);
     });
     box.appendChild(b);
@@ -2046,7 +2580,8 @@ $('epochBadge').addEventListener('click', () => { $('epoch').value = 'current'; 
 state.view = 'ign';
 const GERR = {
   key: "Google refuse la clé. Vérifie qu'elle est copiée en entier, que la Map Tiles API est activée, que la facturation est configurée et que la clé autorise le site qdesbuisson87-web.github.io.",
-  network: 'Google 3D ne répond pas (connexion ou quota du jour atteint). Retour à la vue IGN.'
+  quota: "Google 3D : quota atteint (le plafond du jour réglé dans ton projet Google, ou trop de demandes d'un coup). Retour à la vue IGN.",
+  network: 'Google 3D ne répond pas (connexion). Retour à la vue IGN.'
 };
 function setView(v) {
   if (v === 'google' && !googleKey.get()) { $('gKeyBlock').hidden = false; $('gKey').focus(); $('gNote').textContent = ''; return; }
@@ -2060,11 +2595,11 @@ function setView(v) {
     if (state.exag !== 1) { $('exag').value = 1; $('exag').dispatchEvent(new Event('input')); }
     applyScale();
     google.start(googleKey.get(), async err => {
-      setView('ign'); google.dispose(); // a refused session is not kept for later $('gNote').textContent = GERR[err];
-      if (err !== 'key') return;
-      $('gKeyBlock').hidden = false;
-      const why = await whyRefused(googleKey.get()); // Google's own reason, when it gives one
-      if (why) $('gNote').textContent = 'Google refuse : ' + why;
+      setView('ign'); google.dispose(); // a refused session is not kept for later
+      $('gNote').textContent = GERR[err]; toast(GERR[err], true, 7000);
+      if (err === 'key') $('gKeyBlock').hidden = false;
+      const why = await whyRefused(googleKey.get()); // Google's own reason, when it gives one (key, quota…)
+      if (why) { $('gNote').textContent = 'Google refuse : ' + why; toast('Google 3D : ' + why, true, 9000); }
     });
     scene.fog = gFog;
   } else { google.stop(); scene.fog = null; }
@@ -2230,7 +2765,7 @@ async function satSnowAt(lat, lon) {
   return { date: S.date, ndsi, fsc: Math.max(0, Math.min(1, 1.45 * ndsi - 0.01)), cloud: cls === 3 || (cls >= 8 && cls <= 10) };
 }
 async function pointReport(hit) {
-  const seq = ++pinSeq; showPointSheet(); dropPin(hit); keepInSight(hit);
+  const seq = ++pinSeq; showPointSheet(); dropPin(hit); keepInSight(hit); renderMine(hit);
   const [lon, lat] = worldToLonLat(hit.x, hit.z), s = engine.slopeAt(hit.x, hit.z);
   const where = hit.surface === 'google' ? 'altitude de la surface Google 3D (arbres, bâtiments et neige compris, ±quelques m)' : `relief ${SRC[s?.src] ?? 'IGN'}`;
   const meta = `<p class="cmeta">${lat.toFixed(5)}° N · ${lon.toFixed(5)}° E · ${where}</p>`
@@ -2550,11 +3085,17 @@ function frame() {
 }
 // the graphics memory lost (a phone short of memory, the app long in the background): say so, and start again
 // once the browser gives it back (everything on the graphics chip must be rebuilt: reloading is the safe way)
-renderer.domElement.addEventListener('webglcontextlost', e => {
-  e.preventDefault();
-  const l = $('loader'); l.classList.remove('done'); l.querySelector('.msg').textContent = "Le téléphone a manqué de mémoire graphique : l'appli redémarre…";
-});
+// If the browser does not give it back within 4 s, or lost it without saying so (seen in a test browser: a white
+// screen that stayed), the page reloads anyway: the itinerary, settings and view are kept on the device.
+let glLost = false;
+function contextLost() {
+  if (glLost) return; glLost = true;
+  const l = $('loader'); l.classList.remove('done'); const msg = l.querySelector('.msg'); if (msg) msg.textContent = "Le téléphone a manqué de mémoire graphique : l'appli redémarre…";
+  setTimeout(() => location.reload(), 4000);
+}
+renderer.domElement.addEventListener('webglcontextlost', e => { e.preventDefault(); contextLost(); });
 renderer.domElement.addEventListener('webglcontextrestored', () => location.reload());
+setInterval(() => { if (document.visibilityState === 'visible' && renderer.getContext().isContextLost()) contextLost(); }, 3000);
 // ?prof: time spent per part of the frame (ms, summed), and draw calls, to find what costs (window.midi3d.prof)
 const prof = location.search.includes('prof') ? { n: 0 } : null;
 let profT = 0; const lap = k => { if (!prof) return; const n = performance.now(); prof[k] = (prof[k] || 0) + n - profT; profT = n; };
@@ -2587,10 +3128,10 @@ function drawFrame() {
     if (far !== state.far) { state.far = far; updateCloudProfile(); updatePrecipForView(); }
   }
   if (pin?.search) pin.h = (google.on ? null : groundAt(pin.x, pin.z)) ?? pin.h;
-  const g = google.on ? (gGround ?? groundAt(c.x, c.z)) : groundAt(c.x, c.z);
+  const g = google.on ? (gGround ?? surfaceAt(c.x, c.z)) : surfaceAt(c.x, c.z);
   if (g != null && c.y < g * state.exag + 4) c.y = g * state.exag + 4;
-  const above = g != null ? c.y - g * state.exag : 1000, td = c.distanceTo(controls.target);
-  camera.near = Math.min(Math.max(Math.min(above, td) * 0.15, 0.3), 200); camera.updateProjectionMatrix(); camera.updateMatrixWorld();
+  const near = google.on ? (g != null ? c.y - g * state.exag : 1000) : reliefDistance(c), td = c.distanceTo(controls.target);
+  camera.near = Math.min(Math.max(Math.min(near, td) * 0.15, 0.3), 200); camera.updateProjectionMatrix(); camera.updateMatrixWorld();
   sky.position.copy(c); clouds.position.set(c.x, 0, c.z); SU.camPos.value.copy(c);
   SU.boxSize.value = Math.min(Math.max(td * 0.9, 40), 9000);
   if (cabins.visible) { const a = cabinGeo.attributes.position.array, ph = (t * 0.02) % 2, f = ph < 1 ? ph : 2 - ph; a.set(cablePoint(0, f), 0); a.set(cablePoint(1, 1 - f), 3); cabinGeo.attributes.position.needsUpdate = true; }
@@ -2673,7 +3214,7 @@ $('linesBtn').addEventListener('click', () => {
 });
 for (const id of ['c-trails', 'c-streams']) $(id).addEventListener('change', syncLinesBtn);
 syncLinesBtn();
-window.midi3d = { engine, google, camera, controls, adapt, places: PLACES, sky: nightSky, applyScale, forest, lakes, shadows, gps, route, sight, lidar, post, U, state, prof,
+window.midi3d = { engine, google, camera, controls, adapt, places: PLACES, planGo, trails, sky: nightSky, applyScale, forest, lakes, shadows, gps, route, sight, lidar, post, U, state, prof,
   set overcast(v) { overcast = v; U.haze.value = v; updateSky(); } }; // handy for debugging from the console
 updateSky(); frame(); refreshLive();
 // every 15 minutes while on screen, and at once when the app comes back after being away that long

@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
-import { lonLatToWorld } from './geo.js?v=202610042126';
+import { lonLatToWorld } from './geo.js?v=202610091553';
 
 const STORE = 'midi3d-track', MIN_STEP = 6, MAX_ACC = 35; // metres
 
@@ -79,9 +79,14 @@ export function progressOn(samples, x, z) {
   for (let i = 0; i < samples.length; i++) { const d = Math.hypot(samples[i].x - x, samples[i].z - z); if (d < best) { best = d; bi = i; } }
   // climb and DIN 33466 time of a stretch of the samples
   const part = (i0, i1) => {
-    let up = 0, down = 0, ref = samples[i0].h;
-    for (let i = i0 + 1; i <= i1; i++) { const h = samples[i].h; if (h == null || ref == null) { ref = h ?? ref; continue; } if (h - ref >= 3) { up += h - ref; ref = h; } else if (ref - h >= 3) { down += ref - h; ref = h; } }
-    const th = (samples[i1].d - samples[i0].d) / 4000, tv = up / 300 + down / 500;
+    let up = 0, down = 0, ref = samples[i0].h, dist = 0;
+    for (let i = i0 + 1; i <= i1; i++) {
+      const h = samples[i].h;
+      if (samples[i - 1].lift) { ref = h ?? ref; continue; } // a ride: no walking, no climb
+      dist += samples[i].d - samples[i - 1].d;
+      if (h == null || ref == null) { ref = h ?? ref; continue; } if (h - ref >= 3) { up += h - ref; ref = h; } else if (ref - h >= 3) { down += ref - h; ref = h; }
+    }
+    const th = dist / 4000, tv = up / 300 + down / 500;
     return { up, down, hours: Math.max(th, tv) + Math.min(th, tv) / 2 };
   };
   const ahead = part(bi, samples.length - 1), behind = part(0, bi), total = samples[samples.length - 1].d;

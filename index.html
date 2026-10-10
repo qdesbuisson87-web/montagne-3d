@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202610101240">
+<link rel="stylesheet" href="css/app.css?v=202610101406">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -55,6 +55,9 @@
   <p>Terrain nu (LiDAR IGN), sans la neige. Ne remplace pas le bulletin d'avalanche.</p>
 </aside>
 </div>
+
+<!-- the hike shown on the map: started here, ended here -->
+<button id="hikeGo" type="button" class="hikego" hidden></button>
 
 <!-- map buttons, where the thumb is: quick switches, then "locate me" -->
 <div id="tools" class="tools" role="toolbar" aria-label="Outils de la carte" aria-orientation="vertical">
@@ -257,6 +260,7 @@
 
   <div id="plannedCard" class="rcard planned" hidden aria-live="polite"></div>
   <div id="routeCard" class="rcard" hidden>
+    <button id="routeGo" type="button" class="startbtn">Démarrer la rando</button>
     <div id="routeOut"></div>
     <div id="walkOut"></div>
     <div class="btns">
@@ -421,6 +425,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202610101240"></script>
+<script type="module" src="js/app.js?v=202610101406"></script>
 </body>
 </html>

@@ -2,8 +2,8 @@
 // network of footpaths, tracks and roads). The service starts and ends on the nearest path: when the chosen
 // point is off the paths (a summit, a glacier) the itinerary says how far from it the paths end, and never
 // invents the rest (alpine terrain is not a footpath).
-import { lonLatToWorld } from './geo.js?v=202610101240';
-import { cachedFetch } from './net.js?v=202610101240';
+import { lonLatToWorld } from './geo.js?v=202610101406';
+import { cachedFetch } from './net.js?v=202610101406';
 
 // vias: points to pass by on the way, in order (a loop: start = end, vias around)
 const URL_ = (a, b, vias = []) => `https://data.geopf.fr/navigation/itineraire?resource=bdtopo-pgr&profile=pedestrian&optimization=shortest&start=${a.lon.toFixed(6)},${a.lat.toFixed(6)}&end=${b.lon.toFixed(6)},${b.lat.toFixed(6)}${vias.length ? `&intermediates=${vias.map(v => `${v.lon.toFixed(6)},${v.lat.toFixed(6)}`).join('|')}` : ''}&geometryFormat=geojson&getSteps=false`;

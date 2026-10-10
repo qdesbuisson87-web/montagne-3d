@@ -77,6 +77,14 @@ le temps et les tokens nécessaires. Ne jamais sacrifier la qualité pour aller 
 - Réouverture après écran verrouillé : la progression est gardée (`midi3d-progress`, avec l'itinéraire) ; sans elle, la distance déjà enregistrée départage l'aller du retour. Testé : enregistrement à 80 % d'un aller-retour, appli rouverte → « Reste 1,6 km » (juste), enregistrement repris. Pendant l'écran éteint : aucun point GPS (ligne droite entre avant et après), aucune alerte ; une vraie appli Android (Capacitor + GPS en arrière-plan) est proposée au propriétaire, en attente de son choix (iPhone ou Android).
 - Liseré blanc à la frontière (photo IGN lissée vers le blanc) : les pixels presque blancs à moins de 2 px du blanc pur prennent aussi l'image Sentinel-2.
 
+## Démarrer une rando (10/10/2026, « au lac de Divonne, comment lancer la rando ? impossible »)
+- Cause : il n'y avait pas de « démarrer ». Après le choix d'une rando, il fallait rouvrir Rando et deviner que « Enregistrer ma sortie » servait à ça.
+- Grand bouton vert **« Démarrer la rando »** sur la carte, au-dessus des onglets (`#hikeGo`), dès qu'un itinéraire est chargé, et le même en haut de la fiche de l'itinéraire (`#routeGo`). Il démarre tout : GPS, vue sur moi qui me suit, enregistrement (écran éteint dans l'appli Android), décompte le long de la ligne. Le panneau se ferme.
+- Pendant la rando, il devient rouge, **« Terminer la rando »** : deux touchers (le premier l'arme 4 s), l'enregistrement s'arrête et la sortie est gardée dans « Mes sorties », sous le nom de l'itinéraire si on l'a suivi.
+- Nouveau départ = depuis le début (progression précédente oubliée). Une ancienne trace dont le dernier point date de plus de 3 h est d'abord rangée dans « Mes sorties ».
+- Avant d'avoir rejoint la ligne (marche depuis le parking) : « Rejoins l'itinéraire : la ligne est à X m », avec un lien « Y aller en voiture » au-delà de 2 km. Pas d'alerte « tu t'écartes » tant qu'on ne l'a pas rejointe.
+- Testé (navigateur intégré, GPS simulé, 1280×800 et 390×844 sans chevauchement) : départ à 680 m de la ligne, reste de 1,3 km à « Arrivé au bout », fin en deux touchers, sortie gardée sous le nom de l'itinéraire, relance du même itinéraire repartie de zéro. PAS testé : vrai téléphone sur place.
+
 ## Bouton « Me localiser » (10/10/2026, « j'ai l'impression qu'il ne fonctionne pas sur mon tel »)
 - Cause : aucun retour visible. Les erreurs (refus, GPS coupé, lenteur) ne s'écrivaient que dans l'onglet Rando, et la première position précise peut prendre plus de 30 s. Le bouton devenait juste bleu.
 - Maintenant (gps.js, app.js `gpsUi`) :

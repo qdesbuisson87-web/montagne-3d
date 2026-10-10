@@ -1,46 +1,46 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610101240';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610101240';
-import { SITE, SITE_LIST, nearestSite } from './sites.js?v=202610101240';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610101240';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610101240';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610101240';
-import { searchPlaces } from './search.js?v=202610101240';
-import { TerrainShadows } from './shadows.js?v=202610101240';
-import { PostFX } from './post.js?v=202610101240';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610101240';
-import { Forest } from './forest.js?v=202610101240';
-import { Lakes } from './water.js?v=202610101240';
-import { Glaciers } from './glaciers.js?v=202610101240';
-import { makeSite, removeSite, customSites } from './custom.js?v=202610101240';
-import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610101240';
-import { Streams } from './streams.js?v=202610101240';
-import { Refuges } from './refuges.js?v=202610101240';
-import { NightLights } from './lights.js?v=202610101240';
-import { Buildings } from './buildings.js?v=202610101240';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610101240';
-import { PLACE_KINDS, loadMyPlaces, saveMyPlaces, listOutings, putOuting, deleteOuting, thin, totals, backup, restore } from './mydata.js?v=202610101240';
-import { loadPlanned, savePlanned, scheduleReminders, cancelReminders, reminderTopic, leaveAt } from './planned.js?v=202610101240';
-import { junctions, say } from './guide.js?v=202610101240';
-import { TrackRecorder, progressOn } from './track.js?v=202610101240';
-import { GpsTracker, NATIVE } from './gps.js?v=202610101240';
-import { RouteLayer, resamplePath, pathStats, netString } from './route.js?v=202610101240';
-import { liftPlans, altitudes } from './liftplan.js?v=202610101240';
-import { walkingRoute } from './planner.js?v=202610101240';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES, hikesAround } from './hikes.js?v=202610101240';
-import { hikesNear, parseQuery, matches } from './nearby.js?v=202610101240';
-import { makeLoop } from './loops.js?v=202610101240';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610101240';
-import { TrailsLayer } from './trails.js?v=202610101240';
-import { Weather3D } from './weather3d.js?v=202610101240';
-import { Sight } from './sight.js?v=202610101240';
-import { Photos360 } from './photos360.js?v=202610101240';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610101240';
-import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, routeForecast, cloudProfile, SPOTS } from './live.js?v=202610101240';
-import { VolumeClouds } from './clouds.js?v=202610101240';
-import { LiveShare, LiveFollow } from './share.js?v=202610101240';
-import { NightSky } from './sky.js?v=202610101240';
-import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise, walkability, exposure, skiStats, SKI_BINS } from './routebook.js?v=202610101240';
+import { EarthControls } from './controls.js?v=202610101406';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610101406';
+import { SITE, SITE_LIST, nearestSite } from './sites.js?v=202610101406';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610101406';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610101406';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610101406';
+import { searchPlaces } from './search.js?v=202610101406';
+import { TerrainShadows } from './shadows.js?v=202610101406';
+import { PostFX } from './post.js?v=202610101406';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610101406';
+import { Forest } from './forest.js?v=202610101406';
+import { Lakes } from './water.js?v=202610101406';
+import { Glaciers } from './glaciers.js?v=202610101406';
+import { makeSite, removeSite, customSites } from './custom.js?v=202610101406';
+import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610101406';
+import { Streams } from './streams.js?v=202610101406';
+import { Refuges } from './refuges.js?v=202610101406';
+import { NightLights } from './lights.js?v=202610101406';
+import { Buildings } from './buildings.js?v=202610101406';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610101406';
+import { PLACE_KINDS, loadMyPlaces, saveMyPlaces, listOutings, putOuting, deleteOuting, thin, totals, backup, restore } from './mydata.js?v=202610101406';
+import { loadPlanned, savePlanned, scheduleReminders, cancelReminders, reminderTopic, leaveAt } from './planned.js?v=202610101406';
+import { junctions, say } from './guide.js?v=202610101406';
+import { TrackRecorder, progressOn } from './track.js?v=202610101406';
+import { GpsTracker, NATIVE } from './gps.js?v=202610101406';
+import { RouteLayer, resamplePath, pathStats, netString } from './route.js?v=202610101406';
+import { liftPlans, altitudes } from './liftplan.js?v=202610101406';
+import { walkingRoute } from './planner.js?v=202610101406';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES, hikesAround } from './hikes.js?v=202610101406';
+import { hikesNear, parseQuery, matches } from './nearby.js?v=202610101406';
+import { makeLoop } from './loops.js?v=202610101406';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610101406';
+import { TrailsLayer } from './trails.js?v=202610101406';
+import { Weather3D } from './weather3d.js?v=202610101406';
+import { Sight } from './sight.js?v=202610101406';
+import { Photos360 } from './photos360.js?v=202610101406';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610101406';
+import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, routeForecast, cloudProfile, SPOTS } from './live.js?v=202610101406';
+import { VolumeClouds } from './clouds.js?v=202610101406';
+import { LiveShare, LiveFollow } from './share.js?v=202610101406';
+import { NightSky } from './sky.js?v=202610101406';
+import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise, walkability, exposure, skiStats, SKI_BINS } from './routebook.js?v=202610101406';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -1298,6 +1298,7 @@ function renderGps() {
 }
 
 // ---------- following an outing: recording, what remains, alerts ----------
+const hikeUi = { armedUntil: 0 }; // the end button armed by a first touch (renderHikeGo)
 const trip = { off: 0, offAlert: false, sunAlert: false, sun: null, sunDay: '', stormAt: 0, storm: null, stormSaid: null };
 // During an outing (recording, or position shared): every 30 minutes the Météo-France forecast at the walker's
 // place and altitude is read for the next 3 hours; a thunderstorm in it (codes 95, 96, 99) is said, with its hour,
@@ -1320,16 +1321,18 @@ function tripFix() {
   // followed forwards along the line (there and back, loops); a new itinerary starts from its beginning
   // kept on the device too: the app closed (screen locked) on the way back, it knows again where one is on reopening
   if (trip.progKey !== routeKey) {
-    trip.progKey = routeKey; trip.progIdx = null;
-    try { const s = JSON.parse(localStorage.getItem('midi3d-progress') || 'null'); if (s?.key === routeKey) trip.progIdx = s.index; } catch { }
+    trip.progKey = routeKey; trip.progIdx = null; trip.joined = false;
+    try { const s = JSON.parse(localStorage.getItem('midi3d-progress') || 'null'); if (s?.key === routeKey) { trip.progIdx = s.index; trip.joined = true; } } catch { }
   }
   const prog = route.samples.length > 1 ? progressOn(route.samples, p.x, p.z, trip.progIdx, track.recording ? track.stats()?.dist ?? null : null) : null;
   if (prog && prog.off < 80 && prog.index !== trip.progIdx) {
     trip.progIdx = prog.index;
     try { localStorage.setItem('midi3d-progress', JSON.stringify({ key: routeKey, index: prog.index })); } catch { }
   }
-  // off the itinerary: farther than 60 m beyond the GPS uncertainty on three fixes in a row
-  if (prog && prog.off > 60 + p.acc) { if (++trip.off >= 3 && !trip.offAlert) { trip.offAlert = true; buzz([200, 100, 200]); notify('Hors de l\'itinéraire', `Tu t'écartes de la ligne : à ${fmt(prog.off)} m.`); } }
+  // off the itinerary: farther than 60 m beyond the GPS uncertainty on three fixes in a row, once one has been on it
+  // (walking from the car park to the start is not being lost)
+  if (prog && prog.off < 40 + p.acc) trip.joined = true;
+  if (prog && trip.joined && prog.off > 60 + p.acc) { if (++trip.off >= 3 && !trip.offAlert) { trip.offAlert = true; buzz([200, 100, 200]); notify('Hors de l\'itinéraire', `Tu t'écartes de la ligne : à ${fmt(prog.off)} m.`); } }
   else { trip.off = 0; trip.offAlert = false; }
   trip.prog = prog; trip.next = guideFix(prog);
   // the day's sunset where one stands (computed once a day)
@@ -1347,6 +1350,11 @@ function renderTrip() {
     let pace = 1;
     if (track.recording && st && prog.doneHours > 0.25 && st.hours > 0.25) pace = Math.min(2.5, Math.max(0.5, st.hours / prog.doneHours));
     const hoursLeft = prog.hours * pace, eta = new Date(Date.now() + hoursLeft * 3600e3);
+    if (!trip.joined && prog.off > 40) {
+      const [x0, z0] = route.pts[0], [lon0, lat0] = worldToLonLat(x0, z0), far = prog.off > 2000;
+      const car = isIOS ? `https://maps.apple.com/?daddr=${lat0},${lon0}&dirflg=d` : `https://www.google.com/maps/dir/?api=1&destination=${lat0},${lon0}&travelmode=driving`;
+      lines.push(`<span class="warn">Rejoins l'itinéraire : la ligne est à ${prog.off < 1000 ? `${fmt(prog.off)} m` : `${t1(prog.off / 1000)} km`}</span>, départ au point vert D. Le décompte commence dessus.${far ? ` <a href="${car}" target="_blank" rel="noopener">Y aller en voiture</a>` : ''}`);
+    }
     lines.push(prog.left < 30 ? "Arrivé au bout de l'itinéraire." : `Reste ${t1(prog.left / 1000)} km · +${fmt(prog.up)} m · −${fmt(prog.down)} m · ${hm(hoursLeft)}${pace !== 1 ? ' à ton rythme' : ''} → arrivée vers ${hhmm(eta)}`);
     if (trip.offAlert) lines.push(`<span class="bad">Tu t'écartes de l'itinéraire : à ${fmt(prog.off)} m de la ligne.</span>`);
     else if (trip.next && trip.next.left < 400) lines.push(`Croisement dans ${fmt(Math.max(0, trip.next.left))} m : ${esc(trip.next.j.text)}${trip.next.j.toward ? `, direction ${esc(trip.next.j.toward)}` : ''}`);
@@ -1366,6 +1374,7 @@ function renderTrip() {
   $('trkGoT').textContent = track.recording ? "Arrêter l'enregistrement" : track.pts.length ? "Reprendre l'enregistrement" : 'Enregistrer ma sortie';
   $('trkGoS').textContent = track.recording && st ? `En cours : ${t1(st.dist / 1000)} km · +${fmt(st.up)} m · ${hm(st.hours)}` : 'Ma trace GPS, distance, dénivelé';
   $('trkSave').hidden = track.pts.length < 2;
+  renderHikeGo();
   $('trkInfo').textContent = track.recording ? (NATIVE ? "Tu peux éteindre l'écran : Altipik continue d'enregistrer et d'annoncer les croisements (notification « Altipik suit ta sortie »)." : "L'écran reste allumé pendant l'enregistrement : verrouillé, le téléphone met l'appli en pause et la trace s'interrompt (l'application Android, elle, continue écran éteint).")
     : st ? `Trace gardée : ${t1(st.dist / 1000)} km, +${fmt(st.up)} m, ${fmt(st.count)} points (export et effacement dans « Ma position et ma trace »).` : '';
 }
@@ -1406,7 +1415,7 @@ $('gpsGo').addEventListener('click', () => { if (gps.on) gps.stop(); else { gpsC
 const hm = h => { const m = Math.round(h * 60 / 5) * 5; return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`; };
 const km = d => (d / 1000).toLocaleString('fr-FR', { maximumFractionDigits: d < 10000 ? 2 : 1 });
 // the itinerary laid on the relief again, and its card in "Rando"
-function renderRoute() { route.drape(state.exag); renderRouteCard(); }
+function renderRoute() { route.drape(state.exag); renderRouteCard(); renderHikeGo(); }
 let routeSig = '', routeKey = '';
 // on foot or on skis (ski touring): the numbers, the verdict and the colours on the map follow (kept on the device)
 const activity = { v: (() => { try { return localStorage.getItem('midi3d-activity') || 'foot'; } catch { return 'foot'; } })() };
@@ -1462,7 +1471,7 @@ function routeReady(what) {
   const st = route.stats();
   if (sidePanel()) { openSheet('route', true); $('sheet-route').scrollTop = 0; $('routeCard').classList.remove('flash'); void $('routeCard').offsetWidth; $('routeCard').classList.add('flash'); }
   else closeSheets();
-  toast(`${what}${st ? ` : ${km(st.dist)} km · +${fmt(st.up)} m · ${hm(st.hours)}` : ''}. Détails dans « Rando ».`, false, 4500);
+  toast(`${what}${st ? ` : ${km(st.dist)} km · +${fmt(st.up)} m · ${hm(st.hours)}` : ''}. Sur place, touche « Démarrer la rando ».`, false, 5000);
 }
 $('routeOut').addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b || b.dataset.act === activity.v) return;
@@ -2187,17 +2196,58 @@ async function keepOuting(o) {
   try { await putOuting(o); } catch { toast("Impossible de garder la sortie dans ce navigateur (stockage refusé).", true); return false; }
   await loadOutings(); $('d-outings').open = true; return true;
 }
-$('trkSave').addEventListener('click', async () => {
-  if (track.pts.length < 2) return;
+$('trkSave').addEventListener('click', () => saveTrack());
+// the recorded trace kept in my outings (then cleared); its numbers, or null
+async function saveTrack() {
+  if (track.pts.length < 2) return null;
   // start: the recording's, or its first position if earlier (a recording resumed after a reload); never negative
   const st = track.stats(), started = Math.min(track.started ?? Infinity, track.pts[0].t), end = track.pts[track.pts.length - 1].t, pts = thin(track.pts);
   st.hours = Math.max(0, (end - started) / 3600e3);
-  // the itinerary followed, when the walk began near its start: its name for the outing
-  const r0 = route.pts[0], p0 = track.pts[0], followed = r0 && Math.hypot(r0[0] - p0.x, r0[1] - p0.z) < 400 && route.name;
+  // the itinerary followed (the walk began near its start, or reached its line): its name for the outing
+  const r0 = route.pts[0], p0 = track.pts[0], followed = r0 && (trip.joined || Math.hypot(r0[0] - p0.x, r0[1] - p0.z) < 400) && route.name;
   const o = { id: Date.now().toString(36), kind: 'trace', site: SITE.id, date: started, end, name: followed || `Sortie du ${new Date(started).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`, pts, stats: { ...outingStats(pts), dist: st.dist, up: st.up, down: st.down, hours: st.hours } };
-  if (!(await keepOuting(o))) return;
-  track.clear(); renderTrip(); toast(`Sortie gardée : ${t1(st.dist / 1000)} km, +${fmt(st.up)} m, ${hm(st.hours)}.`, false, 5000);
-});
+  if (!(await keepOuting(o))) return null;
+  track.clear(); renderTrip(); toast(`Sortie gardée dans « Mes sorties » : ${t1(st.dist / 1000)} km, +${fmt(st.up)} m, ${hm(st.hours)}.`, false, 6000);
+  return st;
+}
+
+// ---------- starting and ending a hike: one button on the map, and the same at the top of the itinerary card ----------
+// There was no "start": one had to reopen Rando and guess that "Enregistrer ma sortie" was it (owner, 10/10, at the
+// lac de Divonne: "comment lancer la rando ? impossible"). Start = GPS on, the view on me and following, recording
+// (screen off in the Android app), what remains along the line; end (two touches) = recording stopped, outing kept.
+function renderHikeGo() {
+  const rec = track.recording, show = rec || route.pts.length > 1, armed = rec && hikeUi.armedUntil > Date.now();
+  const text = rec ? (armed ? 'Toucher encore : terminer' : `Terminer ${route.pts.length > 1 ? 'la rando' : 'la sortie'}`) : 'Démarrer la rando';
+  for (const b of [$('hikeGo'), $('routeGo')]) { b.textContent = text; b.classList.toggle('stop', rec); b.classList.toggle('armed', armed); }
+  $('hikeGo').hidden = !show; document.body.classList.toggle('hasgo', show);
+}
+async function hikeStart() {
+  if (route.pts.length < 2) return;
+  // a trace left from another outing (last point more than 3 h ago) goes to my outings first: the hike starts from zero
+  if (track.pts.length >= 2 && Date.now() - track.pts[track.pts.length - 1].t > 3 * 3600e3) await saveTrack();
+  else if (track.pts.length === 1) track.clear();
+  // a new start of the itinerary: from its beginning (the progress kept from a previous time is dropped)
+  trip.off = 0; trip.offAlert = false; trip.sunAlert = false; trip.progKey = routeKey; trip.progIdx = null; trip.joined = false;
+  try { localStorage.removeItem('midi3d-progress'); } catch { }
+  gps.setBackground(true); track.start(); if (NATIVE) askNotify();
+  gpsUi.asked = true; gpsUi.follow = true;
+  if (!gps.on) { gpsCentered = false; gps.start(); } else if (gps.pos) { gpsCentered = true; centerOnGps(); }
+  gpsButton(); closeSheets();
+  toast(`C'est parti : ${route.name || 'ta rando'}. ${NATIVE ? "Tu peux éteindre l'écran : Altipik suit ta sortie et te prévient." : "Garde l'écran allumé : verrouillé, le navigateur met l'appli en pause (l'application Android, elle, continue)."}`, false, 7000);
+  tripFix();
+}
+async function hikeEnd() {
+  if (hikeUi.armedUntil <= Date.now()) {
+    hikeUi.armedUntil = Date.now() + 4000; renderHikeGo(); setTimeout(renderHikeGo, 4100);
+    toast('Touche encore le bouton pour terminer et garder ta sortie.', false, 4000); return;
+  }
+  hikeUi.armedUntil = 0; track.stop(); gps.setBackground(false);
+  if (!(await saveTrack()) && track.pts.length < 2) { track.clear(); toast('Rando terminée : pas assez de positions GPS pour garder une trace.', false, 5000); }
+  renderTrip();
+}
+const hikeGoClick = () => track.recording ? hikeEnd() : hikeStart();
+$('hikeGo').addEventListener('click', hikeGoClick);
+$('routeGo').addEventListener('click', hikeGoClick);
 $('routeDone').addEventListener('click', async () => {
   if (route.pts.length < 2) { toast("Charge d'abord un itinéraire.", true); return; }
   const day = $('doneDate').value ? new Date(`${$('doneDate').value}T09:00:00`) : new Date();

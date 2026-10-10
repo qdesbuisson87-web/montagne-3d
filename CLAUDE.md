@@ -48,6 +48,15 @@ le temps et les tokens nécessaires. Ne jamais sacrifier la qualité pour aller 
 - Hauteur de neige au sol des modèles Open-Meteo : incohérente en haute montagne (46 cm à 2 800 m, 0 à 3 842 m). Pas affichée.
 - Mélanger les tuiles 3D Google avec l'IGN : interdit par les conditions Google. Un mode Google 3D séparé est possible.
 
+## Bouton « Me localiser » (10/10/2026, « j'ai l'impression qu'il ne fonctionne pas sur mon tel »)
+- Cause : aucun retour visible. Les erreurs (refus, GPS coupé, lenteur) ne s'écrivaient que dans l'onglet Rando, et la première position précise peut prendre plus de 30 s. Le bouton devenait juste bleu.
+- Maintenant (gps.js, app.js `gpsUi`) :
+  - message « Recherche de ta position… », le bouton clignote ;
+  - position approximative tout de suite (réseau, `getCurrentPosition` sans haute précision), puis la position GPS précise : « Te voilà : à ±X m » ;
+  - refus : message avec le chemin des réglages (iPhone ou Android), y compris quand la permission était déjà refusée (`navigator.permissions`) ;
+  - la carte suit ma position en marchant (déplacement > 15 m) jusqu'à ce qu'on la bouge à la main ; un nouvel appui recentre et reprend le suivi (centre du bouton rempli).
+- Testé avec une géolocalisation simulée : refus réel du navigateur de test (bon message), puis autorisée (recherche → approximative → précise → suivi 0 m après 280 m de marche, arrêt du suivi au déplacement manuel, reprise à l'appui). PAS testé sur un vrai téléphone.
+
 ## Nuit du 08 au 09/10/2026 (« qu'on ne puisse pas rentrer dans les montagnes, corrige tous les bugs, ajoute des fonctions, chacun sa propre appli, historique des randos »)
 - **Plus d'entrée dans les montagnes** (controls.js, app.js) : la caméra se tient au-dessus du plus haut entre la donnée la plus fine et le relief *dessiné* (`engine.drawnHeightAt`, sur les triangles mêmes de la carte graphique : une tuile grossière peut être plus haute sur une paroi), sous elle et sur un cercle de 3 m autour (`CLEAR`). Le plan de coupe proche se règle sur la distance réelle au relief tout autour (`reliefDistance`, anneaux jusqu'à 300 m) et plus seulement en dessous : à 300 m au-dessus de la vallée mais à 2 m d'une paroi, il était à 45 m et coupait la paroi (« on voit dedans »). Testé : zoom molette à fond contre la face nord du Midi (arrêt à 12 m, à ~10 m de la roche), tour complet collé à la paroi presque à l'horizontale : jamais dedans, jamais coupé (≥ 3,4 m de la roche).
 - **Jointures du relief remises** (requête WMS-R alignée + raccord des bords, sans le glissement entre niveaux) : 0,000 m d'écart sur 176 jointures.

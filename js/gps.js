@@ -2,7 +2,7 @@
 // relief with the accuracy as a disc around it. The altitude shown is the relief's under the position (LiDAR),
 // far more reliable than a phone's GPS altitude, which is given alongside for information.
 import * as THREE from 'three';
-import { lonLatToWorld } from './geo.js?v=202610091553';
+import { lonLatToWorld } from './geo.js?v=202610101044';
 
 export class GpsTracker {
   constructor({ scene, onChange }) {
@@ -16,21 +16,29 @@ export class GpsTracker {
     this.group.add(this.disc, this.halo, this.dot);
   }
   get on() { return this.watch != null; }
+  // Started from a touch (phones ask for the permission only then). A first, rough position comes at once from the
+  // network (Wi-Fi, mobile cells, last known fix): the satellites can take a minute indoors or in a valley, and
+  // a button that seems to do nothing for that long looks broken. The precise GPS then replaces it.
   start() {
-    this.error = null;
-    if (!('geolocation' in navigator)) { this.error = "Cet appareil ne donne pas sa position."; this.onChange?.(); return; }
-    if (!self.isSecureContext) { this.error = "La position n'est disponible qu'en https (l'appli en ligne) ."; this.onChange?.(); return; }
-    this.watch = navigator.geolocation.watchPosition(p => {
+    this.error = null; this.errorCode = 0;
+    if (!('geolocation' in navigator)) { this.error = "Cet appareil ou ce navigateur ne donne pas sa position."; this.errorCode = -1; this.onChange?.(); return; }
+    if (!self.isSecureContext) { this.error = "La position n'est disponible qu'en https (l'appli en ligne)."; this.errorCode = -1; this.onChange?.(); return; }
+    const fix = (p, rough) => {
       const c = p.coords, [x, z] = lonLatToWorld(c.longitude, c.latitude);
-      this.pos = { lon: c.longitude, lat: c.latitude, acc: c.accuracy, gpsAlt: c.altitude, heading: c.heading, speed: c.speed, time: new Date(p.timestamp), x, z };
-      this.error = null; this.group.visible = true; this.onChange?.();
-    }, e => {
-      this.error = { 1: "Localisation refusée : autorise-la pour ce site dans les réglages du navigateur.", 2: "Position introuvable pour l'instant (pas de signal GPS ?).", 3: "La position met trop de temps à venir ; nouvel essai en cours." }[e.code] ?? e.message;
+      if (rough && this.pos && !this.pos.rough) return; // the precise fix came first
+      this.pos = { lon: c.longitude, lat: c.latitude, acc: c.accuracy, gpsAlt: c.altitude, heading: c.heading, speed: c.speed, time: new Date(p.timestamp), x, z, rough };
+      this.error = null; this.errorCode = 0; this.group.visible = true; this.onChange?.();
+    };
+    const fail = e => {
+      this.errorCode = e.code;
+      this.error = { 1: 'Localisation refusée.', 2: "Position introuvable pour l'instant (localisation du téléphone coupée, ou pas de signal).", 3: 'La position met du temps à venir : nouvel essai en cours (dehors, le GPS la trouve plus vite).' }[e.code] ?? e.message;
       this.onChange?.();
-    }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });
+    };
+    if (!this.pos) navigator.geolocation.getCurrentPosition(p => this.watch != null && fix(p, true), () => { }, { enableHighAccuracy: false, maximumAge: 300000, timeout: 10000 });
+    this.watch = navigator.geolocation.watchPosition(p => fix(p, false), fail, { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });
     this.onChange?.();
   }
-  stop() { if (this.watch != null) navigator.geolocation.clearWatch(this.watch); this.watch = null; this.group.visible = false; this.onChange?.(); }
+  stop() { if (this.watch != null) navigator.geolocation.clearWatch(this.watch); this.watch = null; this.pos = null; this.group.visible = false; this.onChange?.(); }
   // every frame: sit on the relief, keep the dot a readable size on screen
   update(camera, groundAt, exag) {
     if (!this.pos || !this.group.visible) return;

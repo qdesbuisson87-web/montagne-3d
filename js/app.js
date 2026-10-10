@@ -1,44 +1,44 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610091553';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610091553';
-import { SITE, SITE_LIST } from './sites.js?v=202610091553';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610091553';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610091553';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610091553';
-import { searchPlaces } from './search.js?v=202610091553';
-import { TerrainShadows } from './shadows.js?v=202610091553';
-import { PostFX } from './post.js?v=202610091553';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610091553';
-import { Forest } from './forest.js?v=202610091553';
-import { Lakes } from './water.js?v=202610091553';
-import { Glaciers } from './glaciers.js?v=202610091553';
-import { makeSite, removeSite, customSites } from './custom.js?v=202610091553';
-import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610091553';
-import { Streams } from './streams.js?v=202610091553';
-import { Refuges } from './refuges.js?v=202610091553';
-import { NightLights } from './lights.js?v=202610091553';
-import { Buildings } from './buildings.js?v=202610091553';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610091553';
-import { PLACE_KINDS, loadMyPlaces, saveMyPlaces, listOutings, putOuting, deleteOuting, thin, totals, backup, restore } from './mydata.js?v=202610091553';
-import { loadPlanned, savePlanned, scheduleReminders, cancelReminders, reminderTopic, leaveAt } from './planned.js?v=202610091553';
-import { junctions, say } from './guide.js?v=202610091553';
-import { TrackRecorder, progressOn } from './track.js?v=202610091553';
-import { GpsTracker } from './gps.js?v=202610091553';
-import { RouteLayer, resamplePath, pathStats, netString } from './route.js?v=202610091553';
-import { liftPlans, altitudes } from './liftplan.js?v=202610091553';
-import { walkingRoute } from './planner.js?v=202610091553';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610091553';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610091553';
-import { TrailsLayer } from './trails.js?v=202610091553';
-import { Weather3D } from './weather3d.js?v=202610091553';
-import { Sight } from './sight.js?v=202610091553';
-import { Photos360 } from './photos360.js?v=202610091553';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610091553';
-import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, routeForecast, cloudProfile, SPOTS } from './live.js?v=202610091553';
-import { VolumeClouds } from './clouds.js?v=202610091553';
-import { LiveShare, LiveFollow } from './share.js?v=202610091553';
-import { NightSky } from './sky.js?v=202610091553';
-import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise, walkability, exposure, skiStats, SKI_BINS } from './routebook.js?v=202610091553';
+import { EarthControls } from './controls.js?v=202610101044';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610101044';
+import { SITE, SITE_LIST } from './sites.js?v=202610101044';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610101044';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610101044';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610101044';
+import { searchPlaces } from './search.js?v=202610101044';
+import { TerrainShadows } from './shadows.js?v=202610101044';
+import { PostFX } from './post.js?v=202610101044';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610101044';
+import { Forest } from './forest.js?v=202610101044';
+import { Lakes } from './water.js?v=202610101044';
+import { Glaciers } from './glaciers.js?v=202610101044';
+import { makeSite, removeSite, customSites } from './custom.js?v=202610101044';
+import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610101044';
+import { Streams } from './streams.js?v=202610101044';
+import { Refuges } from './refuges.js?v=202610101044';
+import { NightLights } from './lights.js?v=202610101044';
+import { Buildings } from './buildings.js?v=202610101044';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610101044';
+import { PLACE_KINDS, loadMyPlaces, saveMyPlaces, listOutings, putOuting, deleteOuting, thin, totals, backup, restore } from './mydata.js?v=202610101044';
+import { loadPlanned, savePlanned, scheduleReminders, cancelReminders, reminderTopic, leaveAt } from './planned.js?v=202610101044';
+import { junctions, say } from './guide.js?v=202610101044';
+import { TrackRecorder, progressOn } from './track.js?v=202610101044';
+import { GpsTracker } from './gps.js?v=202610101044';
+import { RouteLayer, resamplePath, pathStats, netString } from './route.js?v=202610101044';
+import { liftPlans, altitudes } from './liftplan.js?v=202610101044';
+import { walkingRoute } from './planner.js?v=202610101044';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610101044';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610101044';
+import { TrailsLayer } from './trails.js?v=202610101044';
+import { Weather3D } from './weather3d.js?v=202610101044';
+import { Sight } from './sight.js?v=202610101044';
+import { Photos360 } from './photos360.js?v=202610101044';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610101044';
+import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, routeForecast, cloudProfile, SPOTS } from './live.js?v=202610101044';
+import { VolumeClouds } from './clouds.js?v=202610101044';
+import { LiveShare, LiveFollow } from './share.js?v=202610101044';
+import { NightSky } from './sky.js?v=202610101044';
+import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise, walkability, exposure, skiStats, SKI_BINS } from './routebook.js?v=202610101044';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -1209,11 +1209,53 @@ function centerOnGps() {
   const p = gps.pos; if (!p) return;
   const g = groundAt(p.x, p.z) ?? p.gpsAlt ?? controls.target.y, t = new THREE.Vector3(p.x, g * state.exag, p.z);
   let dir = camera.position.clone().sub(controls.target).normalize(); if (dir.y < 0.3) { dir.y = 0.5; dir.normalize(); }
-  engine.ensureRoots(p.x, p.z, 45000); startFly(t, t.clone().addScaledVector(dir, 1200), 1800);
+  engine.ensureRoots(p.x, p.z, 45000); startFly(t, t.clone().addScaledVector(dir, 1200), 1800); gpsUi.at = { x: p.x, z: p.z };
 }
+// following: same distance and angle of view, the look-at point on me
+function followMe() {
+  const p = gps.pos, g = groundAt(p.x, p.z) ?? p.gpsAlt ?? controls.target.y, t = new THREE.Vector3(p.x, g * state.exag, p.z);
+  const off = camera.position.clone().sub(controls.target);
+  startFly(t, t.clone().add(off), 900); gpsUi.at = { x: p.x, z: p.z };
+}
+// The "me" button: asked → searching (the button pulses, a message says so), found → the view flies there and then
+// follows me as I walk, until the map is moved by hand; touched again → back on me, following again. Whatever
+// goes wrong is said on screen, with where to switch it on (it only showed in the Rando panel: on a phone the
+// button seemed to do nothing).
+const gpsUi = { asked: false, said: 0, follow: false, at: null };
+const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const deniedHelp = () => isIOS
+  ? "Localisation refusée. Sur iPhone : Réglages → Confidentialité et sécurité → Service de localisation : activé, puis ton navigateur (Safari…) : « Lorsque l'app est active ». Dans Safari, aA → Réglages du site → Position : Autoriser. Puis recharge la page."
+  : "Localisation refusée. Touche le cadenas (ou ⓘ) à gauche de l'adresse → Autorisations → Position : Autoriser, et vérifie que la localisation du téléphone est activée. Puis recharge la page.";
+function gpsButton() {
+  const b = $('gpsFab');
+  b.setAttribute('aria-pressed', gps.on); b.classList.toggle('seeking', gps.on && !gps.pos); b.classList.toggle('follow', gps.on && gpsUi.follow);
+  b.setAttribute('aria-label', !gps.on ? 'Me localiser' : !gps.pos ? 'Recherche de ma position' : gpsUi.follow ? 'La carte me suit' : 'Revenir sur ma position');
+}
+$('gpsFab').addEventListener('click', () => {
+  if (!gps.on) {
+    gpsUi.asked = true; gpsUi.said = 0; gpsUi.follow = true; gpsCentered = false;
+    gps.start(); // straight from the touch: phones only ask for the permission then
+    if (gps.on) toast('Recherche de ta position…', false, 4000);
+    // a permission already refused: no question will come, say at once how to allow it
+    navigator.permissions?.query({ name: 'geolocation' }).then(st => { if (st.state === 'denied') { toast(deniedHelp(), true, 12000); gps.stop(); } }).catch(() => { });
+  } else if (!gps.pos) toast(gps.error ?? "Toujours en recherche de ta position… (dehors, le GPS la trouve plus vite)", !!gps.error, 4500);
+  else { gpsUi.follow = true; centerOnGps(); toast(`Te voilà (à ±${fmt(gps.pos.acc)} m). La carte te suit tant que tu ne la déplaces pas.`, false, 3500); }
+  gpsButton();
+});
+// the map moved by hand: it stops following
+controls.addEventListener('start', () => { if (gpsUi.follow) { gpsUi.follow = false; gpsButton(); } });
 function renderGps() {
-  const on = gps.on; $('gpsFab').setAttribute('aria-pressed', on); $('gpsGo').textContent = on ? 'Arrêter la localisation' : 'Me localiser';
+  const on = gps.on; $('gpsGo').textContent = on ? 'Arrêter la localisation' : 'Me localiser';
   const p = gps.pos;
+  if (gpsUi.asked && gps.errorCode && gps.errorCode !== gpsUi.said) { // each new trouble said once, when asked from the button
+    gpsUi.said = gps.errorCode;
+    if (gps.errorCode === 1) { toast(deniedHelp(), true, 12000); gps.stop(); } else toast(gps.error, gps.errorCode !== 3, 6000);
+  }
+  if (p && gpsUi.asked && !gpsUi.found) { gpsUi.found = true; toast(`Te voilà${p.rough ? " (position approximative, le GPS l'affine)" : ''} : à ±${fmt(p.acc)} m.`, false, 3500); }
+  if (!on) gpsUi.found = false;
+  // following: the view glides to me when I have moved more than 15 m
+  if (p && on && gpsUi.follow && gpsCentered && gpsUi.at && Math.hypot(p.x - gpsUi.at.x, p.z - gpsUi.at.z) > 15) followMe();
+  gpsButton();
   if (gps.error) $('gpsInfo').textContent = gps.error;
   else if (on && !p) $('gpsInfo').textContent = 'Recherche de la position…';
   else if (on && p) {
@@ -1309,7 +1351,6 @@ $('trkClear').addEventListener('click', () => {
 if (track.recording) setTimeout(() => { track.start(); gps.start(); }) ; // after the whole module has run
 setInterval(renderTrip, 30e3);
 $('gpsGo').addEventListener('click', () => { if (gps.on) gps.stop(); else { gpsCentered = false; gps.start(); } });
-$('gpsFab').addEventListener('click', () => { if (!gps.on) { gpsCentered = false; gps.start(); } else centerOnGps(); });
 const hm = h => { const m = Math.round(h * 60 / 5) * 5; return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`; };
 const km = d => (d / 1000).toLocaleString('fr-FR', { maximumFractionDigits: d < 10000 ? 2 : 1 });
 // the itinerary laid on the relief again, and its card in "Rando"

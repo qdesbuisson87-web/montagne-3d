@@ -1,44 +1,45 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610101044';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610101044';
-import { SITE, SITE_LIST } from './sites.js?v=202610101044';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610101044';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610101044';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610101044';
-import { searchPlaces } from './search.js?v=202610101044';
-import { TerrainShadows } from './shadows.js?v=202610101044';
-import { PostFX } from './post.js?v=202610101044';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610101044';
-import { Forest } from './forest.js?v=202610101044';
-import { Lakes } from './water.js?v=202610101044';
-import { Glaciers } from './glaciers.js?v=202610101044';
-import { makeSite, removeSite, customSites } from './custom.js?v=202610101044';
-import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610101044';
-import { Streams } from './streams.js?v=202610101044';
-import { Refuges } from './refuges.js?v=202610101044';
-import { NightLights } from './lights.js?v=202610101044';
-import { Buildings } from './buildings.js?v=202610101044';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610101044';
-import { PLACE_KINDS, loadMyPlaces, saveMyPlaces, listOutings, putOuting, deleteOuting, thin, totals, backup, restore } from './mydata.js?v=202610101044';
-import { loadPlanned, savePlanned, scheduleReminders, cancelReminders, reminderTopic, leaveAt } from './planned.js?v=202610101044';
-import { junctions, say } from './guide.js?v=202610101044';
-import { TrackRecorder, progressOn } from './track.js?v=202610101044';
-import { GpsTracker } from './gps.js?v=202610101044';
-import { RouteLayer, resamplePath, pathStats, netString } from './route.js?v=202610101044';
-import { liftPlans, altitudes } from './liftplan.js?v=202610101044';
-import { walkingRoute } from './planner.js?v=202610101044';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES } from './hikes.js?v=202610101044';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610101044';
-import { TrailsLayer } from './trails.js?v=202610101044';
-import { Weather3D } from './weather3d.js?v=202610101044';
-import { Sight } from './sight.js?v=202610101044';
-import { Photos360 } from './photos360.js?v=202610101044';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610101044';
-import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, routeForecast, cloudProfile, SPOTS } from './live.js?v=202610101044';
-import { VolumeClouds } from './clouds.js?v=202610101044';
-import { LiveShare, LiveFollow } from './share.js?v=202610101044';
-import { NightSky } from './sky.js?v=202610101044';
-import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise, walkability, exposure, skiStats, SKI_BINS } from './routebook.js?v=202610101044';
+import { EarthControls } from './controls.js?v=202610101101';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610101101';
+import { SITE, SITE_LIST } from './sites.js?v=202610101101';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610101101';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610101101';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610101101';
+import { searchPlaces } from './search.js?v=202610101101';
+import { TerrainShadows } from './shadows.js?v=202610101101';
+import { PostFX } from './post.js?v=202610101101';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610101101';
+import { Forest } from './forest.js?v=202610101101';
+import { Lakes } from './water.js?v=202610101101';
+import { Glaciers } from './glaciers.js?v=202610101101';
+import { makeSite, removeSite, customSites } from './custom.js?v=202610101101';
+import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610101101';
+import { Streams } from './streams.js?v=202610101101';
+import { Refuges } from './refuges.js?v=202610101101';
+import { NightLights } from './lights.js?v=202610101101';
+import { Buildings } from './buildings.js?v=202610101101';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610101101';
+import { PLACE_KINDS, loadMyPlaces, saveMyPlaces, listOutings, putOuting, deleteOuting, thin, totals, backup, restore } from './mydata.js?v=202610101101';
+import { loadPlanned, savePlanned, scheduleReminders, cancelReminders, reminderTopic, leaveAt } from './planned.js?v=202610101101';
+import { junctions, say } from './guide.js?v=202610101101';
+import { TrackRecorder, progressOn } from './track.js?v=202610101101';
+import { GpsTracker } from './gps.js?v=202610101101';
+import { RouteLayer, resamplePath, pathStats, netString } from './route.js?v=202610101101';
+import { liftPlans, altitudes } from './liftplan.js?v=202610101101';
+import { walkingRoute } from './planner.js?v=202610101101';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES, hikesAround } from './hikes.js?v=202610101101';
+import { hikesNear, parseQuery, matches } from './nearby.js?v=202610101101';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610101101';
+import { TrailsLayer } from './trails.js?v=202610101101';
+import { Weather3D } from './weather3d.js?v=202610101101';
+import { Sight } from './sight.js?v=202610101101';
+import { Photos360 } from './photos360.js?v=202610101101';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610101101';
+import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, routeForecast, cloudProfile, SPOTS } from './live.js?v=202610101101';
+import { VolumeClouds } from './clouds.js?v=202610101101';
+import { LiveShare, LiveFollow } from './share.js?v=202610101101';
+import { NightSky } from './sky.js?v=202610101101';
+import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise, walkability, exposure, skiStats, SKI_BINS } from './routebook.js?v=202610101101';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -1902,6 +1903,104 @@ setTimeout(async () => {
   if (fromReminder) openSheet('route', true);
   if (fromReminder || leave - Date.now() < 36 * 3600e3) toast(`Sortie ${dayWord(leave)} (${planned.name}) : ${bits.map(b => b.replace(/<[^>]+>/g, '')).join(' · ')}.`, false, 8000);
 }, 4000);
+
+// ---------- find a hike (nearby.js): near me, around the place looked at, or a sentence typed or said ----------
+// starts within this distance of the place (by car: 15, 30 or 50 km, chosen)
+let FIND_KM = 30;
+const find = { gen: 0, abort: null, q: null, place: null, pool: [], built: [] };
+const inFrance = p => p.lon > -5.3 && p.lon < 9.7 && p.lat > 41.3 && p.lat < 51.2; // the IGN data (paths, goals) stop at the border
+// my position, waited for up to ms (the locate button's messages say what goes wrong)
+function waitGps(ms) {
+  return new Promise(res => {
+    if (gps.pos) return res(gps.pos);
+    if (!gps.on) { gpsUi.asked = true; gpsCentered = true; gps.start(); gpsButton(); }
+    const t0 = Date.now(), iv = setInterval(() => { if (gps.pos || !gps.on || Date.now() - t0 > ms) { clearInterval(iv); res(gps.pos ?? null); } }, 300);
+  });
+}
+async function findHikes(q) {
+  const gen = ++find.gen; find.abort?.abort(); find.abort = new AbortController(); find.q = q;
+  const note = t => { if (gen === find.gen) $('findNote').innerHTML = t; };
+  $('findOut').innerHTML = '';
+  // where: my position, a place named, or the place looked at
+  let place = null, where = '';
+  if (q.where === 'me') {
+    note('Recherche de ta position…');
+    const p = await waitGps(20000); if (gen !== find.gen) return;
+    if (p) { place = { lon: p.lon, lat: p.lat }; where = 'de toi'; }
+    else { note("Ta position n'est pas disponible : je cherche autour de l'endroit regardé."); }
+  } else if (q.where?.name) {
+    note(`Recherche de « ${esc(q.where.name)} »…`);
+    try {
+      const [lon, lat] = worldToLonLat(controls.target.x, controls.target.z), r = (await searchPlaces(q.where.name, { lon, lat }))[0];
+      if (r) { place = { lon: r.lon, lat: r.lat }; where = `${/^[aeiouyhâéèêîôû]/i.test(r.name) ? "d'" : 'de '}${esc(r.name)}`; flyToLonLat(r.lon, r.lat); }
+      else note(`« ${esc(q.where.name)} » introuvable : je cherche autour de l'endroit regardé.`);
+    } catch { note("Recherche du lieu impossible (réseau) : je cherche autour de l'endroit regardé."); }
+    if (gen !== find.gen) return;
+  }
+  if (!place) { const [lon, lat] = worldToLonLat(controls.target.x, controls.target.z); place = { lon, lat }; where = where || "de l'endroit regardé"; }
+  find.place = place; find.where = where;
+  // the hikes already known around (all massifs' catalogues, and those worked out on this device before)
+  find.pool = await hikesNear(place, FIND_KM); if (gen !== find.gen) return;
+  find.built = []; renderFind();
+  // then new ones around the place, nearest goals first, shown as they come
+  if (!inFrance(place)) { note(`${findHead()} Hors de France, les sentiers et les buts IGN manquent : seules les randos déjà connues sont proposées.`); return; }
+  const known = new Set(find.pool.map(h => `${h.kind}/${h.name}`));
+  try {
+    await hikesAround(place.lon, place.lat, FIND_KM * 0.7, {
+      max: 20, known: g => known.has(`${g.kind}/${g.name}`), signal: find.abort.signal,
+      onProgress: (list, done, total) => { if (gen !== find.gen) return; find.built = list; renderFind(done < total ? `Calcul d'autres randos autour ${where} : ${done} / ${total}…` : ''); }
+    });
+  } catch (e) { if (gen === find.gen) renderFind(`Calcul de nouvelles randos impossible (${esc(why(e))}) : voici celles déjà connues.`); }
+}
+const findHead = () => find.q?.said.length ? `Compris : ${esc(find.q.said.join(', '))}.` : '';
+function renderFind(progress = '') {
+  const metresTo = h => { const [lon, lat] = h.path[0], r = Math.PI / 180, x = (lon - find.place.lon) * r * Math.cos(lat * r), y = (lat - find.place.lat) * r; return Math.hypot(x, y) * 6371000; };
+  const seen = new Set(), all = [];
+  for (const h of [...find.pool, ...find.built]) {
+    const k = `${h.kind}/${h.name}/${h.start}`; if (seen.has(k) || !h.path?.length) continue; seen.add(k);
+    const away = metresTo(h); if (away <= FIND_KM * 1000 && matches(h, find.q)) all.push({ ...h, away });
+  }
+  all.sort((a, b) => a.away - b.away);
+  $('findNote').innerHTML = [findHead(), `${all.length} rando${all.length > 1 ? 's' : ''} au départ à moins de ${FIND_KM} km ${find.where}${all.length ? ", les départs les plus proches d'abord. Aller-retour par le même chemin (temps DIN 33466, sans pauses)." : '.'}`, progress].filter(Boolean).join(' ');
+  $('findOut').innerHTML = all.length ? '<div class="places results hklist"></div>' : '';
+  for (const h of all.slice(0, 60)) {
+    // there and back by the same paths: twice the distance, the climb of one way plus the other's descent
+    const rt = { dist: 2 * h.dist, up: h.up + h.down }, th = rt.dist / 4000, tv = rt.up / 300 + rt.up / 500, rtHours = Math.max(th, tv) + Math.min(th, tv) / 2;
+    const [plon, plat] = h.path[0], card = document.createElement('div'); card.className = 'findcard';
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'place';
+    b.innerHTML = `<span>${esc(h.name)}${h.alt ? ` · ${fmt(h.alt)} m` : ''}</span><span class="pa"><span class="cls ${h.cls}">${CLASS_NAMES[h.cls]}</span>${h.kind} · aller-retour ${t1(rt.dist / 1000)} km · +${fmt(rt.up)} m · ${hm(rtHours)} · départ ${h.start === 'parking' ? "d'un parking" : esc(h.start)} à ${h.away < 1000 ? `${fmt(h.away)} m` : `${t1(h.away / 1000)} km`} ${find.where}${h.offEnd > 150 ? ` · fin hors sentier sur ${fmt(h.offEnd)} m` : ''}</span>`;
+    b.addEventListener('click', () => { const p = hikePath(h); route.setPath([...p, ...p.slice(0, -1).reverse()], `${h.name} (aller-retour depuis ${h.start})`, [], true); routeReady(h.name); });
+    // to the start by car: the phone's own navigation app
+    const car = document.createElement('a'); car.className = 'mini btnlink car'; car.target = '_blank'; car.rel = 'noopener';
+    car.href = isIOS ? `https://maps.apple.com/?daddr=${plat},${plon}&dirflg=d` : `https://www.google.com/maps/dir/?api=1&destination=${plat},${plon}&travelmode=driving`;
+    car.textContent = 'Y aller en voiture';
+    card.append(b, car); $('findOut').firstChild.appendChild(card);
+  }
+}
+$('findForm').addEventListener('submit', e => {
+  e.preventDefault(); const text = $('findQ').value.trim(); $('findQ').blur();
+  const q = parseQuery(text); if (!q.where) q.where = gps.pos ? 'me' : 'view';
+  findHikes(q);
+});
+document.querySelectorAll('[data-findkm]').forEach(b => b.addEventListener('click', () => {
+  FIND_KM = +b.dataset.findkm; document.querySelectorAll('[data-findkm]').forEach(x => x.classList.toggle('on', x === b));
+  if (find.q) findHikes(find.q);
+}));
+$('findMe').addEventListener('click', () => { const q = parseQuery($('findQ').value); q.where = 'me'; findHikes(q); });
+$('findView').addEventListener('click', () => { const q = parseQuery($('findQ').value); q.where = 'view'; findHikes(q); });
+// said instead of typed: the phone's speech recognition (French), where the browser has one
+const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (Speech) {
+  $('findMic').hidden = false;
+  $('findMic').addEventListener('click', () => {
+    const r = new Speech(); r.lang = 'fr-FR'; r.interimResults = false; r.maxAlternatives = 1;
+    $('findMic').classList.add('listening'); toast('Je t\'écoute : dis par exemple « une rando facile près de moi ».', false, 4000);
+    r.onresult = e => { $('findQ').value = e.results[0][0].transcript; $('findForm').requestSubmit(); };
+    r.onerror = e => toast(e.error === 'not-allowed' || e.error === 'service-not-allowed' ? 'Micro refusé : autorise-le pour ce site dans les réglages du navigateur.' : e.error === 'no-speech' ? "Je n'ai rien entendu : réessaie." : 'Reconnaissance vocale indisponible pour l\'instant : tape ta recherche.', true, 5000);
+    r.onend = () => $('findMic').classList.remove('listening');
+    try { r.start(); } catch { $('findMic').classList.remove('listening'); }
+  });
+}
 
 // ---------- mine: my places, my outings done, my data (mydata.js): on this device only, seen by no one else ----------
 // my places: labels like the others (yellow name, a mark for the kind), in the search, in the itinerary ideas

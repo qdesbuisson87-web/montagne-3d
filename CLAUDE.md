@@ -48,6 +48,15 @@ le temps et les tokens nécessaires. Ne jamais sacrifier la qualité pour aller 
 - Hauteur de neige au sol des modèles Open-Meteo : incohérente en haute montagne (46 cm à 2 800 m, 0 à 3 842 m). Pas affichée.
 - Mélanger les tuiles 3D Google avec l'IGN : interdit par les conditions Google. Un mode Google 3D séparé est possible.
 
+## Trouver une rando (10/10/2026, « le catalogue est par massif, pas par rapport à ma position ; je peux prendre la voiture »)
+- Onglet Rando, « Trouver une rando » (`js/nearby.js`, `hikesAround` dans hikes.js) : partout en France, autour de ma position GPS, de l'endroit regardé ou d'un lieu nommé. Départs à 15 / 30 / 50 km (30 par défaut, en voiture).
+  - Randos déjà connues : catalogues livrés de tous les massifs et ceux construits sur l'appareil, filtrés par la distance du départ.
+  - Puis d'autres calculées autour du point avec le même code que le catalogue (buts IGN les plus proches d'abord, 20 par recherche, départ parking ou remontée, sentiers IGN), affichées au fur et à mesure, gardées par cellule de 0,1° (`midi3d-hikes-near-…`) ; une recherche suivante au même endroit en ajoute d'autres.
+  - Chiffres aller-retour par le même chemin (ce ne sont pas des boucles, c'est écrit) ; la ligne posée sur la carte fait l'aller-retour. « Y aller en voiture » ouvre Plans (iPhone) ou Google Maps jusqu'au parking.
+  - Phrase tapée ou dite (reconnaissance vocale du navigateur, français, bouton micro si disponible) : mots-clés de niveau, type de but, durée (« moins de 2h30 », « demi-journée »), montée, distance, « près de moi », « autour de (lieu) » ; ce qui a été compris est réaffiché.
+  - Testé : six phrases lues correctement ; « rando facile autour d'Annecy » (hors massifs de l'appli) → 9 randos en ~40 s. PAS testé : micro sur un vrai téléphone.
+- Reste possible : de vraies boucles (retour par un autre chemin).
+
 ## Bouton « Me localiser » (10/10/2026, « j'ai l'impression qu'il ne fonctionne pas sur mon tel »)
 - Cause : aucun retour visible. Les erreurs (refus, GPS coupé, lenteur) ne s'écrivaient que dans l'onglet Rando, et la première position précise peut prendre plus de 30 s. Le bouton devenait juste bleu.
 - Maintenant (gps.js, app.js `gpsUi`) :

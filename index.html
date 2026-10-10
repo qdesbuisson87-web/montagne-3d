@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202610101044">
+<link rel="stylesheet" href="css/app.css?v=202610101101">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -298,6 +298,19 @@
     <label class="bigact filebtn" for="gpxIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2.8h8.2l4 4V21.2H6z"/><path d="M14 2.8v4.2h4.2"/><path d="M8.6 16.5c1.6-2.3 2.8-.4 4.2-2.8"/></svg><b>Ouvrir un GPX</b><span>Une trace reçue ou téléchargée</span><input id="gpxIn" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml"></label>
     <button id="trkGo" type="button" class="bigact"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle class="dot" cx="12" cy="12" r="3.6"/></svg><b id="trkGoT">Enregistrer ma sortie</b><span id="trkGoS">Ma trace GPS, distance, dénivelé</span></button>
   </div>
+  <div class="find">
+    <h3>Trouver une rando</h3>
+    <form id="findForm" class="row search" role="search">
+      <label class="sr" for="findQ">Chercher une rando</label>
+      <input id="findQ" type="search" placeholder="Ex. : facile près de moi, un lac à moins de 2 h…" enterkeyhint="search" autocomplete="off">
+      <button id="findMic" type="button" class="mini mic" aria-label="Dire ma recherche" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button>
+      <button type="submit" class="mini go">Chercher</button>
+    </form>
+    <div class="row2"><button id="findMe" type="button" class="mini">Près de moi</button><button id="findView" type="button" class="mini">Autour de l'endroit regardé</button></div>
+    <div class="seg3" role="group" aria-label="Distance du départ"><button type="button" class="mini" data-findkm="15">Départ ≤ 15 km</button><button type="button" class="mini on" data-findkm="30">≤ 30 km</button><button type="button" class="mini" data-findkm="50">≤ 50 km</button></div>
+    <p class="cline small" id="findNote">Partout en France : les randos déjà connues autour du point, puis d'autres calculées par les sentiers IGN (gardées sur cet appareil). Mots compris : facile, moyenne, difficile, haute montagne ; lac, refuge, sommet, col ; moins de 2 h, demi-journée ; moins de 500 m de montée ; près de moi, autour de (un lieu).</p>
+    <div id="findOut"></div>
+  </div>
   <p class="cline small" id="trkInfo"></p>
   <button id="trkSave" type="button" class="mini wide" hidden>Terminer la sortie et la garder dans mes sorties</button>
   <details class="sec" id="d-outings"><summary>Mes sorties <span class="cnt" id="outCnt"></span></summary><div id="outOut"></div></details>
@@ -407,6 +420,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202610101044"></script>
+<script type="module" src="js/app.js?v=202610101101"></script>
 </body>
 </html>

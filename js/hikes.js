@@ -6,9 +6,9 @@
 // Nothing is invented: where the path ends short of a goal (glaciers, rock) the entry says how far, and
 // everything above 3 000 m or off the paths is marked as high mountain (mountaineering, not hiking).
 // Built once per massif (a few minutes, done politely one request at a time) and kept on the device.
-import { lonLatToWorld } from './geo.js?v=202610101044';
-import { cachedFetch } from './net.js?v=202610101044';
-import { walkingRoute } from './planner.js?v=202610101044';
+import { lonLatToWorld } from './geo.js?v=202610101101';
+import { cachedFetch } from './net.js?v=202610101101';
+import { walkingRoute } from './planner.js?v=202610101101';
 
 const WFS = (layer, cql) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=${layer}&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=3000&CQL_FILTER=${encodeURIComponent(cql)}`;
 const ALTI = (lons, lats) => `https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json?lon=${lons.join('|')}&lat=${lats.join('|')}&resource=ign_rge_alti_wld&zonly=true`;
@@ -51,6 +51,19 @@ export function hikePath(h) { return h.path.map(([lon, lat]) => lonLatToWorld(lo
 // Builds (or completes) the catalogue; onProgress(list, done, total) is called as entries arrive.
 export async function buildHikes(site, onProgress, signal) {
   const [w, s, e, n] = [site.core[0] - 0.06, site.core[1] - 0.05, site.core[2] + 0.06, site.core[3] + 0.05];
+  return buildArea([w, s, e, n], STORE(site.id), { onProgress, signal });
+}
+// Hikes around a place anywhere in France (the IGN data stop at the border), kept by cells of 0.1° so that a
+// place nearby reuses them: the goals nearest the place first, at most `max` new ones per call (a call later
+// completes the list). `known(goal)`: goals already offered by another list (a massif's catalogue), skipped.
+export const nearStore = (lon, lat) => `midi3d-hikes-near-${Math.floor(lat * 10)}_${Math.floor(lon * 10)}`;
+export function hikesAround(lon, lat, radiusKm, { max = 25, known = () => false, onProgress, signal } = {}) {
+  const dLat = radiusKm / 111, dLon = radiusKm / (111 * Math.cos(lat * Math.PI / 180));
+  return buildArea([lon - dLon, lat - dLat, lon + dLon, lat + dLat], nearStore(lon, lat), { centre: { lon, lat }, max, known, onProgress, signal });
+}
+export function storedAround(lon, lat) { try { return JSON.parse(localStorage.getItem(nearStore(lon, lat)) || 'null')?.hikes ?? []; } catch { return []; } }
+
+async function buildArea([w, s, e, n], storeKey, { centre: c = null, max = Infinity, known = () => false, onProgress, signal } = {}) {
   const box = `BBOX(geometrie,${w},${s},${e},${n},'EPSG:4326')`;
   const [oro, huts, lakes, parks, lifts] = await Promise.all([
     json(WFS('BDTOPO_V3:detail_orographique', `nature IN ('Sommet','Pic','Col') AND toponyme IS NOT NULL AND ${box}`)),
@@ -73,13 +86,20 @@ export async function buildHikes(site, onProgress, signal) {
     const c = f.geometry.type === 'MultiLineString' ? f.geometry.coordinates.flat() : f.geometry.coordinates;
     return { a: { lon: c[0][0], lat: c[0][1] }, b: { lon: c[c.length - 1][0], lat: c[c.length - 1][1] }, name: f.properties.toponyme || f.properties.nature };
   });
-  const [ea, eb, eg] = await Promise.all([altitudes(liftEnds.map(l => l.a)), altitudes(liftEnds.map(l => l.b)), altitudes(goals)]);
+  // around a place: the nearest goals first, those not yet in any list, at most `max` this time
+  const stored = (() => { try { return JSON.parse(localStorage.getItem(storeKey) || 'null')?.hikes ?? []; } catch { return []; } })();
+  if (c) {
+    const have0 = new Set(stored.map(h => `${h.kind}/${h.name}`));
+    goals.sort((a, b) => metres(c, a) - metres(c, b));
+    goals.splice(0, goals.length, ...goals.filter(g => !have0.has(`${g.kind}/${g.name}`) && !known(g)).slice(0, max));
+  }
+  const [ea, eb, eg] = await Promise.all([altitudes(liftEnds.map(l => l.a)), altitudes(liftEnds.map(l => l.b)), goals.length ? altitudes(goals) : []]);
   liftEnds.forEach((l, i) => { const upB = (eb[i] ?? 0) >= (ea[i] ?? 0), top = upB ? l.b : l.a; starts.push({ ...top, alt: upB ? eb[i] : ea[i], name: `arrivée ${l.name}`, lift: true }); });
   goals.forEach((g, i) => { g.alt = eg[i]; });
 
-  const done = savedHikes(site)?.hikes ?? [], have = new Set(done.map(h => `${h.kind}/${h.name}`)), list = [...done];
+  const done = stored, have = new Set(done.map(h => `${h.kind}/${h.name}`)), list = [...done];
   const todo = goals.filter(g => !have.has(`${g.kind}/${g.name}`));
-  const total = goals.length; onProgress?.(list, list.length, total);
+  const total = c ? done.length + todo.length : goals.length; onProgress?.(list, list.length, total);
   for (const g of todo) {
     if (signal?.aborted) break;
     // the nearest start in a straight line; a lift top counts only if it is well below the goal, and a start
@@ -105,7 +125,7 @@ export async function buildHikes(site, onProgress, signal) {
       const th = dist / 4000, tv = up / 300 + down / 500;
       const h = { name: g.name, kind: g.kind, alt: g.alt, start: start.name, startAlt: hs[0], dist, up, down, max, hours: Math.max(th, tv) + Math.min(th, tv) / 2, offEnd: r.offEnd, path: ll.map(([a, b]) => [+a.toFixed(5), +b.toFixed(5)]) };
       h.cls = classify(h); list.push(h);
-      try { localStorage.setItem(STORE(site.id), JSON.stringify({ built: Date.now(), hikes: list })); } catch { }
+      try { localStorage.setItem(storeKey, JSON.stringify({ built: Date.now(), hikes: list })); } catch { }
     } catch { /* no path to this goal: left out */ }
     onProgress?.(list, list.length, total);
   }

@@ -2,7 +2,7 @@
 // Nominatim for the rest of the Alps, both biased towards what is on screen, then sorted by distance from it:
 // a name like "Grand Paradis" exists in many places, the one wanted is almost always the nearest.
 // Nominatim's rules (at most one request per second, no search-as-you-type) are met by searching on submit only.
-import { timedFetch } from './net.js?v=202610101044';
+import { timedFetch } from './net.js?v=202610101101';
 
 const first = v => Array.isArray(v) ? v[0] : v;
 const km = (a, b) => { const r = Math.PI / 180, x = (b.lon - a.lon) * r * Math.cos((a.lat + b.lat) * r / 2), y = (b.lat - a.lat) * r; return Math.hypot(x, y) * 6371; };

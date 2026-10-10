@@ -227,6 +227,8 @@ details.sec .cnt { font: 400 11px/1 "IBM Plex Mono", ui-monospace, monospace; co
 .pvrow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0; } .pvrow label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); } .pvrow input { min-height: 44px; }
 .switch-row { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; } .switch-row input { width: 22px; height: 22px; }
 .rcard.planned { border-color: rgba(150, 210, 255, .35); } .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; word-break: break-all; }
+.find { margin: 10px 0 4px; } .findcard { display: grid; gap: 4px; margin-bottom: 6px; } .findcard .car { min-height: 40px; display: flex; align-items: center; justify-content: center; } .find .search input { font-size: 16px; } .mic svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.mic.listening { color: #fff; background: #e3261f; border-color: #e3261f; animation: seek 1s ease-in-out infinite; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0; } .row2 > * { min-height: 44px; } .row2 .btnlink { display: flex; align-items: center; justify-content: center; text-align: center; cursor: pointer; }
 .mineform { display: grid; gap: 8px; margin: 8px 0; } .mineform label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); } .mineform input, .mineform select { min-height: 44px; font-size: 16px; }
 .label.mine .n { color: #ffe08a; } .place.mine span:first-child::before { content: attr(data-mark) " "; }

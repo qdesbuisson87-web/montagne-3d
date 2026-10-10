@@ -2,7 +2,7 @@
 // relief with the accuracy as a disc around it. The altitude shown is the relief's under the position (LiDAR),
 // far more reliable than a phone's GPS altitude, which is given alongside for information.
 import * as THREE from 'three';
-import { lonLatToWorld } from './geo.js?v=202610101236';
+import { lonLatToWorld } from './geo.js?v=202610101240';
 
 // In the Android app (Capacitor), the position comes from the native background-geolocation plugin: with
 // "background" on (an outing recorded), a foreground service with a notification keeps it coming with the screen

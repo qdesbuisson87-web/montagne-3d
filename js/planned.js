@@ -4,7 +4,7 @@
 // position): a message scheduled the evening before and an hour before leaving, saying to open the app. A web app
 // cannot wake itself up at a given hour (not at all on iPhone): the message carries no forecast of its own, which
 // would be old by then; the app checks when it opens. ntfy keeps a scheduled message up to 3 days ahead.
-import { timedFetch } from './net.js?v=202610101236';
+import { timedFetch } from './net.js?v=202610101240';
 
 const STORE = 'midi3d-planned', TOPIC = 'midi3d-ntfy-topic', HOST = 'https://ntfy.sh';
 export const loadPlanned = () => { try { return JSON.parse(localStorage.getItem(STORE) || 'null'); } catch { return null; } };

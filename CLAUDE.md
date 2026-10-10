@@ -59,6 +59,7 @@ le temps et les tokens nécessaires. Ne jamais sacrifier la qualité pour aller 
   - Lac : contour réel (BD TOPO plan_d_eau), 4 à 10 points sur la rive poussés de 25 m sur la terre, départ = parking le plus proche de l'eau, une requête IGN avec points de passage (`intermediates`, planner.js). Gardé si ≥ 55 % du chemin à moins de 200 m de l'eau et longueur ≤ 2,6 × rive + 1,5 km. Lac de Divonne : 3,2 km, fermé, 100 % au bord de l'eau.
   - Sommet / col / refuge : montée par le chemin de la rando, descente par un autre lieu nommé à 0,4–3 km (4 essais), gardée si < 40 % de chemin commun et ≤ 2,5 × la montée. Mont Baron : 7,9 km par le col des Sauts (22 % commun) ; Mont Veyrier : pas d'autre chemin trouvé → aller-retour, dit.
   - Sinon aller-retour par le même chemin, avec la raison.
+- Suivi en direct sur un aller-retour ou une boucle (le chemin passe deux fois aux mêmes endroits) : `progressOn` cherche d'abord près du dernier point atteint (`trip.progIdx`, 100 m en arrière à 3 km en avant), ailleurs seulement si on s'en écarte de plus de 80 m. Testé : aller-retour Flégère → lac Blanc simulé, « reste » de 6,4 à 0,1 km sans repartir en arrière (un sursaut de 0,1 km au demi-tour).
 - Liseré blanc à la frontière (photo IGN lissée vers le blanc) : les pixels presque blancs à moins de 2 px du blanc pur prennent aussi l'image Sentinel-2.
 
 ## Bouton « Me localiser » (10/10/2026, « j'ai l'impression qu'il ne fonctionne pas sur mon tel »)

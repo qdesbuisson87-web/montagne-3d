@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
-import { lonLatToWorld } from './geo.js?v=202610101118';
+import { lonLatToWorld } from './geo.js?v=202610101121';
 
 const STORE = 'midi3d-track', MIN_STEP = 6, MAX_ACC = 35; // metres
 
@@ -73,10 +73,15 @@ export class TrackRecorder {
 }
 
 // Where one stands along a planned itinerary (route.js samples): distance off the line, and what remains
-export function progressOn(samples, x, z) {
+// hint: the sample reached last time. A line that passes twice by the same place (there and back, the start and
+// end of a loop) is followed forwards: looked for first just behind and ahead of the hint (up to 3 km on), and
+// anywhere else only if the walker is not near that stretch (a shortcut, a new start)
+export function progressOn(samples, x, z, hint = null) {
   if (!samples?.length) return null;
   let best = Infinity, bi = 0;
-  for (let i = 0; i < samples.length; i++) { const d = Math.hypot(samples[i].x - x, samples[i].z - z); if (d < best) { best = d; bi = i; } }
+  const near = (i0, i1) => { for (let i = Math.max(0, i0); i <= Math.min(samples.length - 1, i1); i++) { const d = Math.hypot(samples[i].x - x, samples[i].z - z); if (d < best) { best = d; bi = i; } } };
+  if (hint != null) near(hint - 10, hint + 300);
+  if (hint == null || best > 80) { best = Infinity; near(0, samples.length - 1); }
   // climb and DIN 33466 time of a stretch of the samples
   const part = (i0, i1) => {
     let up = 0, down = 0, ref = samples[i0].h, dist = 0;
@@ -90,5 +95,5 @@ export function progressOn(samples, x, z) {
     return { up, down, hours: Math.max(th, tv) + Math.min(th, tv) / 2 };
   };
   const ahead = part(bi, samples.length - 1), behind = part(0, bi), total = samples[samples.length - 1].d;
-  return { off: best, done: samples[bi].d, left: total - samples[bi].d, up: ahead.up, down: ahead.down, hours: ahead.hours, doneHours: behind.hours, total };
+  return { index: bi, off: best, done: samples[bi].d, left: total - samples[bi].d, up: ahead.up, down: ahead.down, hours: ahead.hours, doneHours: behind.hours, total };
 }

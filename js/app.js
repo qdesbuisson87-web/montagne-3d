@@ -1,46 +1,46 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610101153';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610101153';
-import { SITE, SITE_LIST, nearestSite } from './sites.js?v=202610101153';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610101153';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610101153';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610101153';
-import { searchPlaces } from './search.js?v=202610101153';
-import { TerrainShadows } from './shadows.js?v=202610101153';
-import { PostFX } from './post.js?v=202610101153';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610101153';
-import { Forest } from './forest.js?v=202610101153';
-import { Lakes } from './water.js?v=202610101153';
-import { Glaciers } from './glaciers.js?v=202610101153';
-import { makeSite, removeSite, customSites } from './custom.js?v=202610101153';
-import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610101153';
-import { Streams } from './streams.js?v=202610101153';
-import { Refuges } from './refuges.js?v=202610101153';
-import { NightLights } from './lights.js?v=202610101153';
-import { Buildings } from './buildings.js?v=202610101153';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610101153';
-import { PLACE_KINDS, loadMyPlaces, saveMyPlaces, listOutings, putOuting, deleteOuting, thin, totals, backup, restore } from './mydata.js?v=202610101153';
-import { loadPlanned, savePlanned, scheduleReminders, cancelReminders, reminderTopic, leaveAt } from './planned.js?v=202610101153';
-import { junctions, say } from './guide.js?v=202610101153';
-import { TrackRecorder, progressOn } from './track.js?v=202610101153';
-import { GpsTracker } from './gps.js?v=202610101153';
-import { RouteLayer, resamplePath, pathStats, netString } from './route.js?v=202610101153';
-import { liftPlans, altitudes } from './liftplan.js?v=202610101153';
-import { walkingRoute } from './planner.js?v=202610101153';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES, hikesAround } from './hikes.js?v=202610101153';
-import { hikesNear, parseQuery, matches } from './nearby.js?v=202610101153';
-import { makeLoop } from './loops.js?v=202610101153';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610101153';
-import { TrailsLayer } from './trails.js?v=202610101153';
-import { Weather3D } from './weather3d.js?v=202610101153';
-import { Sight } from './sight.js?v=202610101153';
-import { Photos360 } from './photos360.js?v=202610101153';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610101153';
-import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, routeForecast, cloudProfile, SPOTS } from './live.js?v=202610101153';
-import { VolumeClouds } from './clouds.js?v=202610101153';
-import { LiveShare, LiveFollow } from './share.js?v=202610101153';
-import { NightSky } from './sky.js?v=202610101153';
-import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise, walkability, exposure, skiStats, SKI_BINS } from './routebook.js?v=202610101153';
+import { EarthControls } from './controls.js?v=202610101210';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610101210';
+import { SITE, SITE_LIST, nearestSite } from './sites.js?v=202610101210';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610101210';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610101210';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610101210';
+import { searchPlaces } from './search.js?v=202610101210';
+import { TerrainShadows } from './shadows.js?v=202610101210';
+import { PostFX } from './post.js?v=202610101210';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610101210';
+import { Forest } from './forest.js?v=202610101210';
+import { Lakes } from './water.js?v=202610101210';
+import { Glaciers } from './glaciers.js?v=202610101210';
+import { makeSite, removeSite, customSites } from './custom.js?v=202610101210';
+import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610101210';
+import { Streams } from './streams.js?v=202610101210';
+import { Refuges } from './refuges.js?v=202610101210';
+import { NightLights } from './lights.js?v=202610101210';
+import { Buildings } from './buildings.js?v=202610101210';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610101210';
+import { PLACE_KINDS, loadMyPlaces, saveMyPlaces, listOutings, putOuting, deleteOuting, thin, totals, backup, restore } from './mydata.js?v=202610101210';
+import { loadPlanned, savePlanned, scheduleReminders, cancelReminders, reminderTopic, leaveAt } from './planned.js?v=202610101210';
+import { junctions, say } from './guide.js?v=202610101210';
+import { TrackRecorder, progressOn } from './track.js?v=202610101210';
+import { GpsTracker, NATIVE } from './gps.js?v=202610101210';
+import { RouteLayer, resamplePath, pathStats, netString } from './route.js?v=202610101210';
+import { liftPlans, altitudes } from './liftplan.js?v=202610101210';
+import { walkingRoute } from './planner.js?v=202610101210';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES, hikesAround } from './hikes.js?v=202610101210';
+import { hikesNear, parseQuery, matches } from './nearby.js?v=202610101210';
+import { makeLoop } from './loops.js?v=202610101210';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610101210';
+import { TrailsLayer } from './trails.js?v=202610101210';
+import { Weather3D } from './weather3d.js?v=202610101210';
+import { Sight } from './sight.js?v=202610101210';
+import { Photos360 } from './photos360.js?v=202610101210';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610101210';
+import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, routeForecast, cloudProfile, SPOTS } from './live.js?v=202610101210';
+import { VolumeClouds } from './clouds.js?v=202610101210';
+import { LiveShare, LiveFollow } from './share.js?v=202610101210';
+import { NightSky } from './sky.js?v=202610101210';
+import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise, walkability, exposure, skiStats, SKI_BINS } from './routebook.js?v=202610101210';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -1225,7 +1225,9 @@ function followMe() {
 // button seemed to do nothing).
 const gpsUi = { asked: false, said: 0, follow: false, at: null };
 const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-const deniedHelp = () => isIOS
+const deniedHelp = () => NATIVE
+  ? "Localisation refusée pour Altipik. Réglages du téléphone → Applications → Altipik → Autorisations → Position : « Autoriser seulement si l'appli est utilisée » (ou toujours). Le bouton te mène aux réglages."
+  : isIOS
   ? "Localisation refusée. Sur iPhone : Réglages → Confidentialité et sécurité → Service de localisation : activé, puis ton navigateur (Safari…) : « Lorsque l'app est active ». Dans Safari, aA → Réglages du site → Position : Autoriser. Puis recharge la page."
   : "Localisation refusée. Touche le cadenas (ou ⓘ) à gauche de l'adresse → Autorisations → Position : Autoriser, et vérifie que la localisation du téléphone est activée. Puis recharge la page.";
 function gpsButton() {
@@ -1239,7 +1241,7 @@ $('gpsFab').addEventListener('click', () => {
     gps.start(); // straight from the touch: phones only ask for the permission then
     if (gps.on) toast('Recherche de ta position…', false, 4000);
     // a permission already refused: no question will come, say at once how to allow it
-    navigator.permissions?.query({ name: 'geolocation' }).then(st => { if (st.state === 'denied') { toast(deniedHelp(), true, 12000); gps.stop(); } }).catch(() => { });
+    if (!NATIVE) navigator.permissions?.query({ name: 'geolocation' }).then(st => { if (st.state === 'denied') { toast(deniedHelp(), true, 12000); gps.stop(); } }).catch(() => { });
   } else if (!gps.pos) toast(gps.error ?? "Toujours en recherche de ta position… (dehors, le GPS la trouve plus vite)", !!gps.error, 4500);
   else { gpsUi.follow = true; centerOnGps(); toast(`Te voilà (à ±${fmt(gps.pos.acc)} m). La carte te suit tant que tu ne la déplaces pas.`, false, 3500); }
   gpsButton();
@@ -1273,7 +1275,7 @@ function renderGps() {
   const p = gps.pos;
   if (gpsUi.asked && gps.errorCode && gps.errorCode !== gpsUi.said) { // each new trouble said once, when asked from the button
     gpsUi.said = gps.errorCode;
-    if (gps.errorCode === 1) { toast(deniedHelp(), true, 12000); gps.stop(); } else toast(gps.error, gps.errorCode !== 3, 6000);
+    if (gps.errorCode === 1) { toast(deniedHelp(), true, 12000); gps.stop(); if (NATIVE) setTimeout(() => gps.openSettings(), 2500); } else toast(gps.error, gps.errorCode !== 3, 6000);
   }
   if (p && (!p.rough || p.acc < 3000)) arrived(p);
   if (p && gpsUi.asked && !gpsUi.found) { gpsUi.found = true; toast(`Te voilà${p.rough ? " (position approximative, le GPS l'affine)" : ''} : à ±${fmt(p.acc)} m.`, false, 3500); }
@@ -1306,7 +1308,7 @@ async function stormCheck(p) {
     const f = await pointForecast(p.lat, p.lon, p.ground ?? p.gpsAlt ?? 1500), h = f.hourly;
     let at = null; for (let k = f.k0; k < Math.min(h.time.length, f.k0 + 4); k++) if ([95, 96, 99].includes(h.weather_code[k])) { at = new Date(h.time[k]); break; }
     trip.storm = at;
-    if (at && trip.stormSaid !== +at) { trip.stormSaid = +at; buzz([400, 150, 400]); toast(`Orage prévu ici vers ${hhmm(at)} (Météo-France) : redescends des crêtes et des sommets.`, true, 8000); }
+    if (at && trip.stormSaid !== +at) { trip.stormSaid = +at; buzz([400, 150, 400]); notify('Orage prévu', `Orage prévu ici vers ${hhmm(at)} (Météo-France) : redescends des crêtes et des sommets.`); toast(`Orage prévu ici vers ${hhmm(at)} (Météo-France) : redescends des crêtes et des sommets.`, true, 8000); }
   } catch { trip.stormAt = Date.now() - 25 * 60e3; } // no network: asked again in 5 minutes
   renderTrip();
 }
@@ -1327,7 +1329,7 @@ function tripFix() {
     try { localStorage.setItem('midi3d-progress', JSON.stringify({ key: routeKey, index: prog.index })); } catch { }
   }
   // off the itinerary: farther than 60 m beyond the GPS uncertainty on three fixes in a row
-  if (prog && prog.off > 60 + p.acc) { if (++trip.off >= 3 && !trip.offAlert) { trip.offAlert = true; buzz([200, 100, 200]); } }
+  if (prog && prog.off > 60 + p.acc) { if (++trip.off >= 3 && !trip.offAlert) { trip.offAlert = true; buzz([200, 100, 200]); notify('Hors de l\'itinéraire', `Tu t'écartes de la ligne : à ${fmt(prog.off)} m.`); } }
   else { trip.off = 0; trip.offAlert = false; }
   trip.prog = prog; trip.next = guideFix(prog);
   // the day's sunset where one stands (computed once a day)
@@ -1350,7 +1352,7 @@ function renderTrip() {
     else if (trip.next && trip.next.left < 400) lines.push(`Croisement dans ${fmt(Math.max(0, trip.next.left))} m : ${esc(trip.next.j.text)}${trip.next.j.toward ? `, direction ${esc(trip.next.j.toward)}` : ''}`);
     const ss = trip.sun?.sunset;
     if (ss && eta > ss - 15 * 60e3 && prog.left >= 30) {
-      if (!trip.sunAlert) { trip.sunAlert = true; buzz([300]); }
+      if (!trip.sunAlert) { trip.sunAlert = true; buzz([300]); notify('Coucher du soleil', `Arrivée prévue vers ${hhmm(eta)}, coucher du soleil à ${hhmm(ss)}.`); }
       lines.push(`<span class="warn">Arrivée prévue ${eta > ss ? 'après' : 'juste avant'} le coucher du soleil (${hhmm(ss)}${trip.sun.dusk ? `, nuit noire vers ${hhmm(trip.sun.dusk)}` : ''}) : lampe frontale, ou faire demi-tour.</span>`);
     }
   }
@@ -1364,14 +1366,29 @@ function renderTrip() {
   $('trkGoT').textContent = track.recording ? "Arrêter l'enregistrement" : track.pts.length ? "Reprendre l'enregistrement" : 'Enregistrer ma sortie';
   $('trkGoS').textContent = track.recording && st ? `En cours : ${t1(st.dist / 1000)} km · +${fmt(st.up)} m · ${hm(st.hours)}` : 'Ma trace GPS, distance, dénivelé';
   $('trkSave').hidden = track.pts.length < 2;
-  $('trkInfo').textContent = track.recording ? "L'écran reste allumé pendant l'enregistrement : verrouillé, le téléphone met l'appli en pause et la trace s'interrompt."
+  $('trkInfo').textContent = track.recording ? (NATIVE ? "Tu peux éteindre l'écran : Altipik continue d'enregistrer et d'annoncer les croisements (notification « Altipik suit ta sortie »)." : "L'écran reste allumé pendant l'enregistrement : verrouillé, le téléphone met l'appli en pause et la trace s'interrompt (l'application Android, elle, continue écran éteint).")
     : st ? `Trace gardée : ${t1(st.dist / 1000)} km, +${fmt(st.up)} m, ${fmt(st.count)} points (export et effacement dans « Ma position et ma trace »).` : '';
 }
 $('trkGo').addEventListener('click', () => {
-  if (track.recording) { track.stop(); toast('Enregistrement arrêté : ta trace est gardée.'); }
-  else { track.start(); if (!gps.on) { gpsCentered = false; gps.start(); } toast("Enregistrement démarré : garde l'écran allumé."); }
+  if (track.recording) { track.stop(); gps.setBackground(false); toast('Enregistrement arrêté : ta trace est gardée.'); }
+  else {
+    // in the Android app the GPS goes on with the screen off (a notification says so); in a browser the screen stays on
+    gps.setBackground(true); track.start(); if (!gps.on) { gpsCentered = false; gps.start(); }
+    if (NATIVE) askNotify();
+    toast(NATIVE ? "Enregistrement démarré : tu peux éteindre l'écran, Altipik continue (notification « Altipik suit ta sortie »)." : "Enregistrement démarré : garde l'écran allumé.", false, 5000);
+  }
   renderTrip();
 });
+// in a browser on Android: the app that follows screen off, to install (latest build on the GitHub releases)
+if (!NATIVE && /Android/i.test(navigator.userAgent)) $('apkHint').hidden = false;
+// alerts said by a notification when the screen is off (Android app): crossings, off the line, storm, sunset
+const Notes = NATIVE ? window.Capacitor.registerPlugin('LocalNotifications') : null;
+let noteId = 1;
+function askNotify() { Notes?.requestPermissions?.().catch(() => { }); }
+function notify(title, body) {
+  if (!Notes || document.visibilityState === 'visible') return;
+  Notes.schedule({ notifications: [{ id: noteId++, title, body, smallIcon: 'ic_notif' }] }).catch(() => { });
+}
 $('trkGpx').addEventListener('click', () => {
   if (track.pts.length < 2) { $('trkInfo').textContent = "Pas encore de trace à exporter."; return; }
   const a = document.createElement('a'), d = new Date(track.started ?? Date.now());
@@ -1383,7 +1400,7 @@ $('trkClear').addEventListener('click', () => {
   track.clear(); $('trkClear').dataset.armed = ''; $('trkClear').textContent = 'Effacer ma trace'; renderTrip();
 });
 // a recording left running when the app was closed carries on
-if (track.recording) setTimeout(() => { track.start(); gps.start(); }) ; // after the whole module has run
+if (track.recording) setTimeout(() => { gps.setBackground(true); track.start(); gps.start(); }) ; // after the whole module has run
 setInterval(renderTrip, 30e3);
 $('gpsGo').addEventListener('click', () => { if (gps.on) gps.stop(); else { gpsCentered = false; gps.start(); } });
 const hm = h => { const m = Math.round(h * 60 / 5) * 5; return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`; };
@@ -1834,7 +1851,7 @@ function guideFix(prog) {
   if (left < 70 && !guide.said.has(next.d)) {
     guide.said.add(next.d);
     const text = say(next, Math.max(10, Math.round(left / 10) * 10));
-    toast(text, false, 7000); buzz([90, 70, 90]); if (guide.mode === 'voice') speak(text);
+    toast(text, false, 7000); buzz([90, 70, 90]); if (guide.mode === 'voice') speak(text); notify('Croisement', text);
   }
   return { j: next, left };
 }

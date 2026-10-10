@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
-import { lonLatToWorld } from './geo.js?v=202610101153';
+import { lonLatToWorld } from './geo.js?v=202610101210';
 
 const STORE = 'midi3d-track', MIN_STEP = 6, MAX_ACC = 35; // metres
 
@@ -26,7 +26,9 @@ export class TrackRecorder {
   }
   setResolution(w, h) { for (const m of [this.mat, this.under, this.hidden]) m.resolution.set(w, h); }
   save() { try { localStorage.setItem(STORE, JSON.stringify({ pts: this.pts, recording: this.recording, started: this.started })); } catch { } }
-  async keepAwake() { try { this.wake = await navigator.wakeLock?.request('screen'); } catch { this.wake = null; } }
+  // the screen kept on while recording (a web page stops when it locks); not in the Android app, whose GPS goes on
+  // with the screen off (gps.js)
+  async keepAwake() { if (window.Capacitor?.isNativePlatform?.()) return; try { this.wake = await navigator.wakeLock?.request('screen'); } catch { this.wake = null; } }
   start() {
     if (!this.recording) { this.recording = true; if (!this.pts.length) this.started = Date.now(); }
     this.keepAwake(); this.save();

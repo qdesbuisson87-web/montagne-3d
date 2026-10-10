@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=202610101153">
+<link rel="stylesheet" href="css/app.css?v=202610101210">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
@@ -312,6 +312,7 @@
     <div id="findOut"></div>
   </div>
   <p class="cline small" id="trkInfo"></p>
+  <p class="cline small" id="apkHint" hidden>Pour enregistrer et être guidé <b>écran éteint</b> : <a href="https://github.com/qdesbuisson87-web/montagne-3d/releases/latest/download/Altipik.apk">installe l'application Android Altipik</a> (autorise l'installation depuis ton navigateur quand Android le demande).</p>
   <button id="trkSave" type="button" class="mini wide" hidden>Terminer la sortie et la garder dans mes sorties</button>
   <details class="sec" id="d-outings"><summary>Mes sorties <span class="cnt" id="outCnt"></span></summary><div id="outOut"></div></details>
 
@@ -420,6 +421,6 @@
 
 <div id="loader"><div class="box"><div class="ttl" id="loaderTitle">&nbsp;</div><div class="msg">Chargement du relief et des photos IGN…</div><div class="spin"></div></div></div>
 
-<script type="module" src="js/app.js?v=202610101153"></script>
+<script type="module" src="js/app.js?v=202610101210"></script>
 </body>
 </html>

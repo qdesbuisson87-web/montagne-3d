@@ -1,4 +1,4 @@
-# Montagne 3D
+# Altipik (anciennement Montagne 3D)
 
 Appli web perso (PWA) qui affiche des massifs en 3D, chargés en direct, avec les conditions réelles.
 Le propriétaire parle français et veut le rendu le plus réaliste et détaillé possible. Réponds en français.
@@ -47,6 +47,17 @@ le temps et les tokens nécessaires. Ne jamais sacrifier la qualité pour aller 
 - « Couleurs du jour » (image Sentinel-2 fusionnée avec la photo) : taches bleues dues à un éclairage différent. Retiré.
 - Hauteur de neige au sol des modèles Open-Meteo : incohérente en haute montagne (46 cm à 2 800 m, 0 à 3 842 m). Pas affichée.
 - Mélanger les tuiles 3D Google avec l'IGN : interdit par les conditions Google. Un mode Google 3D séparé est possible.
+
+## Altipik : nom, ouverture sur ma position, application Android (10/10/2026, « Android, vas-y ; qu'elle vienne sur notre position ; trouve un nom stylé »)
+- Nom **Altipik** (manifest, titre « <massif> · Altipik », sauvegardes `app: 'Altipik'`, anciennes « Montagne 3D » relues). Clés localStorage inchangées (`midi3d-…`).
+- **Ouverture sur ma position** : sans `?site=`, sites.js ouvre le massif le plus proche de la dernière position (`midi3d-last-pos`, `nearestSite`). Au démarrage (sauf lien `?vue=` / `?suivre=`), app.js `autoLocate` demande le GPS, la vue vient sur moi et me suit. Dans la première minute, si je suis à plus de 40 km de ce massif : le massif connu le plus proche à moins de 40 km, sinon une zone faite automatiquement autour de moi (`makeSite`, France), nommée par le sommet tout proche ou la commune (« Autour d'Annecy »), puis rechargement. Jamais pendant un enregistrement ou un tracé. Testé avec un GPS simulé à Annecy → « Autour d'Annecy » créé et ouvert.
+- **Application Android** (dossier `..ltipik-android`, hors du dépôt du site) : Capacitor 8, identifiant `fr.altipik.app`, charge le site en ligne (`server.url` : chaque publication arrive sans réinstaller ; hors ligne par le service worker ; `offline.html` si aucun premier chargement), `android.useLegacyBridge` (sinon le GPS s'arrête après 5 min en arrière-plan).
+  - GPS écran éteint : plugin `@capacitor-community/background-geolocation` (gps.js `NATIVE`, `nativeStart`, `setBackground`) : pendant « Enregistrer ma sortie », service de premier plan avec la notification « Altipik suit ta sortie » ; écran plus forcé allumé dans l'application.
+  - Alertes écran éteint par notification (`@capacitor/local-notifications`, `notify`) : croisements, sortie de l'itinéraire, orage, coucher du soleil.
+  - Icônes (montagne, adaptative et ronde), écran de démarrage sombre, icône blanche de notification, permissions caméra et vibreur.
+  - Construire : Node (winget, portée utilisateur, `%LOCALAPPDATA%\Microsoft\WinGet\Packages\OpenJS.NodeJS.LTS…
+ode-v24…`), JDK 21 (`C:\Program Files\Microsoft\jdk-21…`), SDK Android en ligne de commande (`%LOCALAPPDATA%\Android\Sdk` : platform-tools, platforms;android-35, build-tools;35.0.0 ; sdkmanager avec `--package_file` car le « ; » casse le .bat). `npx cap sync android` puis `android\gradlew.bat assembleDebug`. APK signée avec la clé de débogage de ce PC (`%USERPROFILE%\.android\debug.keystore`) : la garder, sinon une mise à jour ne s'installe pas par-dessus.
+  - Distribution : publication GitHub « releases » du dépôt, fichier `Altipik.apk` ; lien affiché dans l'onglet Rando sur un navigateur Android.
 
 ## Trouver une rando (10/10/2026, « le catalogue est par massif, pas par rapport à ma position ; je peux prendre la voiture »)
 - Onglet Rando, « Trouver une rando » (`js/nearby.js`, `hikesAround` dans hikes.js) : partout en France, autour de ma position GPS, de l'endroit regardé ou d'un lieu nommé. Départs à 15 / 30 / 50 km (30 par défaut, en voiture).

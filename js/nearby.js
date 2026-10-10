@@ -2,7 +2,7 @@
 // France, not only in the massif opened: the catalogues shipped with the app (all massifs), those built on this
 // device, and new ones worked out around the place (hikes.js hikesAround). A sentence typed or said is read for
 // a few key words (level, length, kind of goal, where); what was understood is said back, nothing more is guessed.
-import { CLASS_NAMES } from './hikes.js?v=202610101234';
+import { CLASS_NAMES } from './hikes.js?v=202610101236';
 
 const SHIPPED = ['midi', 'buet', 'sassiere', 'ecrins', 'vanoise', 'belledonne'];
 const metres = (a, b) => { const r = Math.PI / 180, x = (b.lon - a.lon) * r * Math.cos((a.lat + b.lat) * r / 2), y = (b.lat - a.lat) * r; return Math.hypot(x, y) * 6371000; };

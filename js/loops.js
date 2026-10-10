@@ -6,8 +6,8 @@
 //    nearby (a pass, a summit, a hut, a lake within 3 km); kept only if the way down shares less than 40 % of the
 //    way up. Nothing is drawn where there is no path.
 // Worked out when a hike is chosen (a few requests), kept on the device.
-import { walkingRoute } from './planner.js?v=202610101234';
-import { WFS, json, measure } from './hikes.js?v=202610101234';
+import { walkingRoute } from './planner.js?v=202610101236';
+import { WFS, json, measure } from './hikes.js?v=202610101236';
 
 const STORE = 'midi3d-loops-v1';
 const metres = (a, b) => { const r = Math.PI / 180, x = (b.lon - a.lon) * r * Math.cos((a.lat + b.lat) * r / 2), y = (b.lat - a.lat) * r; return Math.hypot(x, y) * 6371000; };

@@ -2,7 +2,7 @@
 // relief with the accuracy as a disc around it. The altitude shown is the relief's under the position (LiDAR),
 // far more reliable than a phone's GPS altitude, which is given alongside for information.
 import * as THREE from 'three';
-import { lonLatToWorld } from './geo.js?v=202610101234';
+import { lonLatToWorld } from './geo.js?v=202610101236';
 
 // In the Android app (Capacitor), the position comes from the native background-geolocation plugin: with
 // "background" on (an outing recorded), a foreground service with a notification keeps it coming with the screen
@@ -59,7 +59,8 @@ export class GpsTracker {
     const opts = { requestPermissions: true, stale: false, distanceFilter: 0 };
     if (this.background) Object.assign(opts, { backgroundTitle: 'Altipik suit ta sortie', backgroundMessage: "Position enregistrée même écran éteint. Touche pour revenir à l'appli." });
     // only the watcher of the latest start speaks: one replaced (screen-off following switched) is mute until removed
-    const me = BG.addWatcher(opts, (l, e) => {
+    // (the bridge's addWatcher does not always give a promise: wrapped, so its id is awaited either way)
+    const me = Promise.resolve().then(() => BG.addWatcher(opts, (l, e) => {
       if (this.native !== me) return;
       if (e) {
         this.errorCode = e.code === 'NOT_AUTHORIZED' ? 1 : 2;
@@ -70,7 +71,7 @@ export class GpsTracker {
       const [x, z] = lonLatToWorld(l.longitude, l.latitude);
       this.pos = { lon: l.longitude, lat: l.latitude, acc: l.accuracy, gpsAlt: l.altitude, heading: l.bearing, speed: l.speed, time: new Date(l.time ?? Date.now()), x, z, rough: false };
       this.error = null; this.errorCode = 0; this.group.visible = true; this.onChange?.();
-    }).catch(err => {
+    })).catch(err => {
       if (this.native === me) { this.errorCode = 2; this.error = `GPS indisponible (${err?.message ?? err}).`; this.onChange?.(); }
       return null;
     });

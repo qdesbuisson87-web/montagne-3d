@@ -2,13 +2,14 @@
 // relief with the accuracy as a disc around it. The altitude shown is the relief's under the position (LiDAR),
 // far more reliable than a phone's GPS altitude, which is given alongside for information.
 import * as THREE from 'three';
-import { lonLatToWorld } from './geo.js?v=202610101210';
+import { lonLatToWorld } from './geo.js?v=202610101215';
 
 // In the Android app (Capacitor), the position comes from the native background-geolocation plugin: with
 // "background" on (an outing recorded), a foreground service with a notification keeps it coming with the screen
 // off, which a web page can never do. In a browser, the Geolocation API as before.
 export const NATIVE = !!window.Capacitor?.isNativePlatform?.();
-const BG = NATIVE ? window.Capacitor.registerPlugin('BackgroundGeolocation') : null;
+// the plugins injected by the app (Capacitor.Plugins); null if the app was built without it
+const BG = NATIVE ? window.Capacitor.Plugins?.BackgroundGeolocation ?? null : null;
 
 export class GpsTracker {
   constructor({ scene, onChange }) {

@@ -1,8 +1,8 @@
 // Huts, shelters, water points and tricky passages from refuges.info (© its contributors, CC BY-SA 2.0): what
 // hikers write about them (beds, water, stove, blankets, how to get there, who to call, remarks, last update).
 // Fetched by cells of 0.1° around the view, kept for offline use. Shown as their own words, with the link.
-import { cachedFetch } from './net.js?v=202610101210';
-import { worldToLonLat, lonLatToWorld } from './geo.js?v=202610101210';
+import { cachedFetch } from './net.js?v=202610101215';
+import { worldToLonLat, lonLatToWorld } from './geo.js?v=202610101215';
 
 const CELL = 0.1;
 const API = (w, s, e, n) => `https://www.refuges.info/api/bbox?bbox=${w},${s},${e},${n}&type_points=all&format=geojson&detail=complet`;

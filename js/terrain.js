@@ -2,12 +2,12 @@
 // elevation grid and photo. Close to the camera the tree goes down to zoom 19 (IGN photos 20 cm,
 // LiDAR HD elevation); far away it stays coarse. Nothing is pre-packaged: every tile is fetched live.
 import * as THREE from 'three';
-import { tileMerc, mercToWorld, mercToLonLat, worldToLonLat, lonLatToL93, lonLatToTile, K } from './geo.js?v=202610101101';
-import { cachedFetch, TransientError } from './net.js?v=202610101101';
+import { tileMerc, mercToWorld, mercToLonLat, worldToLonLat, lonLatToL93, lonLatToTile, K } from './geo.js?v=202610101118';
+import { cachedFetch, TransientError } from './net.js?v=202610101118';
 // avalanches of the past (CLPA, INRAE/IGN, served by Géorisques): areas seen on aerial photos and in the field
 // (magenta) and from witnesses (orange), as the map draws them
 const CLPA_WMS = ([x0, y0, x1, y1]) => `https://mapsref.brgm.fr/wxs/georisques/risques?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=CLPA_interpretation,CLPA_temoignage&STYLES=&CRS=EPSG:3857&BBOX=${x0},${y0},${x1},${y1}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true`;
-import { FOREST_WMS, decodeForest } from './foresttypes.js?v=202610101101';
+import { FOREST_WMS, decodeForest } from './foresttypes.js?v=202610101118';
 
 // NE: the grid plus a one-sample ring taken beyond the tile edge, so that normals and slopes at the edge
 // use the same central differences as the neighbour tile does (no seam in lighting or slope colours)
@@ -240,8 +240,18 @@ class Tile {
     const cv = document.createElement('canvas'); cv.width = cv.height = 256; const c = cv.getContext('2d');
     if (eox) { const s = 256 / f; c.drawImage(eox, (x % f) * s, (y % f) * s, s, s, 0, 0, 256, 256); eox.close?.(); } else { c.fillStyle = '#9a9a96'; c.fillRect(0, 0, 256, 256); }
     const base = c.getImageData(0, 0, 256, 256), b = base.data, d = data?.data;
-    for (let k = 0; k < b.length; k += 4) {
-      if (d && !(d[k] >= 254 && d[k + 1] >= 254 && d[k + 2] >= 254)) { b[k] = d[k]; b[k + 1] = d[k + 1]; b[k + 2] = d[k + 2]; }
+    // where IGN has no photo (white), and also its almost-white pixels touching that white within 2 px: the edge
+    // of its photo is smoothed into the white, which left a pale dotted line along the border
+    const empty = new Uint8Array(65536);
+    if (d) for (let p = 0; p < 65536; p++) { const k = p * 4; if (d[k] >= 254 && d[k + 1] >= 254 && d[k + 2] >= 254) empty[p] = 2; }
+    if (d) for (let p = 0; p < 65536; p++) {
+      const k = p * 4; if (empty[p] || !(d[k] >= 225 && d[k + 1] >= 225 && d[k + 2] >= 225)) continue;
+      const x0 = p & 255, y0 = p >> 8;
+      for (let dy = -2; dy <= 2 && !empty[p]; dy++) for (let dx = -2; dx <= 2; dx++) { const x = x0 + dx, y = y0 + dy; if (x >= 0 && y >= 0 && x < 256 && y < 256 && empty[y * 256 + x] === 2) { empty[p] = 1; break; } }
+    }
+    for (let p = 0; p < 65536; p++) {
+      const k = p * 4;
+      if (d && !empty[p]) { b[k] = d[k]; b[k + 1] = d[k + 1]; b[k + 2] = d[k + 2]; }
       else if (eox) eoxToIgn(b, k);
     }
     c.putImageData(base, 0, 0); ign?.close?.();

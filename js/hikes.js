@@ -6,11 +6,11 @@
 // Nothing is invented: where the path ends short of a goal (glaciers, rock) the entry says how far, and
 // everything above 3 000 m or off the paths is marked as high mountain (mountaineering, not hiking).
 // Built once per massif (a few minutes, done politely one request at a time) and kept on the device.
-import { lonLatToWorld } from './geo.js?v=202610101101';
-import { cachedFetch } from './net.js?v=202610101101';
-import { walkingRoute } from './planner.js?v=202610101101';
+import { lonLatToWorld } from './geo.js?v=202610101118';
+import { cachedFetch } from './net.js?v=202610101118';
+import { walkingRoute } from './planner.js?v=202610101118';
 
-const WFS = (layer, cql) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=${layer}&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=3000&CQL_FILTER=${encodeURIComponent(cql)}`;
+export const WFS = (layer, cql) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=${layer}&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=3000&CQL_FILTER=${encodeURIComponent(cql)}`;
 const ALTI = (lons, lats) => `https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json?lon=${lons.join('|')}&lat=${lats.join('|')}&resource=ign_rge_alti_wld&zonly=true`;
 const STORE = id => `midi3d-hikes-${id}-v2`;
 const metres = (a, b) => { const r = Math.PI / 180, x = (b.lon - a.lon) * r * Math.cos((a.lat + b.lat) * r / 2), y = (b.lat - a.lat) * r; return Math.hypot(x, y) * 6371000; };
@@ -19,14 +19,29 @@ const centre = g => {
   const ring = g.type === 'Polygon' ? g.coordinates[0] : g.type === 'MultiPolygon' ? g.coordinates[0][0] : g.type === 'LineString' ? g.coordinates : g.coordinates[0];
   return [ring.reduce((s, p) => s + p[0], 0) / ring.length, ring.reduce((s, p) => s + p[1], 0) / ring.length];
 };
-async function json(u) { const r = await cachedFetch(u); if (!r.ok) throw new Error(`IGN ${r.status}`); return r.json(); }
-async function altitudes(pts) { // [{lon,lat}] -> metres (IGN RGE ALTI), by batches that keep the URL short
+export async function json(u) { const r = await cachedFetch(u); if (!r.ok) throw new Error(`IGN ${r.status}`); return r.json(); }
+export async function altitudes(pts) { // [{lon,lat}] -> metres (IGN RGE ALTI), by batches that keep the URL short
   const out = [];
   for (let i = 0; i < pts.length; i += 150) {
     const b = pts.slice(i, i + 150), j = await json(ALTI(b.map(p => p.lon.toFixed(6)), b.map(p => p.lat.toFixed(6))));
     out.push(...j.elevations.map(v => (v > -1000 ? v : null)));
   }
   return out;
+}
+
+// the numbers of a path [[lon, lat]…]: decimated to ≤ 200 points (altitudes asked of the IGN, and a small store),
+// distance, climb and descent (steps of 3 m), highest point, DIN 33466 walking time
+export async function measure(llFull) {
+  const step = Math.max(1, Math.ceil(llFull.length / 200)), ll = llFull.filter((_, i) => i % step === 0 || i === llFull.length - 1);
+  const hs = await altitudes(ll.map(([lon, lat]) => ({ lon, lat })));
+  let dist = 0, up = 0, down = 0, max = -Infinity, ref = null;
+  ll.forEach((p, i) => {
+    if (i) dist += metres({ lon: ll[i - 1][0], lat: ll[i - 1][1] }, { lon: p[0], lat: p[1] });
+    const h = hs[i]; if (h == null) return; max = Math.max(max, h);
+    if (ref == null) ref = h; else if (h - ref >= 3) { up += h - ref; ref = h; } else if (ref - h >= 3) { down += ref - h; ref = h; }
+  });
+  const th = dist / 4000, tv = up / 300 + down / 500;
+  return { dist, up, down, max, startAlt: hs[0], hours: Math.max(th, tv) + Math.min(th, tv) / 2, path: ll.map(([a, b]) => [+a.toFixed(5), +b.toFixed(5)]) };
 }
 
 // difficulty classes (the rules are shown in the app)
@@ -113,17 +128,8 @@ async function buildArea([w, s, e, n], storeKey, { centre: c = null, max = Infin
       if (walked < 800) { const park = byDist.find(x => !x.st.lift && x.d > 800)?.st; if (!park) continue; start = park; r = await walkingRoute(start, g); }
       // the paths end more than 1 km short of the goal: no approach by path, the route would be a meaningless detour
       if (r.pts.length < 2 || r.offEnd > 1000) continue;
-      // decimate the path to ≤ 200 points for the altitudes (and to keep the stored catalogue small)
-      const step = Math.max(1, Math.ceil(r.pts.length / 200)), ll = r.ll.filter((_, i) => i % step === 0 || i === r.ll.length - 1);
-      const hs = await altitudes(ll.map(([lon, lat]) => ({ lon, lat })));
-      let dist = 0, up = 0, down = 0, max = -Infinity, ref = null;
-      ll.forEach((p, i) => {
-        if (i) dist += metres({ lon: ll[i - 1][0], lat: ll[i - 1][1] }, { lon: p[0], lat: p[1] });
-        const h = hs[i]; if (h == null) return; max = Math.max(max, h);
-        if (ref == null) ref = h; else if (h - ref >= 3) { up += h - ref; ref = h; } else if (ref - h >= 3) { down += ref - h; ref = h; }
-      });
-      const th = dist / 4000, tv = up / 300 + down / 500;
-      const h = { name: g.name, kind: g.kind, alt: g.alt, start: start.name, startAlt: hs[0], dist, up, down, max, hours: Math.max(th, tv) + Math.min(th, tv) / 2, offEnd: r.offEnd, path: ll.map(([a, b]) => [+a.toFixed(5), +b.toFixed(5)]) };
+      const m = await measure(r.ll);
+      const h = { name: g.name, kind: g.kind, alt: g.alt, start: start.name, startAlt: m.startAlt, dist: m.dist, up: m.up, down: m.down, max: m.max, hours: m.hours, offEnd: r.offEnd, path: m.path };
       h.cls = classify(h); list.push(h);
       try { localStorage.setItem(storeKey, JSON.stringify({ built: Date.now(), hikes: list })); } catch { }
     } catch { /* no path to this goal: left out */ }

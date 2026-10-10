@@ -5,9 +5,9 @@
 // Every piece fetched is kept on the device (Cache Storage, offline) within a size limit the owner chooses; the
 // oldest-used pieces are dropped first. Decoding runs in workers (lidar-worker.js).
 import * as THREE from 'three';
-import { lonLatToWorld, l93ToLonLat, lonLatToL93, worldToLonLat, lonLatToTile } from './geo.js?v=202610101101';
-import { cachedFetch, netFetch, TransientError } from './net.js?v=202610101101';
-import { photoUrl } from './terrain.js?v=202610101101';
+import { lonLatToWorld, l93ToLonLat, lonLatToL93, worldToLonLat, lonLatToTile } from './geo.js?v=202610101118';
+import { cachedFetch, netFetch, TransientError } from './net.js?v=202610101118';
+import { photoUrl } from './terrain.js?v=202610101118';
 
 const CACHE = 'midi3d-lidar-v1', INDEX = 'midi3d-lidar-index', LIMIT = 'midi3d-lidar-limit';
 export const LIMITS = [5e8, 2e9, 5e9]; // bytes the owner can allow on the device
@@ -208,7 +208,7 @@ export class PointCloud {
     if (!this.workers.length) {
       const n = Math.max(1, Math.min(3, (navigator.hardwareConcurrency || 4) - 2));
       for (let i = 0; i < n; i++) {
-        const w = new Worker(new URL('./lidar-worker.js?v=202610101101', import.meta.url));
+        const w = new Worker(new URL('./lidar-worker.js?v=202610101118', import.meta.url));
         w.onmessage = ({ data }) => { const j = this.jobs.get(data.id); this.jobs.delete(data.id); data.error ? j?.reject(new Error(data.error)) : j?.resolve(data); };
         this.workers.push(w);
       }

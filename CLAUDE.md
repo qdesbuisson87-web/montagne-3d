@@ -55,7 +55,11 @@ le temps et les tokens nécessaires. Ne jamais sacrifier la qualité pour aller 
   - Chiffres aller-retour par le même chemin (ce ne sont pas des boucles, c'est écrit) ; la ligne posée sur la carte fait l'aller-retour. « Y aller en voiture » ouvre Plans (iPhone) ou Google Maps jusqu'au parking.
   - Phrase tapée ou dite (reconnaissance vocale du navigateur, français, bouton micro si disponible) : mots-clés de niveau, type de but, durée (« moins de 2h30 », « demi-journée »), montée, distance, « près de moi », « autour de (lieu) » ; ce qui a été compris est réaffiché.
   - Testé : six phrases lues correctement ; « rando facile autour d'Annecy » (hors massifs de l'appli) → 9 randos en ~40 s. PAS testé : micro sur un vrai téléphone.
-- Reste possible : de vraies boucles (retour par un autre chemin).
+- Boucles (10/10, « le tour du lac de Divonne me fait partir de je ne sais où ») : `js/loops.js`, calculées quand on touche une rando (aussi dans le catalogue du massif, sauf haute montagne), gardées (`midi3d-loops-v1`).
+  - Lac : contour réel (BD TOPO plan_d_eau), 4 à 10 points sur la rive poussés de 25 m sur la terre, départ = parking le plus proche de l'eau, une requête IGN avec points de passage (`intermediates`, planner.js). Gardé si ≥ 55 % du chemin à moins de 200 m de l'eau et longueur ≤ 2,6 × rive + 1,5 km. Lac de Divonne : 3,2 km, fermé, 100 % au bord de l'eau.
+  - Sommet / col / refuge : montée par le chemin de la rando, descente par un autre lieu nommé à 0,4–3 km (4 essais), gardée si < 40 % de chemin commun et ≤ 2,5 × la montée. Mont Baron : 7,9 km par le col des Sauts (22 % commun) ; Mont Veyrier : pas d'autre chemin trouvé → aller-retour, dit.
+  - Sinon aller-retour par le même chemin, avec la raison.
+- Liseré blanc à la frontière (photo IGN lissée vers le blanc) : les pixels presque blancs à moins de 2 px du blanc pur prennent aussi l'image Sentinel-2.
 
 ## Bouton « Me localiser » (10/10/2026, « j'ai l'impression qu'il ne fonctionne pas sur mon tel »)
 - Cause : aucun retour visible. Les erreurs (refus, GPS coupé, lenteur) ne s'écrivaient que dans l'onglet Rando, et la première position précise peut prendre plus de 30 s. Le bouton devenait juste bleu.

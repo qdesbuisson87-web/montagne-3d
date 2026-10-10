@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
-import { lonLatToWorld } from './geo.js?v=202610101121';
+import { lonLatToWorld } from './geo.js?v=202610101130';
 
 const STORE = 'midi3d-track', MIN_STEP = 6, MAX_ACC = 35; // metres
 
@@ -76,12 +76,21 @@ export class TrackRecorder {
 // hint: the sample reached last time. A line that passes twice by the same place (there and back, the start and
 // end of a loop) is followed forwards: looked for first just behind and ahead of the hint (up to 3 km on), and
 // anywhere else only if the walker is not near that stretch (a shortcut, a new start)
-export function progressOn(samples, x, z, hint = null) {
+// walked: metres already walked (the recording), to tell the way out from the way back when nothing else says it
+export function progressOn(samples, x, z, hint = null, walked = null) {
   if (!samples?.length) return null;
   let best = Infinity, bi = 0;
   const near = (i0, i1) => { for (let i = Math.max(0, i0); i <= Math.min(samples.length - 1, i1); i++) { const d = Math.hypot(samples[i].x - x, samples[i].z - z); if (d < best) { best = d; bi = i; } } };
   if (hint != null) near(hint - 10, hint + 300);
-  if (hint == null || best > 80) { best = Infinity; near(0, samples.length - 1); }
+  if (hint == null || best > 80) {
+    best = Infinity; near(0, samples.length - 1);
+    // several passes near here: the one whose distance along the line is nearest the distance walked
+    if (walked != null && best < 80) {
+      let pick = bi, gap = Infinity;
+      for (let i = 0; i < samples.length; i++) { const d = Math.hypot(samples[i].x - x, samples[i].z - z), g = Math.abs(samples[i].d - walked); if (d < Math.max(80, best + 20) && g < gap) { gap = g; pick = i; } }
+      bi = pick; best = Math.hypot(samples[bi].x - x, samples[bi].z - z);
+    }
+  }
   // climb and DIN 33466 time of a stretch of the samples
   const part = (i0, i1) => {
     let up = 0, down = 0, ref = samples[i0].h, dist = 0;

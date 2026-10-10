@@ -1,46 +1,46 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610101121';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610101121';
-import { SITE, SITE_LIST } from './sites.js?v=202610101121';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610101121';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610101121';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610101121';
-import { searchPlaces } from './search.js?v=202610101121';
-import { TerrainShadows } from './shadows.js?v=202610101121';
-import { PostFX } from './post.js?v=202610101121';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610101121';
-import { Forest } from './forest.js?v=202610101121';
-import { Lakes } from './water.js?v=202610101121';
-import { Glaciers } from './glaciers.js?v=202610101121';
-import { makeSite, removeSite, customSites } from './custom.js?v=202610101121';
-import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610101121';
-import { Streams } from './streams.js?v=202610101121';
-import { Refuges } from './refuges.js?v=202610101121';
-import { NightLights } from './lights.js?v=202610101121';
-import { Buildings } from './buildings.js?v=202610101121';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610101121';
-import { PLACE_KINDS, loadMyPlaces, saveMyPlaces, listOutings, putOuting, deleteOuting, thin, totals, backup, restore } from './mydata.js?v=202610101121';
-import { loadPlanned, savePlanned, scheduleReminders, cancelReminders, reminderTopic, leaveAt } from './planned.js?v=202610101121';
-import { junctions, say } from './guide.js?v=202610101121';
-import { TrackRecorder, progressOn } from './track.js?v=202610101121';
-import { GpsTracker } from './gps.js?v=202610101121';
-import { RouteLayer, resamplePath, pathStats, netString } from './route.js?v=202610101121';
-import { liftPlans, altitudes } from './liftplan.js?v=202610101121';
-import { walkingRoute } from './planner.js?v=202610101121';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES, hikesAround } from './hikes.js?v=202610101121';
-import { hikesNear, parseQuery, matches } from './nearby.js?v=202610101121';
-import { makeLoop } from './loops.js?v=202610101121';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610101121';
-import { TrailsLayer } from './trails.js?v=202610101121';
-import { Weather3D } from './weather3d.js?v=202610101121';
-import { Sight } from './sight.js?v=202610101121';
-import { Photos360 } from './photos360.js?v=202610101121';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610101121';
-import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, routeForecast, cloudProfile, SPOTS } from './live.js?v=202610101121';
-import { VolumeClouds } from './clouds.js?v=202610101121';
-import { LiveShare, LiveFollow } from './share.js?v=202610101121';
-import { NightSky } from './sky.js?v=202610101121';
-import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise, walkability, exposure, skiStats, SKI_BINS } from './routebook.js?v=202610101121';
+import { EarthControls } from './controls.js?v=202610101130';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610101130';
+import { SITE, SITE_LIST } from './sites.js?v=202610101130';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610101130';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610101130';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610101130';
+import { searchPlaces } from './search.js?v=202610101130';
+import { TerrainShadows } from './shadows.js?v=202610101130';
+import { PostFX } from './post.js?v=202610101130';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610101130';
+import { Forest } from './forest.js?v=202610101130';
+import { Lakes } from './water.js?v=202610101130';
+import { Glaciers } from './glaciers.js?v=202610101130';
+import { makeSite, removeSite, customSites } from './custom.js?v=202610101130';
+import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610101130';
+import { Streams } from './streams.js?v=202610101130';
+import { Refuges } from './refuges.js?v=202610101130';
+import { NightLights } from './lights.js?v=202610101130';
+import { Buildings } from './buildings.js?v=202610101130';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610101130';
+import { PLACE_KINDS, loadMyPlaces, saveMyPlaces, listOutings, putOuting, deleteOuting, thin, totals, backup, restore } from './mydata.js?v=202610101130';
+import { loadPlanned, savePlanned, scheduleReminders, cancelReminders, reminderTopic, leaveAt } from './planned.js?v=202610101130';
+import { junctions, say } from './guide.js?v=202610101130';
+import { TrackRecorder, progressOn } from './track.js?v=202610101130';
+import { GpsTracker } from './gps.js?v=202610101130';
+import { RouteLayer, resamplePath, pathStats, netString } from './route.js?v=202610101130';
+import { liftPlans, altitudes } from './liftplan.js?v=202610101130';
+import { walkingRoute } from './planner.js?v=202610101130';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES, hikesAround } from './hikes.js?v=202610101130';
+import { hikesNear, parseQuery, matches } from './nearby.js?v=202610101130';
+import { makeLoop } from './loops.js?v=202610101130';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610101130';
+import { TrailsLayer } from './trails.js?v=202610101130';
+import { Weather3D } from './weather3d.js?v=202610101130';
+import { Sight } from './sight.js?v=202610101130';
+import { Photos360 } from './photos360.js?v=202610101130';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610101130';
+import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, routeForecast, cloudProfile, SPOTS } from './live.js?v=202610101130';
+import { VolumeClouds } from './clouds.js?v=202610101130';
+import { LiveShare, LiveFollow } from './share.js?v=202610101130';
+import { NightSky } from './sky.js?v=202610101130';
+import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise, walkability, exposure, skiStats, SKI_BINS } from './routebook.js?v=202610101130';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -1293,9 +1293,16 @@ function tripFix() {
   const p = gps.pos; if (!p) { renderTrip(); return; }
   track.addFix(p); liveShare.fix(p);
   // followed forwards along the line (there and back, loops); a new itinerary starts from its beginning
-  if (trip.progKey !== routeKey) { trip.progKey = routeKey; trip.progIdx = null; }
-  const prog = route.samples.length > 1 ? progressOn(route.samples, p.x, p.z, trip.progIdx) : null;
-  if (prog && prog.off < 80) trip.progIdx = prog.index;
+  // kept on the device too: the app closed (screen locked) on the way back, it knows again where one is on reopening
+  if (trip.progKey !== routeKey) {
+    trip.progKey = routeKey; trip.progIdx = null;
+    try { const s = JSON.parse(localStorage.getItem('midi3d-progress') || 'null'); if (s?.key === routeKey) trip.progIdx = s.index; } catch { }
+  }
+  const prog = route.samples.length > 1 ? progressOn(route.samples, p.x, p.z, trip.progIdx, track.recording ? track.stats()?.dist ?? null : null) : null;
+  if (prog && prog.off < 80 && prog.index !== trip.progIdx) {
+    trip.progIdx = prog.index;
+    try { localStorage.setItem('midi3d-progress', JSON.stringify({ key: routeKey, index: prog.index })); } catch { }
+  }
   // off the itinerary: farther than 60 m beyond the GPS uncertainty on three fixes in a row
   if (prog && prog.off > 60 + p.acc) { if (++trip.off >= 3 && !trip.offAlert) { trip.offAlert = true; buzz([200, 100, 200]); } }
   else { trip.off = 0; trip.offAlert = false; }

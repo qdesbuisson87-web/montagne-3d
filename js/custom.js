@@ -3,7 +3,7 @@
 // altitudes), the weather is taken at four heights (the point, the highest summit, mid-slope, the lowest inhabited
 // place nearby), and the avalanche bulletin's massif is found with the owner's Météo-France key when there is one.
 // Read back by sites.js on the next opening (?site=<id>).
-import { cachedFetch, timedFetch } from './net.js?v=202610101130';
+import { cachedFetch, timedFetch } from './net.js?v=202610101153';
 const STORE = 'midi3d-custom-sites';
 const WFS = (layer, cql, [w, s, e, n]) => `https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=${layer}&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=500`
   + `&CQL_FILTER=${encodeURIComponent(`${cql} AND BBOX(geometrie,${w},${s},${e},${n},'EPSG:4326')`)}`;
@@ -51,7 +51,15 @@ export async function makeSite(lon, lat, name, braKey, onStep = () => { }) {
   const pa = await altitudes(peaks.map(p => p.ll)), va = villages.length ? await altitudes(villages.map(v => v.ll)) : [];
   peaks.forEach((p, i) => { p.alt = pa[i]; }); villages.forEach((v, i) => { v.alt = va[i]; });
   // no name given: the nearest named summit within ~1.5 km, else a plain label
-  if (!name) { const near = peaks.map(p => ({ p, d: Math.hypot((p.ll[0] - lon) * Math.cos(lat * Math.PI / 180), p.ll[1] - lat) })).sort((a, b) => a.d - b.d)[0]; name = near && near.d < 0.014 ? near.p.name : 'Lieu choisi'; }
+  // no name given: the nearest named summit within ~1.5 km, else the commune the point is in ("Autour d'Annecy")
+  if (!name) {
+    const near = peaks.map(p => ({ p, d: Math.hypot((p.ll[0] - lon) * Math.cos(lat * Math.PI / 180), p.ll[1] - lat) })).sort((a, b) => a.d - b.d)[0];
+    if (near && near.d < 0.014) name = near.p.name;
+    else {
+      const c = await json(WFS('BDTOPO_V3:commune', 'nom_officiel IS NOT NULL', [lon - 0.0001, lat - 0.0001, lon + 0.0001, lat + 0.0001])).catch(() => null), town = c?.features?.[0]?.properties?.nom_officiel;
+      name = town ? `Autour ${/^[aeiouyhâéèêîôû]/i.test(town) ? "d'" : 'de '}${town}` : 'Lieu choisi';
+    }
+  }
   const top = peaks.filter(p => p.alt).sort((a, b) => b.alt - a.alt), valley = villages.filter(v => v.alt).sort((a, b) => a.alt - b.alt)[0];
   const peak2 = top.find(p => Math.hypot(p.ll[0] - lon, p.ll[1] - lat) > 0.005) ?? { name, ll: [lon, lat], alt };
   const low = valley ?? { name: 'Vallée', ll: [lon + 0.05, lat + 0.03], alt: Math.max(400, alt - 1500) };

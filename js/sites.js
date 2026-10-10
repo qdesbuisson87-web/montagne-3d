@@ -131,8 +131,15 @@ const SITES = {
 
 // massifs made on the device (custom.js), kept with the others
 try { Object.assign(SITES, JSON.parse(localStorage.getItem('midi3d-custom-sites') || '{}')); } catch { }
+// Opened without a massif in the address: the massif nearest to where the device was last (the app then comes onto
+// my position, app.js autoLocate); a massif named in the address (shared link, a massif chosen) wins
+const kmBetween = (a, b) => { const r = Math.PI / 180, x = (b.lon - a.lon) * r * Math.cos((a.lat + b.lat) * r / 2), y = (b.lat - a.lat) * r; return Math.hypot(x, y) * 6371; };
+export function nearestSite(p) { let best = null; for (const s of Object.values(SITES)) { const d = kmBetween(p, s.origin); if (!best || d < best.km) best = { id: s.id, km: d }; } return best; }
 let pick = 'midi';
-try { pick = new URLSearchParams(location.search).get('site') || localStorage.getItem('midi3d-site') || 'midi'; } catch { }
+try {
+  const asked = new URLSearchParams(location.search).get('site'), last = JSON.parse(localStorage.getItem('midi3d-last-pos') || 'null');
+  pick = asked || (last ? nearestSite(last)?.id : null) || localStorage.getItem('midi3d-site') || 'midi';
+} catch { }
 export const SITE = SITES[pick] || SITES.midi;
 try { localStorage.setItem('midi3d-site', SITE.id); } catch { }
 export const SITE_LIST = Object.values(SITES).map(s => ({ id: s.id, name: s.name, region: s.region, alt: s.alt, custom: !!s.custom }));

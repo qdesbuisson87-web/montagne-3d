@@ -1,46 +1,46 @@
 import * as THREE from 'three';
-import { EarthControls } from './controls.js?v=202610101130';
-import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610101130';
-import { SITE, SITE_LIST } from './sites.js?v=202610101130';
-import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610101130';
-import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610101130';
-import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610101130';
-import { searchPlaces } from './search.js?v=202610101130';
-import { TerrainShadows } from './shadows.js?v=202610101130';
-import { PostFX } from './post.js?v=202610101130';
-import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610101130';
-import { Forest } from './forest.js?v=202610101130';
-import { Lakes } from './water.js?v=202610101130';
-import { Glaciers } from './glaciers.js?v=202610101130';
-import { makeSite, removeSite, customSites } from './custom.js?v=202610101130';
-import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610101130';
-import { Streams } from './streams.js?v=202610101130';
-import { Refuges } from './refuges.js?v=202610101130';
-import { NightLights } from './lights.js?v=202610101130';
-import { Buildings } from './buildings.js?v=202610101130';
-import { fetchBera, beraKey, RISK } from './bera.js?v=202610101130';
-import { PLACE_KINDS, loadMyPlaces, saveMyPlaces, listOutings, putOuting, deleteOuting, thin, totals, backup, restore } from './mydata.js?v=202610101130';
-import { loadPlanned, savePlanned, scheduleReminders, cancelReminders, reminderTopic, leaveAt } from './planned.js?v=202610101130';
-import { junctions, say } from './guide.js?v=202610101130';
-import { TrackRecorder, progressOn } from './track.js?v=202610101130';
-import { GpsTracker } from './gps.js?v=202610101130';
-import { RouteLayer, resamplePath, pathStats, netString } from './route.js?v=202610101130';
-import { liftPlans, altitudes } from './liftplan.js?v=202610101130';
-import { walkingRoute } from './planner.js?v=202610101130';
-import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES, hikesAround } from './hikes.js?v=202610101130';
-import { hikesNear, parseQuery, matches } from './nearby.js?v=202610101130';
-import { makeLoop } from './loops.js?v=202610101130';
-import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610101130';
-import { TrailsLayer } from './trails.js?v=202610101130';
-import { Weather3D } from './weather3d.js?v=202610101130';
-import { Sight } from './sight.js?v=202610101130';
-import { Photos360 } from './photos360.js?v=202610101130';
-import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610101130';
-import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, routeForecast, cloudProfile, SPOTS } from './live.js?v=202610101130';
-import { VolumeClouds } from './clouds.js?v=202610101130';
-import { LiveShare, LiveFollow } from './share.js?v=202610101130';
-import { NightSky } from './sky.js?v=202610101130';
-import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise, walkability, exposure, skiStats, SKI_BINS } from './routebook.js?v=202610101130';
+import { EarthControls } from './controls.js?v=202610101153';
+import { lonLatToWorld, worldToLonLat, lonLatToTile, ORIGIN } from './geo.js?v=202610101153';
+import { SITE, SITE_LIST, nearestSite } from './sites.js?v=202610101153';
+import { TerrainEngine, EPOCHS, GRID, photoUrl, terrariumUrl, elevRequest, LIDAR_LAYER } from './terrain.js?v=202610101153';
+import { cachedFetch, TILE_CACHE, resetTileCache } from './net.js?v=202610101153';
+import { GoogleTiles, googleKey, whyRefused } from './google3d.js?v=202610101153';
+import { searchPlaces } from './search.js?v=202610101153';
+import { TerrainShadows } from './shadows.js?v=202610101153';
+import { PostFX } from './post.js?v=202610101153';
+import { SkyBaker, SKY_LOOKUP_GLSL, skyColors } from './atmosphere.js?v=202610101153';
+import { Forest } from './forest.js?v=202610101153';
+import { Lakes } from './water.js?v=202610101153';
+import { Glaciers } from './glaciers.js?v=202610101153';
+import { makeSite, removeSite, customSites } from './custom.js?v=202610101153';
+import { Pistes, PISTE_LEGEND } from './pistes.js?v=202610101153';
+import { Streams } from './streams.js?v=202610101153';
+import { Refuges } from './refuges.js?v=202610101153';
+import { NightLights } from './lights.js?v=202610101153';
+import { Buildings } from './buildings.js?v=202610101153';
+import { fetchBera, beraKey, RISK } from './bera.js?v=202610101153';
+import { PLACE_KINDS, loadMyPlaces, saveMyPlaces, listOutings, putOuting, deleteOuting, thin, totals, backup, restore } from './mydata.js?v=202610101153';
+import { loadPlanned, savePlanned, scheduleReminders, cancelReminders, reminderTopic, leaveAt } from './planned.js?v=202610101153';
+import { junctions, say } from './guide.js?v=202610101153';
+import { TrackRecorder, progressOn } from './track.js?v=202610101153';
+import { GpsTracker } from './gps.js?v=202610101153';
+import { RouteLayer, resamplePath, pathStats, netString } from './route.js?v=202610101153';
+import { liftPlans, altitudes } from './liftplan.js?v=202610101153';
+import { walkingRoute } from './planner.js?v=202610101153';
+import { buildHikes, loadHikes, hikePath, classify, CLASS_NAMES, hikesAround } from './hikes.js?v=202610101153';
+import { hikesNear, parseQuery, matches } from './nearby.js?v=202610101153';
+import { makeLoop } from './loops.js?v=202610101153';
+import { loadC2C, prepare as prepareC2C, FILTERS as C2C_FILTERS, CONDITIONS as C2C_COND, ratingText, activityText, matches as c2cMatches, lineOf as c2cLine, snowText } from './c2c.js?v=202610101153';
+import { TrailsLayer } from './trails.js?v=202610101153';
+import { Weather3D } from './weather3d.js?v=202610101153';
+import { Sight } from './sight.js?v=202610101153';
+import { Photos360 } from './photos360.js?v=202610101153';
+import { PointCloud, POINT_CLASSES, LIMITS } from './lidar.js?v=202610101153';
+import { radarFrames, fetchWeather, findSentinel, sentinelYear, sunPosition, sunTimes, moonPosition, pointForecast, routeForecast, cloudProfile, SPOTS } from './live.js?v=202610101153';
+import { VolumeClouds } from './clouds.js?v=202610101153';
+import { LiveShare, LiveFollow } from './share.js?v=202610101153';
+import { NightSky } from './sky.js?v=202610101153';
+import { loadBook, saveBook, routeFacts, nightSpots, stages, whenToLeave, sunrise, walkability, exposure, skiStats, SKI_BINS } from './routebook.js?v=202610101153';
 THREE.ColorManagement.enabled = false;
 
 const $ = id => document.getElementById(id);
@@ -612,7 +612,7 @@ function showRefuge(r) {
 }
 
 // ---------- site: header, links, switcher ----------
-document.title = `${SITE.name} 3D`;
+document.title = `${SITE.name} · Altipik`;
 $('siteRegion').textContent = SITE.region; $('siteName').textContent = SITE.name; $('siteAlt').textContent = `${fmt(SITE.alt)} m`;
 $('loaderTitle').textContent = SITE.name; $('home').setAttribute('aria-label', `Revenir à ${SITE.name}`);
 $('links').innerHTML = SITE.links.map(([u, t]) => `<li><a href="${u}" target="_blank" rel="noopener">${esc(t)}</a></li>`).join('');
@@ -1246,6 +1246,28 @@ $('gpsFab').addEventListener('click', () => {
 });
 // the map moved by hand: it stops following
 controls.addEventListener('start', () => { if (gpsUi.follow) { gpsUi.follow = false; gpsButton(); } });
+// Opening on my position: the GPS is asked at start (unless a link says where to look), the view comes onto me, and
+// the position is kept for the next opening (sites.js opens the nearest massif). Far from every massif (> 40 km),
+// within the first minute: the nearest one within 40 km is opened, or else a zone is made around me (France),
+// never while recording an outing or drawing.
+const AUTO_KM = 40, openedAt = Date.now();
+let autoDone = false;
+const kmTo2 = (a, b) => { const r = Math.PI / 180, x = (b.lon - a.lon) * r * Math.cos((a.lat + b.lat) * r / 2), y = (b.lat - a.lat) * r; return Math.hypot(x, y) * 6371; };
+function autoLocate() {
+  const q = new URLSearchParams(location.search); if (q.has('vue') || q.has('suivre')) return;
+  gpsUi.asked = true; gpsUi.follow = true; gpsCentered = false; gps.start(); gpsButton();
+}
+async function arrived(p) {
+  try { localStorage.setItem('midi3d-last-pos', JSON.stringify({ lon: +p.lon.toFixed(4), lat: +p.lat.toFixed(4) })); } catch { }
+  if (autoDone || p.rough && p.acc > 3000) return; autoDone = true;
+  if (kmTo2(p, SITE.origin) <= AUTO_KM || Date.now() - openedAt > 60e3 || track.recording || draw.on || new URLSearchParams(location.search).has('site')) return;
+  const near = nearestSite(p);
+  if (near && near.km <= AUTO_KM) { toast('Ouverture du massif le plus proche de toi…', false, 3000); setTimeout(() => { location.href = `?site=${near.id}`; }, 800); return; }
+  if (!(p.lon > -5.3 && p.lon < 9.7 && p.lat > 41.3 && p.lat < 51.2)) { toast('Hors de France : la carte vient sur toi, mais les données IGN (sentiers, relief fin) manquent.', true, 6000); return; }
+  toast('Préparation de la carte autour de toi (sommets, météo)… quelques secondes.', false, 15000);
+  try { const s = await makeSite(p.lon, p.lat, null, beraKey.get(), t => { $('makeNote').textContent = t; }); location.href = `?site=${s.id}`; }
+  catch (e) { toast(`Zone autour de toi impossible à préparer (${why(e)}) : la carte vient quand même sur toi.`, true, 6000); }
+}
 function renderGps() {
   const on = gps.on; $('gpsGo').textContent = on ? 'Arrêter la localisation' : 'Me localiser';
   const p = gps.pos;
@@ -1253,6 +1275,7 @@ function renderGps() {
     gpsUi.said = gps.errorCode;
     if (gps.errorCode === 1) { toast(deniedHelp(), true, 12000); gps.stop(); } else toast(gps.error, gps.errorCode !== 3, 6000);
   }
+  if (p && (!p.rough || p.acc < 3000)) arrived(p);
   if (p && gpsUi.asked && !gpsUi.found) { gpsUi.found = true; toast(`Te voilà${p.rough ? " (position approximative, le GPS l'affine)" : ''} : à ±${fmt(p.acc)} m.`, false, 3500); }
   if (!on) gpsUi.found = false;
   // following: the view glides to me when I have moved more than 15 m
@@ -2179,7 +2202,7 @@ $('d-mydata').addEventListener('toggle', renderMyData);
 $('dataSave').addEventListener('click', async () => {
   const data = await backup(), a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
-  a.download = `montagne-3d-sauvegarde-${isoDay(new Date())}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  a.download = `altipik-sauvegarde-${isoDay(new Date())}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   toast('Sauvegarde enregistrée dans tes téléchargements.');
 });
 $('dataLoad').addEventListener('change', async e => {
@@ -3344,7 +3367,7 @@ function drawFrame() {
   if (!started && (engine.roots.filter(r => r.state === 'ready').length >= engine.roots.length * 0.6 || (google.on && t > 3))) {
     started = true; $('loader').classList.add('done');
     // a followed position is the first thing to show; then a shared view; else the summit
-    if (follow?.last) { followFlown = true; flyToLonLat(follow.last.lon, follow.last.lat); pin = null; } else if (!sharedView()) home();
+    if (follow?.last) { followFlown = true; flyToLonLat(follow.last.lon, follow.last.lat); pin = null; } else if (!sharedView()) { home(); autoLocate(); }
     // the first opening on a device: how to move around, said once
     let seen = true; try { seen = localStorage.getItem('midi3d-hello') === '1'; localStorage.setItem('midi3d-hello', '1'); } catch { }
     if (!seen) setTimeout(() => toast(matchMedia('(pointer: coarse)').matches ? 'Un doigt déplace la carte, deux doigts zooment, tournent et inclinent. Touche le relief pour sa météo.' : 'Glisser : déplacer · molette : zoomer · clic droit : tourner et incliner. Clique le relief pour sa météo.', false, 8000), 3500);

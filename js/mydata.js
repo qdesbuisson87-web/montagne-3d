@@ -54,11 +54,11 @@ const SECRET = /^midi3d-(google-key|mf-key|ntfy-topic|share|lidar-index|sight-of
 export async function backup() {
   const local = {};
   for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith('midi3d-') && !SECRET.test(k)) local[k] = localStorage.getItem(k); }
-  return { app: 'Montagne 3D', version: 1, saved: new Date().toISOString(), local, outings: await listOutings().catch(() => []) };
+  return { app: 'Altipik', version: 1, saved: new Date().toISOString(), local, outings: await listOutings().catch(() => []) };
 }
 // reads a backup back: what is in the file replaces the same entries here, the rest is kept
 export async function restore(data) {
-  if (data?.app !== 'Montagne 3D' || typeof data.local !== 'object') throw new Error("ce fichier n'est pas une sauvegarde de Montagne 3D");
+  if (!['Altipik', 'Montagne 3D'].includes(data?.app) || typeof data.local !== 'object') throw new Error("ce fichier n'est pas une sauvegarde d'Altipik");
   let n = 0;
   for (const [k, v] of Object.entries(data.local)) if (k.startsWith('midi3d-') && !SECRET.test(k) && typeof v === 'string') { localStorage.setItem(k, v); n++; }
   for (const o of data.outings ?? []) if (o?.id) { await putOuting(o); n++; }
